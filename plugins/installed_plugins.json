@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "plugins": {
+    "n8n-mcp-skills@n8n-mcp-skills": [
+      {
+        "scope": "user",
+        "installPath": "/home/hellotalk/.claude/plugins/cache/n8n-mcp-skills/n8n-mcp-skills/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-01-08T04:13:29.987Z",
+        "lastUpdated": "2026-01-08T04:13:29.987Z",
+        "gitCommitSha": "02f2e2f3ad35e63d1734e08cf372fea4153d92ce"
+      }
+    ],
+    "code-review@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/hellotalk/.claude/plugins/cache/claude-plugins-official/code-review/113b335d11ae",
+        "version": "113b335d11ae",
+        "installedAt": "2026-01-08T07:06:31.730Z",
+        "lastUpdated": "2026-01-08T07:06:53.022Z",
+        "gitCommitSha": "02f2e2f3ad35e63d1734e08cf372fea4153d92ce"
+      }
+    ],
+    "kiro-skill@claude-code-settings": [
+      {
+        "scope": "user",
+        "installPath": "/home/hellotalk/.claude/plugins/cache/claude-code-settings/kiro-skill/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-01-08T07:14:19.573Z",
+        "lastUpdated": "2026-01-08T07:14:19.573Z",
+        "gitCommitSha": "02f2e2f3ad35e63d1734e08cf372fea4153d92ce"
+      }
+    ],
+    "gopls-lsp@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/hellotalk/.claude/plugins/cache/claude-plugins-official/gopls-lsp/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-01-08T07:26:33.190Z",
+        "lastUpdated": "2026-01-08T07:26:33.190Z",
+        "gitCommitSha": "02f2e2f3ad35e63d1734e08cf372fea4153d92ce"
+      }
+    ]
+  }
+}

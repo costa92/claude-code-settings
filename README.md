@@ -75,6 +75,25 @@ Open the link, log in and authenticate your GitHub Copilot account.
 
    - ANTHROPIC_DEFAULT_HAIKU_MODEL: gpt-5-mini
 
+### Quick Start: MCP Configuration
+
+To enable MCP servers, create `~/.claude/.mcp.json`:
+
+```bash
+cat > ~/.claude/.mcp.json << 'EOF'
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "type": "stdio"
+    }
+  }
+}
+EOF
+```
+
+See [MCP Servers Configuration](#mcp-servers-configuration) section for detailed setup and available servers.
 
 ## Commands
 
@@ -384,9 +403,251 @@ Using Claude Code with OpenRouter API. OpenRouter provides access to many models
 
 </details>
 
+## MCP Servers Configuration
+
+Claude Code supports [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers to extend functionality with external tools and services.
+
+### Configuration File Location
+
+MCP servers are configured in:
+
+```
+~/.claude/.mcp.json
+```
+
+**Note**: This is a hidden file (starts with `.`) inside the `~/.claude/` directory, not to be confused with:
+
+- `~/.claude/config.json` (main configuration)
+- `~/.claude/settings.json` (environment variables)
+- `~/.claude.json` (global user settings in home directory)
+
+**Create the file**:
+
+```bash
+# Method 1: Using cat with heredoc
+cat > ~/.claude/.mcp.json << 'EOF'
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "type": "stdio"
+    }
+  }
+}
+EOF
+
+# Method 2: Using your editor
+vim ~/.claude/.mcp.json   # or code/nano/etc.
+
+# Method 3: Copy from template (if you cloned this repo)
+cp ~/.claude/.mcp.json.example ~/.claude/.mcp.json  # Edit as needed
+```
+
+### Setup MCP Servers
+
+Create or edit `~/.claude/.mcp.json` to configure MCP servers:
+
+```json
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "type": "stdio",
+      "env": {}
+    },
+    "n8n-mcp": {
+      "command": "npx",
+      "args": ["n8n-mcp"],
+      "env": {
+        "MCP_MODE": "stdio",
+        "N8N_API_KEY": "<your-n8n-api-key>",
+        "N8N_API_URL": "https://your-n8n-instance.com"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"],
+      "type": "stdio",
+      "env": {}
+    }
+  }
+}
+```
+
+### Popular MCP Servers
+
+<details>
+<summary>Documentation & Search</summary>
+
+**Context7** - Query latest library documentation
+
+```json
+{
+  "context7": {
+    "command": "npx",
+    "args": ["-y", "@upstash/context7-mcp"],
+    "type": "stdio"
+  }
+}
+```
+
+**Web Search Servers** (alternatives to Anthropic's WebSearch tool):
+
+- [Tavily MCP](https://docs.tavily.com/documentation/mcp) - AI-optimized search API
+- [Brave MCP](https://github.com/brave/brave-search-mcp-server) - Privacy-focused search
+- [Firecrawl MCP](https://docs.firecrawl.dev/mcp-server) - Web scraping and search
+- [DuckDuckGo MCP](https://github.com/nickclyde/duckduckgo-mcp-server) - Privacy search
+
+</details>
+
+<details>
+<summary>Workflow Automation</summary>
+
+**n8n MCP** - n8n workflow management
+
+```json
+{
+  "n8n-mcp": {
+    "command": "npx",
+    "args": ["n8n-mcp"],
+    "env": {
+      "N8N_API_KEY": "<your-api-key>",
+      "N8N_API_URL": "https://your-instance.com"
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary>Browser Automation</summary>
+
+**Playwright MCP** - Browser automation and testing
+
+```json
+{
+  "playwright": {
+    "command": "npx",
+    "args": ["@playwright/mcp@latest"],
+    "type": "stdio"
+  }
+}
+```
+
+**Chrome DevTools MCP** - Chrome debugging
+
+```json
+{
+  "chrome": {
+    "command": "npx",
+    "args": ["chrome-devtools-mcp@latest"],
+    "type": "stdio"
+  }
+}
+```
+
+</details>
+
+### Configuration File Structure
+
+Understanding the Claude Code configuration files:
+
+```
+~/.claude/                              # Claude Code directory
+│
+├── .mcp.json                           # 🎯 MCP servers configuration
+│   └── Defines: context7, n8n-mcp, playwright, chrome
+│
+├── config.json                         # Main configuration
+│   └── primaryApiKey: "sk-dummy"
+│
+├── settings.json                       # Environment variables
+│   ├── ANTHROPIC_BASE_URL
+│   ├── ANTHROPIC_AUTH_TOKEN
+│   └── enabledPlugins
+│
+├── commands/                           # Custom commands
+├── skills/                             # Skills plugins
+├── agents/                             # Sub-agents
+└── debug/latest                        # Debug logs
+
+~/.claude.json                          # Global config (in home dir)
+└── customApiKeyResponses.approved      # API key approvals
+```
+
+**Key Points**:
+
+- `.mcp.json` - MCP servers only
+- `config.json` - Primary API key
+- `settings.json` - API endpoint, auth token, plugins
+- `.claude.json` - Global user preferences (different location!)
+
+### Verify MCP Configuration
+
+After creating `.mcp.json`, restart Claude Code and check debug logs:
+
+```bash
+# Check if MCP servers are loaded
+cat ~/.claude/debug/latest | grep -i "mcp"
+
+# Should see messages like:
+# [DEBUG] MCP server "context7": Successfully connected to stdio server
+# [DEBUG] MCP server "n8n-mcp": Connection established with capabilities
+```
+
+### Troubleshooting
+
+**MCP servers not loading:**
+
+1. Verify JSON syntax: `cat ~/.claude/.mcp.json | python3 -m json.tool`
+2. Check `npx` is installed: `which npx`
+3. Ensure `config.json` is valid (no trailing commas)
+4. Check debug logs: `~/.claude/debug/latest`
+5. Verify file location: `ls -la ~/.claude/.mcp.json`
+
+**Editing MCP configuration:**
+
+```bash
+# Open in editor
+vim ~/.claude/.mcp.json   # or code/nano
+
+# View current config
+cat ~/.claude/.mcp.json
+
+# Validate JSON format
+python3 -c "import json; json.load(open('$HOME/.claude/.mcp.json'))" && echo "✅ Valid JSON"
+
+# Check which servers are configured
+cat ~/.claude/.mcp.json | python3 -c "import sys, json; print('\n'.join(json.load(sys.stdin)['mcpServers'].keys()))"
+```
+
+**Adding a new MCP server:**
+
+```bash
+# Edit the file and add to mcpServers object
+vim ~/.claude/.mcp.json
+
+# Then restart Claude Code for changes to take effect
+```
+
+**API Key issues:**
+
+Ensure your API key is approved in `~/.claude.json`:
+
+```json
+{
+  "customApiKeyResponses": {
+    "approved": ["sk-dummy"]
+  }
+}
+```
+
 ## Limitations
 
-**WebSearch** tool in Claude Code is an [Anthropic specific tool,](https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/web-search-tool) and it is not available when you’re not using the official Anthropic API. Hence, if you need web search, you'd need to connect Claude Code with external web search MCP servers, e.g. [Tavily MCP](https://docs.tavily.com/documentation/mcp), [Brave MCP](https://github.com/brave/brave-search-mcp-server), [Firecrawl MCP](https://docs.firecrawl.dev/mcp-server) or [DuckDuckGo Search MCP](https://github.com/nickclyde/duckduckgo-mcp-server).
+**WebSearch** tool in Claude Code is an [Anthropic specific tool,](https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/web-search-tool) and it is not available when you're not using the official Anthropic API. Hence, if you need web search, you'd need to connect Claude Code with external web search MCP servers (see MCP Servers Configuration section above).
 
 ## FAQs
 

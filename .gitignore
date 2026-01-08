@@ -166,3 +166,6 @@ plans/*.md
 
 # Project specific
 WARP.md
+.mcp.json
+telemetry
+settings.json
