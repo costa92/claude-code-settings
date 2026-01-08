@@ -169,3 +169,5 @@ WARP.md
 .mcp.json
 telemetry
 settings.json
+cache/
+plugins/cache/

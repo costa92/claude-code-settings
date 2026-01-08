@@ -145,11 +145,13 @@ The `commands/` directory contains [custom slash commands](https://code.claude.c
 Skills are now distributed as separate plugins for modular installation. Install only what you need:
 
 <details>
-<summary>codex-skill - handoff task to Codex CLI</summary>
+<summary>codex-skill - Handoff tasks to OpenAI Codex/GPT</summary>
 
 ### [codex-skill](plugins/codex-skill)
 
-Non-interactive automation mode for hands-off task execution using OpenAI Codex. Use when you want to leverage codex, gpt-5, or gpt-5.1 to implement features or plans designed by Claude.
+Non-interactive automation mode for hands-off task execution using OpenAI Codex/GPT models. Use when you want to leverage gpt-5, gpt-5.2, or codex to implement features or plans designed by Claude.
+
+**Triggered by**: "codex", "use gpt", "gpt-5", "gpt-5.2", "let openai", "full-auto", "用codex", "让gpt实现"
 
 **Installation:**
 
@@ -161,7 +163,7 @@ Non-interactive automation mode for hands-off task execution using OpenAI Codex.
 **Key Features:**
 
 - Multiple execution modes (read-only, workspace-write, danger-full-access)
-- Model selection support (gpt-5, gpt-5.1, gpt-5.1-codex, etc.)
+- Model selection support (gpt-5, gpt-5.2, gpt-5.2-codex, etc.)
 - Autonomous execution without approval prompts
 - JSON output support for structured results
 - Resumable sessions
@@ -176,6 +178,8 @@ Non-interactive automation mode for hands-off task execution using OpenAI Codex.
 ### [autonomous-skill](plugins/autonomous-skill)
 
 Execute complex, long-running tasks across multiple sessions using a dual-agent pattern (Initializer + Executor) with automatic session continuation.
+
+**Triggered by**: "autonomous", "long-running task", "multi-session", "自主执行", "长时任务", "autonomous skill"
 
 **Installation:**
 
@@ -204,11 +208,13 @@ Claude: [Creates .autonomous/build-rest-api-todo/, initializes task list, starts
 </details>
 
 <details>
-<summary>nanobanana-skill - draw image with Gemini nanobanana</summary>
+<summary>nanobanana-skill - AI image generation with Google Gemini</summary>
 
 ### [nanobanana-skill](plugins/nanobanana-skill)
 
 Generate or edit images using Google Gemini API via nanobanana. Use when creating, generating, or editing images.
+
+**Triggered by**: "nanobanana", "generate image", "create image", "edit image", "AI drawing", "图片生成", "AI绘图", "图片编辑", "生成图片"
 
 **Installation:**
 
@@ -239,6 +245,8 @@ Generate or edit images using Google Gemini API via nanobanana. Use when creatin
 
 Extract subtitles/transcripts from a YouTube video link.
 
+**Triggered by**: "youtube transcript", "extract subtitles", "video captions", "视频字幕", "字幕提取", "YouTube转文字", "提取字幕"
+
 **Installation:**
 
 ```sh
@@ -261,13 +269,13 @@ Extract subtitles/transcripts from a YouTube video link.
 </details>
 
 <details>
-<summary>kiro-skill - Interactive Feature Development</summary>
+<summary>kiro-skill - Interactive spec-driven feature development</summary>
 
-### [kiro-skill](./skills/kiro-skill)
+### [kiro-skill](plugins/kiro-skill)
 
-Interactive feature development workflow from idea to implementation.
+Interactive feature development workflow from idea to implementation with EARS requirements, design documents, and task lists.
 
-**Triggered by**: "kiro", or references to `.kiro/specs/` directory
+**Triggered by**: "kiro", ".kiro/specs/", "feature spec", "需求文档", "设计文档", "实现计划"
 
 **Installation:**
 
@@ -283,6 +291,8 @@ Interactive feature development workflow from idea to implementation.
 3. **Tasks** → Create actionable implementation steps (test-driven, incremental)
 4. **Execute** → Implement tasks one at a time
 
+**Storage**: Creates files in `.kiro/specs/{feature-name}/` directory
+
 **Usage**:
 
 ```text
@@ -293,13 +303,13 @@ Claude: [Automatically uses kiro-skill]
 </details>
 
 <details>
-<summary>spec-kit-skill - Constitution-Based Development</summary>
+<summary>spec-kit-skill - Constitution-based spec-driven development</summary>
 
-### [spec-kit-skill](./skills/spec-kit-skill)
+### [spec-kit-skill](plugins/spec-kit-skill)
 
-GitHub Spec-Kit integration for constitution-based spec-driven development.
+GitHub Spec-Kit integration for constitution-based spec-driven development with 7-phase workflow.
 
-**Triggered by**: "spec-kit", "speckit", "constitution", "specify", or references to `.specify/` directory
+**Triggered by**: "spec-kit", "speckit", "constitution", "specify", ".specify/", "规格驱动开发", "需求规格"
 
 **Installation:**
 
@@ -328,12 +338,77 @@ specify init . --ai claude
 6. **Analyze** → Validate consistency (read-only)
 7. **Implement** → Execute implementation
 
+**Storage**: Creates files in `.specify/specs/NNN-feature-name/` directory
+
 **Usage**:
 
 ```text
 You: "Let's create a constitution for this project"
 Claude: [Automatically uses spec-kit-skill, detects CLI, guides through phases]
 ```
+
+</details>
+
+<details>
+<summary>n8n-workflow-patterns - Proven n8n workflow patterns</summary>
+
+### [n8n-workflow-patterns](skills/n8n-workflow-patterns)
+
+Proven architectural patterns for building n8n workflows, covering the 5 most common workflow types.
+
+**Triggered by**: "workflow pattern", "n8n pattern", "webhook processing", "http api", "database sync", "ai agent", "scheduled task", "workflow architecture"
+
+**Installation:**
+
+This skill is located in the `skills/` directory and is automatically available when using this repository setup.
+
+**The 5 Core Patterns:**
+
+1. **Webhook Processing** (Most Common - 35% of workflows)
+   - Receive HTTP requests → Process → Respond
+   - Pattern: Webhook → Validate → Transform → Respond/Notify
+
+2. **HTTP API Integration** (892+ templates)
+   - Fetch from REST APIs → Transform → Store/Use
+   - Pattern: Trigger → HTTP Request → Transform → Action → Error Handler
+
+3. **Database Operations** (456+ templates)
+   - Read/Write/Sync database data
+   - Pattern: Schedule → Query → Transform → Write → Verify
+
+4. **AI Agent Workflow** (234+ templates, 270 AI nodes)
+   - AI agents with tools and memory
+   - Pattern: Trigger → AI Agent (Model + Tools + Memory) → Output
+
+5. **Scheduled Tasks** (28% of workflows)
+   - Recurring automation workflows
+   - Pattern: Schedule → Fetch → Process → Deliver → Log
+
+**Key Features:**
+
+- Complete workflow creation checklist
+- Common gotchas and solutions
+- Data flow patterns (linear, branching, parallel, loops)
+- Error handling strategies
+- Integration with n8n MCP tools
+
+**Files:**
+
+- `SKILL.md` - Pattern overview and selection guide
+- `webhook_processing.md` - Webhook patterns and data structure
+- `http_api_integration.md` - REST APIs, pagination, rate limiting
+- `database_operations.md` - DB operations, batch processing, security
+- `ai_agent_workflow.md` - AI agents, tools, memory, connections
+- `scheduled_tasks.md` - Cron schedules, timezone, monitoring
+
+**Usage:**
+
+```text
+You: "How do I build a webhook workflow that processes Stripe payments?"
+Claude: [Uses n8n-workflow-patterns to guide you through webhook processing pattern]
+```
+
+**Requirements:** n8n-mcp MCP server configured for n8n API access
 
 </details>
 
