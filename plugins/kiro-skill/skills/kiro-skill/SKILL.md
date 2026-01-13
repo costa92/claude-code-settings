@@ -1,6 +1,6 @@
 ---
 name: kiro-skill
-description: Interactive feature development workflow from idea to implementation. Creates requirements (EARS format), design documents, and task lists. Triggers: "kiro", ".kiro/specs/", "feature spec", "需求文档", "设计文档", "实现计划".
+description: 'Interactive feature development workflow from idea to implementation. Creates requirements (EARS format), design documents, and task lists. Triggers: kiro, .kiro/specs/, feature spec, 需求文档, 设计文档, 实现计划.'
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash(ls:*), Bash(cat:*), Bash(mkdir:*), Bash(touch:*), Task, WebSearch, WebFetch
 ---
 

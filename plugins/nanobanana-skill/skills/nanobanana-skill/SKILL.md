@@ -1,6 +1,6 @@
 ---
 name: nanobanana-skill
-description: Generate or edit images using Google Gemini API via nanobanana. Triggers: "nanobanana", "generate image", "create image", "edit image", "AI drawing", "图片生成", "AI绘图", "图片编辑", "生成图片".
+description: 'Generate or edit images using Google Gemini API via nanobanana. Triggers: nanobanana, generate image, create image, edit image, AI drawing, 图片生成, AI绘图, 图片编辑, 生成图片.'
 allowed-tools: Read, Write, Glob, Grep, Task, Bash(cat:*), Bash(ls:*), Bash(tree:*), Bash(python3:*)
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: youtube-transcribe-skill
-description: Extract subtitles/transcripts from YouTube videos. Triggers: "youtube transcript", "extract subtitles", "video captions", "视频字幕", "字幕提取", "YouTube转文字", "提取字幕".
+description: 'Extract subtitles/transcripts from YouTube videos. Triggers: youtube transcript, extract subtitles, video captions, 视频字幕, 字幕提取, YouTube转文字, 提取字幕.'
 allowed-tools: Read, Write, Glob, Grep, Task, Bash(cat:*), Bash(ls:*), Bash(tree:*), Bash(yt-dlp:*), Bash(which:*), mcp__plugin_claude-code-settings_chrome__*
 ---
 

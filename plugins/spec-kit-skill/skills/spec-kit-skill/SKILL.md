@@ -1,6 +1,6 @@
 ---
 name: spec-kit-skill
-description: GitHub Spec-Kit integration for constitution-based spec-driven development. 7-phase workflow. Triggers: "spec-kit", "speckit", "constitution", "specify", ".specify/", "规格驱动开发", "需求规格".
+description: 'GitHub Spec-Kit integration for constitution-based spec-driven development. 7-phase workflow. Triggers: spec-kit, speckit, constitution, specify, .specify/, 规格驱动开发, 需求规格.'
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash(specify:*), Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(mkdir:*), Bash(git:*)
 ---
 
@@ -576,7 +576,7 @@ Generate dependency-ordered, actionable implementation tasks.
 # Check prerequisites
 .specify/scripts/bash/check-prerequisites.sh --json [--require-tasks] [--include-tasks]
 
-# Output: {"FEATURE_DIR": "/path", "AVAILABLE_DOCS": ["spec.md", "plan.md", ...]}
+# Output: {"FEATURE_DIR": "/path", "AVAILABLE_DOCS": ["spec.md", "plan.md", "data-model.md"]}
 ```
 
 ### Task Generation
