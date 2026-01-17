@@ -1,0 +1,313 @@
+Overview
+Personal
+Chat
+beta
+Templates
+Insights
+Help
+Settings
+1 item
+1 item
+1 item
+1 item
+1 item
+1 item
+1 item
+1 item
+2 items
+1 item
+1 item
+2 items
+
+
+
+
+
+On form submission
+
+Execute workflow
+
+
+
+
+
+Prepare Batch Metadata
+
+
+
+
+
+Find Year-Month Folder
+search: fileFolder
+true
+false
+
+
+
+
+Check Year-Month Exists
+
+
+
+
+
+Create Year-Month Folder
+create: folder
+
+
+
+
+
+Extract Existing Folder ID
+
+
+
+
+
+Extract New Folder ID
+
+
+
+
+
+Find Batch Folder
+search: fileFolder
+true
+false
+
+
+
+
+Check Batch Exists
+
+
+
+
+
+Create Batch Folder
+create: folder
+
+
+
+
+
+Extract Existing Batch ID
+
+
+
+
+
+Extract New Batch ID
+
+
+
+
+
+Prepare Loop Items
+
+
+
+
+
+Generate an image
+generate: image
+
+
+
+
+
+Generate Unique Filename
+1 item
+
+
+
+
+
+Upload file
+upload: file
+
+
+
+
+
+
+Execute workflow
+
+
+
+
+Logs
+
+Clear execution
+
+
+
+
+On form submission
+Docs
+
+Pull in a test form submission
+
+Execute step
+This node will also trigger automatically on new form submissions (but those executions won't show up here).  More info
+When will this node trigger my flow?
+
+Parameters
+Settings
+
+Execute step
+ Form URLs
+Test URL
+Production URL
+https://hn8n.costalong.cn/form-test/82dfd8fd-29aa-47ef-8ded-0a786b93131c
+Authentication
+Fixed
+Expression
+
+Form Title
+
+Fixed
+Expression
+
+Form Description
+
+Fixed
+Expression
+
+Form Elements
+
+
+Field Name
+
+Fixed
+Expression
+
+Label
+
+Fixed
+Expression
+
+Element Type
+Fixed
+Expression
+
+Placeholder
+
+Fixed
+Expression
+
+Default Value
+
+Fixed
+Expression
+
+Required Field
+Fixed
+Expression
+
+
+
+Field Name
+
+Fixed
+Expression
+
+Label
+
+Fixed
+Expression
+
+Element Type
+Fixed
+Expression
+
+Placeholder
+
+Fixed
+Expression
+
+Default Value
+
+Fixed
+Expression
+
+Required Field
+Fixed
+Expression
+
+
+
+Field Name
+
+Fixed
+Expression
+
+Label
+
+Fixed
+Expression
+
+Element Type
+Fixed
+Expression
+
+Placeholder
+
+Fixed
+Expression
+
+Default Value
+
+Fixed
+Expression
+
+Required Field
+Fixed
+Expression
+
+
+Add Form Element
+Respond When
+Fixed
+Expression
+
+Build multi-step forms by adding a form page later in your workflow
+Options
+No properties
+
+I wish this node would...
+OUTPUT
+
+Schema
+Table
+JSON
+
+
+1 item
+
+[
+  
+{
+  
+  
+"image-description": 
+"用热血漫画方式讲解破窗谬误，揭示破坏性活动对经济的真实影响。\r\n\r\n第一张：意外发生！顽皮的小孩踢球打破了面包店的玻璃窗，\"哗啦\"一声，玻璃碎了一地。店主张大爷震惊地捂着脸：\"我的窗户！\"旁白：\"灾难降临！\"拟声词：\"嘭！！哗啦啦！\"\r\n\r\n第二张：错误的观点！旁观者们议论纷纷，有人说：\"这对玻璃店是好事啊！修窗户能创造就业！\"另一个人：\"修窗工人赚钱后会去消费，经济就活跃了！\"画面中出现思维泡泡，展示玻璃店老板→修窗工人→餐馆消费的连锁反应。表面看起来很有道理。\r\n\r\n第三张：真相揭露！经济学教授登场，怒气冲冲地指着黑板：\"大错特错！\"黑板上画着对比图：左边\"破窗情况\"→张大爷花 500 元修窗户；右边\"没破窗情况\"→张大爷用 500 元买新烤箱扩大生产。教授：\"破窗只是转移消费，不是创造财富！张大爷失去了更好的投资机会！\"\r\n\r\n第四张：机会成本的教训！对比画面：现实世界中张大爷拿着修好的窗户，表情沮丧；平行世界中张大爷拿着新烤箱，生意兴隆，雇佣了新员工。旁白大标题：\"破坏≠增长！机会成本才是关键！\"背景出现大大的禁止符号，划掉\"破窗谬误\"四个字。\r\n\r\n核心概念：破窗谬误、机会成本、财富创造 vs 转移、看得见的效果 vs 看不见的代价",
+  
+  
+"image-resolution": 
+"1024x1024",
+  
+  
+"image_count": 
+2,
+  
+  
+"submittedAt": 
+"2026-01-17T17:36:23.055+08:00",
+  
+  
+"formMode": 
+"test"
+  
+}
+]

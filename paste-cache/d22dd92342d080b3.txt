@@ -1,0 +1,325 @@
+Overview
+Personal
+Chat
+beta
+Templates
+Insights
+Help
+Settings
+1 item
+1 item
+1 item
+1 item
+1 item
+1 item
+1 item
+5 items total
+20 items total
+1 item
+1 item
+2 items
+27 items total
+2 items total
+5 items total
+
+
+
+
+
+On form submission
+
+Execute workflow
+
+
+
+
+
+Prepare Batch Metadata
+
+
+
+
+
+Find Year-Month Folder
+search: fileFolder
+true
+false
+
+
+
+
+Check Year-Month Exists
+
+
+
+
+
+Create Year-Month Folder
+create: folder
+
+
+
+
+
+Extract Existing Folder ID
+
+
+
+
+
+Extract New Folder ID
+
+
+
+
+
+Find Batch Folder
+search: fileFolder
+true
+false
+
+
+
+
+Check Batch Exists
+
+
+
+
+
+Create Batch Folder
+create: folder
+
+
+
+
+
+Extract Existing Batch ID
+
+
+
+
+
+Extract New Batch ID
+
+
+
+
+
+Prepare Loop Items
+done
+loop
+
+
+
+
+Split In Batches
+8
+
+
+
+
+
+Generate an image
+generate: image
+5
+
+
+
+
+
+Generate Unique Filename
+5
+
+
+
+
+
+Upload file
+upload: file
+5
+
+
+
+
+
+
+Executing workflow
+
+
+
+
+
+Logs
+
+
+
+
+On form submission
+Docs
+
+Pull in a test form submission
+
+Execute step
+This node will also trigger automatically on new form submissions (but those executions won't show up here).  More info
+When will this node trigger my flow?
+
+Parameters
+Settings
+
+Execute step
+ Form URLs
+Test URL
+Production URL
+https://hn8n.costalong.cn/form-test/82dfd8fd-29aa-47ef-8ded-0a786b93131c
+Authentication
+Fixed
+Expression
+
+Form Title
+
+Fixed
+Expression
+
+Form Description
+
+Fixed
+Expression
+
+Form Elements
+
+
+Field Name
+
+Fixed
+Expression
+
+Label
+
+Fixed
+Expression
+
+Element Type
+Fixed
+Expression
+
+Placeholder
+
+Fixed
+Expression
+
+Default Value
+
+Fixed
+Expression
+
+Required Field
+Fixed
+Expression
+
+
+
+Field Name
+
+Fixed
+Expression
+
+Label
+
+Fixed
+Expression
+
+Element Type
+Fixed
+Expression
+
+Placeholder
+
+Fixed
+Expression
+
+Default Value
+
+Fixed
+Expression
+
+Required Field
+Fixed
+Expression
+
+
+
+Field Name
+
+Fixed
+Expression
+
+Label
+
+Fixed
+Expression
+
+Element Type
+Fixed
+Expression
+
+Placeholder
+
+Fixed
+Expression
+
+Default Value
+
+Fixed
+Expression
+
+Required Field
+Fixed
+Expression
+
+
+Add Form Element
+Respond When
+Fixed
+Expression
+
+Build multi-step forms by adding a form page later in your workflow
+Options
+No properties
+
+I wish this node would...
+OUTPUT
+
+Schema
+Table
+JSON
+
+
+1 item
+
+[
+  
+{
+  
+  
+"image-description": 
+"用热血漫画方式讲解柠檬市场理论，展现信息不对称如何导致市场失灵。\r\n\r\n第一张：二手车市场！市场上有两种车：好车（性能优良，闪闪发光）和\"柠檬车\"（故障车，看起来也还行）。卖家知道车的真实状况，买家不知道。好车主想卖 10 万，柠檬车主想卖 5 万。买家们兴致勃勃地来看车。旁白：\"信息不对称的市场！\"\r\n\r\n第二张：买家的困境！买家小明心想：\"我分不清哪个是好车哪个是柠檬车...如果我出 10 万买到柠檬车就亏大了！\"思维泡泡显示：50% 概率好车，50% 概率柠檬车，预期价值只有 7.5 万。小明决定：\"我最多出 7.5 万！\"其他买家也是同样想法。速度线展现买家的纠结和计算。\r\n\r\n第三张：好车退出市场！好车车主愤怒：\"什么？！7.5 万？我的车值 10 万！不卖了！\"好车主们纷纷把车开走，离开市场。市场上只剩下柠檬车了。拟声词：\"轰！\"好车消失的冲击感。买家们震惊：\"怎么只剩下烂车了？\"\r\n\r\n第四张：柠檬市场形成！市场失灵的恶性循环！画面展示螺旋下降的箭头：信息不对称 → 买家压价 → 好车退出 → 劣币驱逐良币 → 市场崩溃。旁白大标题：\"柠檬市场 - 信息不对称导致市场失灵！\"底部标注解决方案：\"质量认证 / 品牌信誉 / 担保机制 / 政府监管\"。\r\n\r\n核心概念：柠檬市场、信息不对称、逆向选择、市场失灵、质量认证",
+  
+  
+"image-resolution": 
+"1024x1024",
+  
+  
+"image_count": 
+2,
+  
+  
+"submittedAt": 
+"2026-01-17T17:15:24.546+08:00",
+  
+  
+"formMode": 
+"test"
+  
+}
+]

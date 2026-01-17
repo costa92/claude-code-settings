@@ -40,6 +40,26 @@
         "lastUpdated": "2026-01-08T07:26:33.190Z",
         "gitCommitSha": "02f2e2f3ad35e63d1734e08cf372fea4153d92ce"
       }
+    ],
+    "ralph-wiggum@claude-code-plugins": [
+      {
+        "scope": "user",
+        "installPath": "/Users/costalong/.claude/plugins/cache/claude-code-plugins/ralph-wiggum/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-01-08T15:13:20.013Z",
+        "lastUpdated": "2026-01-08T15:13:20.013Z",
+        "gitCommitSha": "317bc19080633c977bf2bd3d40a85f71a3af3776"
+      }
+    ],
+    "md2wechat@md2wechat-tools": [
+      {
+        "scope": "user",
+        "installPath": "/Users/costalong/.claude/plugins/cache/md2wechat-tools/md2wechat/1.4.0",
+        "version": "1.4.0",
+        "installedAt": "2026-01-16T16:00:20.270Z",
+        "lastUpdated": "2026-01-16T16:00:20.270Z",
+        "gitCommitSha": "59688fea84416544444b2cff23ceb4b9e65ec08f"
+      }
     ]
   }
 }

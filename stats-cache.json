@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "lastComputedDate": "2026-01-16",
+  "dailyActivity": [
+    {
+      "date": "2026-01-08",
+      "messageCount": 49,
+      "sessionCount": 4,
+      "toolCallCount": 8
+    },
+    {
+      "date": "2026-01-09",
+      "messageCount": 577,
+      "sessionCount": 3,
+      "toolCallCount": 136
+    },
+    {
+      "date": "2026-01-10",
+      "messageCount": 739,
+      "sessionCount": 6,
+      "toolCallCount": 202
+    },
+    {
+      "date": "2026-01-11",
+      "messageCount": 1280,
+      "sessionCount": 25,
+      "toolCallCount": 326
+    },
+    {
+      "date": "2026-01-12",
+      "messageCount": 40,
+      "sessionCount": 1,
+      "toolCallCount": 12
+    },
+    {
+      "date": "2026-01-13",
+      "messageCount": 300,
+      "sessionCount": 2,
+      "toolCallCount": 129
+    },
+    {
+      "date": "2026-01-14",
+      "messageCount": 675,
+      "sessionCount": 3,
+      "toolCallCount": 204
+    },
+    {
+      "date": "2026-01-15",
+      "messageCount": 342,
+      "sessionCount": 2,
+      "toolCallCount": 125
+    },
+    {
+      "date": "2026-01-16",
+      "messageCount": 992,
+      "sessionCount": 9,
+      "toolCallCount": 257
+    }
+  ],
+  "dailyModelTokens": [
+    {
+      "date": "2026-01-08",
+      "tokensByModel": {
+        "gemini-3-flash": 769836
+      }
+    },
+    {
+      "date": "2026-01-09",
+      "tokensByModel": {
+        "gemini-3-flash": 3346781,
+        "claude-sonnet-4-5-20250929": 124607
+      }
+    },
+    {
+      "date": "2026-01-10",
+      "tokensByModel": {
+        "claude-sonnet-4-5-20250929": 291036
+      }
+    },
+    {
+      "date": "2026-01-11",
+      "tokensByModel": {
+        "claude-sonnet-4-5-20250929": 274,
+        "claude-sonnet-4-5": 34882041,
+        "claude-opus-4-5-20251101": 37013
+      }
+    },
+    {
+      "date": "2026-01-12",
+      "tokensByModel": {
+        "claude-sonnet-4-5": 254957
+      }
+    },
+    {
+      "date": "2026-01-13",
+      "tokensByModel": {
+        "claude-haiku-4-5-20251001": 562,
+        "gemini-3-flash": 5948092
+      }
+    },
+    {
+      "date": "2026-01-14",
+      "tokensByModel": {
+        "claude-sonnet-4-5": 11974386
+      }
+    },
+    {
+      "date": "2026-01-15",
+      "tokensByModel": {
+        "claude-sonnet-4-5": 6230232
+      }
+    },
+    {
+      "date": "2026-01-16",
+      "tokensByModel": {
+        "claude-sonnet-4-5": 15336284,
+        "gemini-3-flash": 2839794
+      }
+    }
+  ],
+  "modelUsage": {
+    "gemini-3-flash": {
+      "inputTokens": 12823699,
+      "outputTokens": 80804,
+      "cacheReadInputTokens": 11414482,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0
+    },
+    "claude-sonnet-4-5-20250929": {
+      "inputTokens": 13313,
+      "outputTokens": 402604,
+      "cacheReadInputTokens": 38008600,
+      "cacheCreationInputTokens": 21470420,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0
+    },
+    "claude-sonnet-4-5": {
+      "inputTokens": 67744020,
+      "outputTokens": 933880,
+      "cacheReadInputTokens": 56718888,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0
+    },
+    "claude-opus-4-5-20251101": {
+      "inputTokens": 6890,
+      "outputTokens": 30123,
+      "cacheReadInputTokens": 6395518,
+      "cacheCreationInputTokens": 3518394,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0
+    },
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 3,
+      "outputTokens": 559,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 17924,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0
+    }
+  },
+  "totalSessions": 55,
+  "totalMessages": 4994,
+  "longestSession": {
+    "sessionId": "c730d7c4-369d-4b48-a215-4ba5bbb03e99",
+    "duration": 44183228,
+    "messageCount": 389,
+    "timestamp": "2026-01-09T15:54:20.165Z"
+  },
+  "firstSessionDate": "2026-01-08T14:18:03.737Z",
+  "hourCounts": {
+    "0": 3,
+    "10": 8,
+    "11": 1,
+    "12": 2,
+    "13": 10,
+    "14": 4,
+    "16": 1,
+    "17": 1,
+    "19": 1,
+    "20": 2,
+    "21": 4,
+    "22": 8,
+    "23": 10
+  }
+}
