@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastComputedDate": "2026-01-16",
+  "lastComputedDate": "2026-01-17",
   "dailyActivity": [
     {
       "date": "2026-01-08",
@@ -55,6 +55,12 @@
       "messageCount": 992,
       "sessionCount": 9,
       "toolCallCount": 257
+    },
+    {
+      "date": "2026-01-17",
+      "messageCount": 1655,
+      "sessionCount": 17,
+      "toolCallCount": 354
     }
   ],
   "dailyModelTokens": [
@@ -116,12 +122,20 @@
         "claude-sonnet-4-5": 15336284,
         "gemini-3-flash": 2839794
       }
+    },
+    {
+      "date": "2026-01-17",
+      "tokensByModel": {
+        "claude-opus-4-5-thinking": 13862730,
+        "claude-sonnet-4-5": 13373433,
+        "gemini-3-flash": 44256
+      }
     }
   ],
   "modelUsage": {
     "gemini-3-flash": {
-      "inputTokens": 12823699,
-      "outputTokens": 80804,
+      "inputTokens": 12867939,
+      "outputTokens": 80820,
       "cacheReadInputTokens": 11414482,
       "cacheCreationInputTokens": 0,
       "webSearchRequests": 0,
@@ -140,9 +154,9 @@
       "maxOutputTokens": 0
     },
     "claude-sonnet-4-5": {
-      "inputTokens": 67744020,
-      "outputTokens": 933880,
-      "cacheReadInputTokens": 56718888,
+      "inputTokens": 81116897,
+      "outputTokens": 934436,
+      "cacheReadInputTokens": 61958628,
       "cacheCreationInputTokens": 0,
       "webSearchRequests": 0,
       "costUSD": 0,
@@ -168,10 +182,20 @@
       "costUSD": 0,
       "contextWindow": 0,
       "maxOutputTokens": 0
+    },
+    "claude-opus-4-5-thinking": {
+      "inputTokens": 13861701,
+      "outputTokens": 1029,
+      "cacheReadInputTokens": 19576668,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0
     }
   },
-  "totalSessions": 55,
-  "totalMessages": 4994,
+  "totalSessions": 72,
+  "totalMessages": 6649,
   "longestSession": {
     "sessionId": "c730d7c4-369d-4b48-a215-4ba5bbb03e99",
     "duration": 44183228,
@@ -182,16 +206,17 @@
   "hourCounts": {
     "0": 3,
     "10": 8,
-    "11": 1,
-    "12": 2,
+    "11": 2,
+    "12": 3,
     "13": 10,
-    "14": 4,
+    "14": 5,
     "16": 1,
     "17": 1,
-    "19": 1,
-    "20": 2,
+    "18": 3,
+    "19": 4,
+    "20": 3,
     "21": 4,
-    "22": 8,
-    "23": 10
+    "22": 13,
+    "23": 12
   }
 }

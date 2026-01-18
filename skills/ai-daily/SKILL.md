@@ -76,7 +76,13 @@ Extract the target date from user request.
 Run the fetch script to get RSS data:
 
 ```bash
-python plugins/ai-daily/skills/ai-daily/scripts/fetch_news.py
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --date YYYY-MM-DD
+```
+
+**Get latest available content** (recommended when target date has no data):
+
+```bash
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --latest
 ```
 
 This downloads and parses `https://news.smol.ai/rss.xml`, returning structured JSON.
@@ -84,7 +90,7 @@ This downloads and parses `https://news.smol.ai/rss.xml`, returning structured J
 **Available dates** can be checked with:
 
 ```bash
-python plugins/ai-daily/skills/ai-daily/scripts/fetch_news.py --date-range
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --date-range
 ```
 
 ---
@@ -99,23 +105,18 @@ Continue to Step 4.
 
 ### When Content NOT Found
 
-Display a friendly message with available dates:
+**Auto-fallback**: If the target date has no content, automatically use `--latest` to get the most recent available content, and inform the user:
 
 ```markdown
-抱歉，2026-01-14 暂无资讯
-
-可用日期范围: 2026-01-10 ~ 2026-01-13
-
-建议:
-- 查看 [2026-01-13](command:查看2026-01-13的资讯) 的资讯
-- 查看 [2026-01-12](command:查看2026-01-12的资讯) 的资讯
+注意：{target_date} 暂无资讯，已自动获取最新可用日期 {latest_date} 的内容。
 ```
 
+Then continue with the latest content.
+
 **User experience principles**:
-1. Clear problem statement
-2. Show available alternatives
-3. Provide clickable commands for quick access
-4. Never leave user stuck with no options
+1. Auto-fallback to latest available content
+2. Inform user about the date change
+3. Never leave user stuck with no options
 
 ---
 
@@ -435,12 +436,12 @@ mkdir -p docs
 ## CLI Reference
 
 ```bash
-# Fetch RSS (returns JSON)
-python plugins/ai-daily/skills/ai-daily/scripts/fetch_news.py
+# Get latest available content (recommended)
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --latest
 
 # Get available date range
-python plugins/ai-daily/skills/ai-daily/scripts/fetch_news.py --date-range
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --date-range
 
 # Get specific date content
-python plugins/ai-daily/skills/ai-daily/scripts/fetch_news.py --date 2026-01-13
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --date 2026-01-13
 ```

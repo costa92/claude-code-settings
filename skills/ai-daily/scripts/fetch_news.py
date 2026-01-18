@@ -146,6 +146,7 @@ def main():
     parser = argparse.ArgumentParser(description='Fetch AI news from smol.ai')
     parser.add_argument('--date-range', action='store_true', help='Show available date range')
     parser.add_argument('--date', type=str, help='Get content for specific date (YYYY-MM-DD)')
+    parser.add_argument('--latest', action='store_true', help='Get the latest available content')
     parser.add_argument('--relative', type=str, choices=['yesterday', 'today', 'day-before'],
                        help='Relative date: yesterday, today, day-before')
 
@@ -162,6 +163,18 @@ def main():
             "max_date": max_date,
             "total_entries": len(feed.entries)
         }, indent=2))
+        return
+
+    # Latest mode - get most recent available content
+    if args.latest:
+        _, max_date = get_date_range(feed)
+        if max_date:
+            content = get_content_by_date(feed, max_date)
+            if content:
+                content["requested_date"] = max_date
+                print(json.dumps(content, indent=2, ensure_ascii=False))
+                return
+        print(json.dumps({"error": "no_content", "message": "No content available in RSS"}, indent=2))
         return
 
     # Calculate target date
