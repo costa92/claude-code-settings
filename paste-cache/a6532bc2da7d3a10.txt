@@ -1,0 +1,7 @@
+ 图片生成遇到了两个问题：                                                                                                                                                       
+                                                                                                                                                                                 
+  问题报告                                                                                                                                                                       
+                                                                                                                                                                                 
+  1. 目录不存在：/Users/costalong/code/skills/article-generator/images/ 目录不存在                                                                                               
+  2. SSL 连接错误：最后一张图片生成时遇到网络连接问题                                                                                                                            
+                                                                                   

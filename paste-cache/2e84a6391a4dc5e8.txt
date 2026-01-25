@@ -1,0 +1,14 @@
+                                                                                                                                                                                 
+⏺ Bash(python3 /Users/costalong/.claude/skills/article-generator/scripts/nanobanana.py --prompt "Technical workflow illustration showing Ollama model deployment    timeout: 1m  
+      with G…)                                                                                                                                                      0s           
+  ⎿  Error: Exit code 1                                                                                                                                                          
+     Traceback (most recent call last):                                                                                                                                          
+       File "/Users/costalong/.claude/skills/article-generator/scripts/nanobanana.py", line 154, in <module>                                                                     
+         main()                                                                                                                                                                  
+         ~~~~^^                                                                                                                                                                  
+       File "/Users/costalong/.claude/skills/article-generator/scripts/nanobanana.py", line 111, in main                                                                         
+         response = client.models.generate_content(                                                                                                                              
+             model=args.model,                                                                                                                                                   
+         ...<11 lines>...                                                                                                                                                        
+             ),                                                                                                                                                                  
+     … +42 lines (ctrl+o to see all)  

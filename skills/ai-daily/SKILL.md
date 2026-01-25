@@ -1,17 +1,66 @@
 ---
 name: ai-daily-news
-description: Fetches AI news from smol.ai RSS and generates structured markdown with intelligent summarization and categorization. Optionally creates beautiful HTML webpages with Apple-style themes and shareable card images. Use when user asks about AI news, daily tech updates, or wants news organized by date or category.
+description: Fetches AI news from multiple sources (smol.ai, Import AI, Last Week in AI, Ahead of AI, TLDR AI) and generates structured markdown with intelligent summarization and categorization. Optionally creates beautiful HTML webpages with Apple-style themes and shareable card images. Use when user asks about AI news, daily tech updates, or wants news organized by date or category.
 ---
 
 # AI Daily News
 
-Fetches AI industry news from smol.ai, intelligently summarizes and categorizes using built-in Claude AI capabilities, outputs structured markdown, and optionally generates themed webpages and shareable card images.
+Fetches AI industry news from multiple sources, intelligently summarizes and categorizes using built-in Claude AI capabilities, outputs structured markdown, and optionally generates themed webpages and shareable card images.
+
+## Available Sources
+
+### English Daily Sources
+| Source ID | Name | Frequency | Description |
+|-----------|------|-----------|-------------|
+| `smol` | smol.ai | Daily | Daily AI news digest (default) |
+| `tldrai` | TLDR Tech | Daily | Daily tech newsletter covering AI, startups, and dev news |
+
+### English Weekly Sources
+| Source ID | Name | Frequency | Description |
+|-----------|------|-----------|-------------|
+| `importai` | Import AI | Weekly | Jack Clark's newsletter on AI research, policy, and industry |
+| `lastweekinai` | Last Week in AI | Weekly | Weekly text and audio summaries of AI news |
+| `aheadofai` | Ahead of AI | Weekly | Sebastian Raschka's ML/AI research updates |
+
+### Chinese Sources (中文渠道)
+| Source ID | Name | Frequency | Description |
+|-----------|------|-----------|-------------|
+| `qbitai` | 量子位 | Daily | 中国领先的AI科技媒体，报道AI前沿动态 |
+
+### Academic Sources (学术论文)
+| Source ID | Name | Frequency | Description |
+|-----------|------|-----------|-------------|
+| `arxiv_ai` | ArXiv AI | Daily | Latest AI research papers (cs.AI) |
+| `arxiv_ml` | ArXiv ML | Daily | Latest Machine Learning papers (cs.LG) |
+
+### Tech Communities (技术社区)
+| Source ID | Name | Frequency | Description |
+|-----------|------|-----------|-------------|
+| `hn_ai` | Hacker News AI | Realtime | AI discussions from HN (30+ points) |
 
 ## Quick Start
 
 ```bash
-# Yesterday's news
+# Yesterday's news (default source: smol.ai)
 昨天AI资讯
+
+# From specific source
+Import AI 最新资讯
+获取 Last Week in AI 的内容
+
+# Chinese source (中文渠道)
+量子位最新资讯
+获取量子位的AI新闻
+
+# Academic papers (学术论文)
+ArXiv 今天的AI论文
+最新的机器学习论文
+
+# Tech community (技术社区)
+Hacker News 上的AI讨论
+
+# From all sources
+获取所有渠道的AI新闻
 
 # Specific date
 2026-01-13的AI新闻
@@ -24,7 +73,6 @@ Fetches AI industry news from smol.ai, intelligently summarizes and categorizes 
 
 # Generate shareable card image
 昨天AI资讯，生成分享图片
-生成日报卡片图片
 ```
 
 ## Supported Query Types
@@ -33,6 +81,11 @@ Fetches AI industry news from smol.ai, intelligently summarizes and categorizes 
 |------|----------|-------------|
 | **相对日期** | "昨天AI资讯" "前天的新闻" "今天的AI动态" | Yesterday, day before, today |
 | **绝对日期** | "2026-01-13的新闻" | YYYY-MM-DD format |
+| **指定来源** | "Import AI资讯" "量子位新闻" "ArXiv论文" | Fetch from specific source |
+| **中文渠道** | "量子位资讯" | Chinese AI news |
+| **学术论文** | "ArXiv AI论文" "最新ML论文" | Academic papers from ArXiv |
+| **技术社区** | "HN上的AI讨论" | Hacker News AI discussions |
+| **多源获取** | "所有渠道的新闻" "综合AI资讯" | Fetch from all sources |
 | **分类筛选** | "模型相关资讯" "产品动态" | Filter by category |
 | **网页生成** | "生成网页" "制作HTML页面" | Optional webpage generation |
 | **图片生成** | "生成图片" "生成分享卡片" "制作日报卡片" | Generate shareable card image |
@@ -45,8 +98,8 @@ Copy this checklist to track progress:
 
 ```
 Progress:
-- [ ] Step 1: Parse date from user request
-- [ ] Step 2: Fetch RSS from smol.ai
+- [ ] Step 1: Parse date and source from user request
+- [ ] Step 2: Fetch RSS from selected source(s)
 - [ ] Step 3: Check if content exists for target date
 - [ ] Step 4: Extract and analyze content
 - [ ] Step 5: Generate structured markdown
@@ -56,9 +109,11 @@ Progress:
 
 ---
 
-## Step 1: Parse Date
+## Step 1: Parse Date and Source
 
-Extract the target date from user request.
+Extract the target date and source from user request.
+
+### Date Parsing
 
 | User Input | Target Date | Calculation |
 |------------|-------------|-------------|
@@ -69,28 +124,69 @@ Extract the target date from user request.
 
 **Date format**: Always use `YYYY-MM-DD` format (e.g., `2026-01-13`)
 
+### Source Parsing
+
+| User Input | Source ID | Notes |
+|------------|-----------|-------|
+| "Import AI资讯" | `importai` | Jack Clark's newsletter |
+| "TLDR AI新闻" | `tldrai` | Daily quick summaries |
+| "Last Week in AI" | `lastweekinai` | Weekly roundup |
+| "Ahead of AI" | `aheadofai` | Sebastian Raschka |
+| "量子位资讯" / "量子位新闻" | `qbitai` | Chinese AI media |
+| "ArXiv AI论文" | `arxiv_ai` | AI papers (cs.AI) |
+| "ArXiv ML论文" / "机器学习论文" | `arxiv_ml` | ML papers (cs.LG) |
+| "Hacker News AI" / "HN讨论" | `hn_ai` | Tech community |
+| "所有渠道" / "综合资讯" | `--all-sources` | Fetch from all |
+| (default) | `smol` | smol.ai daily digest |
+
 ---
 
 ## Step 2: Fetch RSS
 
-Run the fetch script to get RSS data:
+### Single Source (Default)
 
 ```bash
-python ~/.claude/skills/ai-daily/scripts/fetch_news.py --date YYYY-MM-DD
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --source SOURCE_ID --latest
 ```
 
-**Get latest available content** (recommended when target date has no data):
-
+Examples:
 ```bash
+# Default source (smol.ai)
 python ~/.claude/skills/ai-daily/scripts/fetch_news.py --latest
+
+# Import AI
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --source importai --latest
+
+# TLDR AI
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --source tldrai --latest
 ```
 
-This downloads and parses `https://news.smol.ai/rss.xml`, returning structured JSON.
-
-**Available dates** can be checked with:
+### Multiple Sources
 
 ```bash
-python ~/.claude/skills/ai-daily/scripts/fetch_news.py --date-range
+# Specific sources
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --sources smol importai tldrai --latest
+
+# All sources
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --all-sources --latest
+```
+
+### List Available Sources
+
+```bash
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --list-sources
+```
+
+### Get Specific Date
+
+```bash
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --source SOURCE_ID --date 2026-01-13
+```
+
+### Check Available Dates
+
+```bash
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --source SOURCE_ID --date-range
 ```
 
 ---
@@ -125,26 +221,32 @@ Then continue with the latest content.
 Use built-in Claude AI capabilities to:
 
 1. **Extract full content** from the RSS entry
-2. **Generate summary** - 3-5 key takeaways
-3. **Categorize** items by topic:
+2. **Translate to Chinese** - 将所有英文内容翻译成中文
+3. **Generate summary** - 3-5 key takeaways (中文)
+4. **Categorize** items by topic:
    - Model Releases (模型发布)
    - Product Updates (产品动态)
    - Research Papers (研究论文)
    - Tools & Frameworks (工具框架)
    - Funding & M&A (融资并购)
    - Industry Events (行业事件)
-4. **Extract keywords** - Companies, products, technologies
+   - Tech Community (技术社区) - for HN discussions
+5. **Extract keywords** - Companies, products, technologies
+6. **Preserve original links** - 保留每条新闻的原文链接
 
 **Prompt Template**:
 
 ```
-Analyze this AI news content and organize it:
+分析以下 AI 新闻内容并整理输出：
 
-1. Generate 3-5 key takeaways (one sentence each)
-2. Categorize items into: Model Releases, Product Updates, Research, Tools, Funding, Events
-3. Extract 5-10 keywords
+要求：
+1. 将所有英文内容翻译成中文
+2. 生成 3-5 条核心要点（每条一句话，中文）
+3. 按分类整理：模型发布、产品动态、研究论文、工具框架、融资并购、行业事件、技术社区
+4. 提取 5-10 个关键词
+5. 每条新闻必须附上原文链接，格式：📎 原文链接: [来源名称](URL)
 
-Original content:
+原始内容：
 {content}
 ```
 
@@ -154,40 +256,64 @@ Original content:
 
 Output structured markdown following the format in [output-format.md](references/output-format.md).
 
+**重要要求**：
+1. **全部中文输出** - 所有标题、摘要、内容必须是中文
+2. **保留原链接** - 每条新闻后附上 `📎 原文链接: [来源](URL)`
+
 **Key sections**:
-- Title with date
-- Core summary
-- Categorized news items
-- Keywords
+- Title with date (中文格式：AI Daily · 2026年1月19日)
+- Core summary (中文要点)
+- Categorized news items (中文内容 + 原文链接)
+- Keywords (中英文混合)
 - Footer with source info
 
 **Example output**:
 
 ```markdown
-# AI Daily · 2026年1月13日
+# AI Daily · 2026年1月19日
 
 ## 核心摘要
 
-- Anthropic 发布 Cowork 统一 Agent 平台
-- Google 开源 MedGemma 1.5 医疗多模态模型
-- LangChain Agent Builder 正式发布
-
-## 模型发布
-
-### MedGemma 1.5
-Google 发布 4B 参数医疗多模态模型...
-[原文链接](https://news.smol.ai/issues/26-01-13-not-much/)
+- OpenAI 开始在 ChatGPT 中植入广告以缓解资金压力
+- GPT-5.2 Pro 独立完成了一个 45 年未解决的数论猜想证明
+- Hacker News 热议：AI 编程工具对 COBOL 开发者的影响
 
 ## 产品动态
 
-...
+### ChatGPT 引入广告系统
+
+OpenAI 开始在 ChatGPT 中引入广告功能，这一决定的背后是公司持续增长的运营成本压力。
+
+**关键信息**: OpenAI, ChatGPT, 广告, 商业化
+
+📎 原文链接: [量子位](https://www.qbitai.com/2026/01/370285.html)
+
+## 研究论文
+
+### HPV 疫苗接种 AI 代理系统设计
+
+研究人员开发了一个双重用途的 AI 代理系统，用于解决日本 HPV 疫苗接种犹豫问题。
+
+**关键信息**: AI 代理, HPV 疫苗, RAG, 公共卫生
+
+📎 原文链接: [ArXiv](https://arxiv.org/abs/2601.10718)
+
+## 技术社区
+
+### COBOL 开发者如何看待 AI 编程工具
+
+Hacker News 热帖讨论了 AI 编程工具对 COBOL/大型机开发者的影响。
+
+**关键信息**: COBOL, 大型机, AI 编程, 就业影响
+
+📎 原文链接: [Hacker News](https://news.ycombinator.com/item?id=46678550)
 
 ## 关键词
 
-#Anthropic #Google #MedGemma #LangChain
+#OpenAI #ChatGPT #ArXiv #HackerNews #COBOL
 
 ---
-数据来源: smol.ai
+数据来源: 量子位, ArXiv AI, Hacker News AI
 ```
 
 ---
@@ -327,7 +453,26 @@ EOF
 
 No configuration required. Uses built-in RSS fetching and Claude AI capabilities.
 
-**RSS Source**: `https://news.smol.ai/rss.xml`
+**Available RSS Sources**:
+
+**English Daily:**
+- smol.ai: `https://news.smol.ai/rss.xml` (default)
+- TLDR Tech: `https://tldr.tech/rss`
+
+**English Weekly:**
+- Import AI: `https://importai.substack.com/feed`
+- Last Week in AI: `https://lastweekin.ai/feed`
+- Ahead of AI: `https://magazine.sebastianraschka.com/feed`
+
+**Chinese (中文):**
+- 量子位: `https://www.qbitai.com/feed`
+
+**Academic (学术):**
+- ArXiv AI: `https://rss.arxiv.org/rss/cs.AI`
+- ArXiv ML: `https://rss.arxiv.org/rss/cs.LG`
+
+**Tech Communities (社区):**
+- Hacker News AI: `https://hnrss.org/newest?q=AI+OR+LLM&points=30`
 
 **Date Calculation**: Uses current UTC date, subtracts days for relative queries.
 
@@ -341,25 +486,36 @@ No configuration required. Uses built-in RSS fetching and Claude AI capabilities
 
 **Process**:
 1. Calculate yesterday's date: `2026-01-14`
-2. Fetch RSS
+2. Fetch RSS from default source (smol.ai)
 3. Check content exists
 4. Analyze and categorize
 5. Output markdown
 
 **Output**: Structured markdown with all categories
 
-### Example 2: Specific Date
+### Example 2: From Specific Source
 
-**User Input**: "2026-01-13的AI新闻"
+**User Input**: "Import AI 最新资讯"
 
 **Process**:
-1. Parse date: `2026-01-13`
-2. Fetch RSS
-3. Check content exists
+1. Identify source: `importai`
+2. Fetch RSS from Import AI
+3. Get latest entries
 4. Analyze and categorize
 5. Output markdown
 
-### Example 3: By Category
+### Example 3: From All Sources
+
+**User Input**: "获取所有渠道的AI新闻"
+
+**Process**:
+1. Identify: all sources requested
+2. Fetch RSS from all 5 sources in parallel
+3. Merge and deduplicate content
+4. Analyze and categorize by source
+5. Output combined markdown
+
+### Example 4: By Category
 
 **User Input**: "昨天的模型发布相关资讯"
 
@@ -369,7 +525,7 @@ No configuration required. Uses built-in RSS fetching and Claude AI capabilities
 3. Analyze and filter for "Model Releases" category
 4. Output filtered markdown
 
-### Example 4: With Webpage Generation
+### Example 5: With Webpage Generation
 
 **User Input**: "昨天AI资讯，生成网页"
 
@@ -380,7 +536,7 @@ No configuration required. Uses built-in RSS fetching and Claude AI capabilities
 8. Generate HTML with Apple-style theme
 9. Save to `docs/2026-01-14.html`
 
-### Example 5: Content Not Found
+### Example 6: Content Not Found
 
 **User Input**: "2026-01-15的资讯"
 
@@ -408,9 +564,12 @@ No configuration required. Uses built-in RSS fetching and Claude AI capabilities
 
 ### RSS Fetch Fails
 
-**Error**: "Failed to fetch RSS"
+**Error**: "Failed to fetch RSS from [source]"
 
-**Solution**: Check network connectivity to `news.smol.ai`
+**Solution**:
+- Check network connectivity
+- Try a different source: `--source importai`
+- List available sources: `--list-sources`
 
 ### Date Parsing Fails
 
@@ -436,12 +595,30 @@ mkdir -p docs
 ## CLI Reference
 
 ```bash
-# Get latest available content (recommended)
+# List all available sources
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --list-sources
+
+# Get latest from default source (smol.ai)
 python ~/.claude/skills/ai-daily/scripts/fetch_news.py --latest
 
-# Get available date range
-python ~/.claude/skills/ai-daily/scripts/fetch_news.py --date-range
+# Get latest from specific source
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --source importai --latest
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --source tldrai --latest
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --source lastweekinai --latest
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --source aheadofai --latest
+
+# Get from multiple sources
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --sources smol importai tldrai --latest
+
+# Get from all sources
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --all-sources --latest
+
+# Limit number of entries per source
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --all-sources --latest --limit 5
+
+# Get available date range for a source
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --source importai --date-range
 
 # Get specific date content
-python ~/.claude/skills/ai-daily/scripts/fetch_news.py --date 2026-01-13
+python ~/.claude/skills/ai-daily/scripts/fetch_news.py --source smol --date 2026-01-13
 ```

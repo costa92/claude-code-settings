@@ -1,14 +1,14 @@
 {
   "name": "ai-daily",
-  "version": "1.0.0",
-  "description": "AI news aggregator that fetches AI industry news from smol.ai RSS and generates structured markdown",
+  "version": "2.1.0",
+  "description": "AI news aggregator that fetches from 9 sources: English (smol.ai, TLDR, Import AI, Last Week in AI, Ahead of AI), Chinese (量子位), Academic (ArXiv AI/ML), Community (Hacker News)",
   "repository": "geekjourneyx/ai-daily-skill",
   "requires": {
     "packages": [
       {
         "name": "feedparser",
         "optional": false,
-        "purpose": "Parse RSS feed from smol.ai",
+        "purpose": "Parse RSS feeds from multiple sources",
         "install": "pip install feedparser"
       },
       {
@@ -22,8 +22,56 @@
       {
         "name": "smol.ai RSS",
         "optional": false,
-        "purpose": "AI news data source",
+        "purpose": "Daily AI news digest (default source)",
         "url": "https://news.smol.ai/rss.xml"
+      },
+      {
+        "name": "TLDR Tech",
+        "optional": true,
+        "purpose": "Daily tech newsletter covering AI, startups, and dev news",
+        "url": "https://tldr.tech/rss"
+      },
+      {
+        "name": "Import AI",
+        "optional": true,
+        "purpose": "Jack Clark's weekly AI newsletter",
+        "url": "https://importai.substack.com/feed"
+      },
+      {
+        "name": "Last Week in AI",
+        "optional": true,
+        "purpose": "Weekly AI news summary",
+        "url": "https://lastweekin.ai/feed"
+      },
+      {
+        "name": "Ahead of AI",
+        "optional": true,
+        "purpose": "Sebastian Raschka's ML/AI research updates",
+        "url": "https://magazine.sebastianraschka.com/feed"
+      },
+      {
+        "name": "量子位 (QbitAI)",
+        "optional": true,
+        "purpose": "Chinese AI news media",
+        "url": "https://www.qbitai.com/feed"
+      },
+      {
+        "name": "ArXiv AI",
+        "optional": true,
+        "purpose": "Latest AI research papers (cs.AI)",
+        "url": "https://rss.arxiv.org/rss/cs.AI"
+      },
+      {
+        "name": "ArXiv ML",
+        "optional": true,
+        "purpose": "Latest Machine Learning papers (cs.LG)",
+        "url": "https://rss.arxiv.org/rss/cs.LG"
+      },
+      {
+        "name": "Hacker News AI",
+        "optional": true,
+        "purpose": "AI discussions from Hacker News",
+        "url": "https://hnrss.org/newest?q=AI+OR+LLM&points=30"
       }
     ]
   }

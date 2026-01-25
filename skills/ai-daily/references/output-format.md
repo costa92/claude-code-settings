@@ -2,6 +2,10 @@
 
 This document defines the standard markdown output format for AI Daily news.
 
+**重要要求**：
+1. **全部翻译成中文** - 所有英文内容必须翻译成中文
+2. **保留原链接** - 每条新闻必须附上原文链接作为备注
+
 ---
 
 ## Template
@@ -17,15 +21,17 @@ This document defines the standard markdown output format for AI Daily news.
 
 ## {分类名称}
 
-### [{标题}](链接)
+### {中文标题}
 
-{详细摘要}
+{详细摘要，翻译成中文}
 
 **关键信息**: {相关标签}
 
+📎 原文链接: [{来源名称}]({原始URL})
+
 ---
 
-数据来源: smol.ai
+数据来源: {来源列表}
 生成时间: {YYYY-MM-DD HH:MM}
 ```
 
@@ -34,82 +40,90 @@ This document defines the standard markdown output format for AI Daily news.
 ## Complete Example
 
 ```markdown
-# AI Daily · 2026年1月13日
+# AI Daily · 2026年1月19日
 
-> Anthropic 整合 Agent 产品线，Google 发布医疗 AI 模型，LangChain 推出 Agent 构建工具
+> OpenAI 在 ChatGPT 引入广告，HN 热议 AI 编程对 COBOL 开发者的影响，ArXiv 发布 HPV 疫苗 AI 代理系统研究
 
 ## 核心摘要
 
-- Anthropic 发布 Cowork 统一 Agent 平台，整合 Claude Code 和 MCP
-- Google 开源 MedGemma 1.5 医疗多模态模型，支持 3D 影像分析
-- LangChain Agent Builder 正式发布，支持内存和人工审核循环
-- 社区讨论"Vibe Coding"定义，强调工程师验证的重要性
-- 开源项目快速复制 Cowork 功能，Agent 技术商品化加速
-
-## 模型发布
-
-### [MedGemma 1.5](https://news.smol.ai/issues/26-01-13-not-much/)
-
-Google 发布 4B 参数医疗多模态模型 MedGemma 1.5，专为离线医疗场景设计。支持 3D 体积（CT/MRI）处理、纵向对比和解剖定位。声称在 EHR 理解上达到 89.6% 准确率（+22%），X 光定位达到 38% IoU。
-
-**关键信息**: Google, MedGemma, 医疗AI, 多模态, 3D影像
-
-### [Open 复现 Cowork](https://news.smol.ai/issues/26-01-13-not-much/)
-
-开发者使用 QEMU + bubblewrap + seccomp 构建了跨平台类 Cowork VM 环境。这表明 Agent shell 技术正在快速商品化，成为基础设施而非产品护城河。
-
-**关键信息**: 开源, QEMU, Agent, 虚拟化
+- OpenAI 开始在 ChatGPT 中植入广告以缓解资金压力
+- GPT-5.2 Pro 独立完成了一个 45 年未解决的数论猜想证明
+- 哈工大团队开源人形机器人项目，获小米、商汤投资
+- Hacker News 热议：AI 编程工具对 COBOL 开发者的影响
+- ArXiv 发布 HPV 疫苗接种 AI 代理系统设计论文
 
 ## 产品动态
 
-### [Cowork 品牌整合](https://news.smol.ai/issues/26-01-13-not-much/)
+### ChatGPT 引入广告系统
 
-Anthropic 将其 AI agent 产品统一到 Cowork 品牌，整合了之前的 Claude Code、Claude for Chrome 等工具。使用 Apple 的虚拟化技术和 bubblewrap 实现安全沙箱。
+OpenAI 开始在 ChatGPT 中引入广告功能。这一决定的背后是公司持续增长的运营成本压力。广告将以非侵入式方式呈现，但这一举动引发了用户对产品体验变化的担忧。
 
-**关键信息**: Anthropic, Cowork, Claude Code, MCP
+**关键信息**: OpenAI, ChatGPT, 广告, 商业化
 
-### [LangChain Agent Builder GA](https://news.smol.ai/issues/26-01-13-not-much/)
+📎 原文链接: [量子位](https://www.qbitai.com/2026/01/370285.html)
 
-LangChain 宣布 Agent Builder 正式发布（GA），提供无代码但强大的 agent 编排功能：内存、触发器、人工审核循环和 agent 收件箱。
+### GPT-5.2 Pro 完成数论猜想证明
 
-**关键信息**: LangChain, Agent Builder, 编排, 工具链
+OpenAI 的 GPT-5.2 Pro 模型独立完成了一个 45 年未解决的数论猜想证明。数学家陶哲轩验证后表示该证明"没有犯任何错误"。这标志着 AI 在数学推理能力上的重大突破。
 
-## 研究方向
+**关键信息**: GPT-5.2, 数学证明, 陶哲轩, 推理能力
 
-### [MemRL: 记忆即强化学习](https://news.smol.ai/issues/26-01-13-not-much/)
+📎 原文链接: [量子位](https://www.qbitai.com/2026/01/370328.html)
 
-DAIR AI 强调 MemRL 方法，将记忆检索视为强化学习问题。保持基础模型冻结，学习情节记忆的 Q 值（意图-经验-效用），两阶段检索：语义过滤 + 效用排序。
+## 研究论文
 
-**关键信息**: MemRL, 强化学习, 记忆检索, DAIR AI
+### HPV 疫苗接种 AI 代理系统设计
 
-### [递归语言模型 (RLMs)](/root/ai-daily-skill/docs/2026-01-12.html)
+研究人员开发了一个双重用途的 AI 代理系统，用于解决日本 HPV 疫苗接种犹豫问题。该系统包含：整合学术论文、政府资源的向量数据库；使用 ReAct 架构的检索增强生成聊天机器人；以及自动报告生成系统。
 
-Omar Khattab 等人指出大多数"子 agent"实现错过了核心思想：需要类似指针的符号访问提示词来递归遍历。这可以实现超过 1000 万 tokens 的上下文而无需重新训练。
+**关键信息**: AI 代理, HPV 疫苗, RAG, 公共卫生
 
-**关键信息**: RLMs, 递归模型, 长上下文, 符号访问
+📎 原文链接: [ArXiv](https://arxiv.org/abs/2601.10718)
 
-## 工具框架
+### 大语言模型中的可信度认知-情感特征
 
-### [Diffusers 统一注意力后端](https://news.smol.ai/issues/26-01-13-not-much/)
+研究分析了指令调优的 LLM 如何编码感知可信度。结果显示，信任信号与公平性、确定性和自我责任评估维度关联最强——这些是人类在线信任形成的核心维度。
 
-Hugging Face Diffusers 发布统一注意力后端，结合了 Ring 和 Ulysses 的属性。这是持续推动注意力内核/后端可互换和性能可移植化的一部分。
+**关键信息**: LLM, 可信度, 认知心理学, 网络信任
 
-**关键信息**: Hugging Face, Diffusers, 注意力机制
+📎 原文链接: [ArXiv](https://arxiv.org/abs/2601.10719)
 
-### [量化的注意事项](https://news.smol.ai/issues/26-01-13-not-much/)
+## 技术社区
 
-TensorPro 报告称 MXFP4 量化的注意力可能破坏因果建模，发布了诊断和修复"泄漏量化"行为的方法。对于从业者："以 FP8/4 位训练"日益可行，但数值边缘情况仍是活跃的研究/运维问题。
+### COBOL 开发者如何看待 AI 编程工具
 
-**关键信息**: 量化, FP8, MXFP4, 数值稳定性
+Hacker News 热帖讨论了 AI 编程工具对 COBOL/大型机开发者的影响。有观点认为，真正运行经济的大量代码几乎未受 AI 编程代理的触及，这可能是安全也可能是机遇。
+
+**关键信息**: COBOL, 大型机, AI 编程, 就业影响
+
+📎 原文链接: [Hacker News](https://news.ycombinator.com/item?id=46678550)
+
+### 维基百科 AI 清理项目
+
+维基百科发起 WikiProject AI Cleanup 项目，旨在识别和清理 AI 生成的低质量内容。该项目反映了社区对 AI 生成内容质量控制的关注。
+
+**关键信息**: 维基百科, 内容审核, AI 生成内容, 质量控制
+
+📎 原文链接: [Hacker News](https://news.ycombinator.com/item?id=46677106)
+
+## 融资并购
+
+### 哈工大人形机器人项目获投资
+
+哈工大系团队成立不到一年，推出全栈开源 3m/s 人形机器人原型机，获得小米、商汤等公司投资。项目开源了硬件图纸、算法和避坑指南。
+
+**关键信息**: 人形机器人, 开源, 哈工大, 小米, 商汤
+
+📎 原文链接: [量子位](https://www.qbitai.com/2026/01/370355.html)
 
 ## 关键词
 
-#Anthropic #Google #MedGemma #LangChain #Agent #MemRL #RLMs #Diffusers #量化
+#OpenAI #ChatGPT #GPT-5 #人形机器人 #ArXiv #HackerNews #COBOL #HPV #LLM可信度
 
 ---
 
-数据来源: smol.ai
-生成时间: 2026-01-15 10:30
+数据来源: 量子位, ArXiv AI, Hacker News AI
+生成时间: 2026-01-19 22:00
 ```
 
 ---
@@ -132,8 +146,21 @@ Use these Chinese category names:
 ## Output Guidelines
 
 1. **Title format**: `# AI Daily · {年}年{月}月{日}日`
-2. **Summary**: 3-5 bullet points, one sentence each
-3. **Categories**: Use category sections above
-4. **Links**: Include original smol.ai links
-5. **Keywords**: 5-10 hashtags, comma separated
-6. **Footer**: Source and generation time
+2. **Language**: 全部内容必须翻译成中文
+3. **Summary**: 3-5 bullet points, one sentence each (中文)
+4. **Categories**: Use Chinese category names (模型发布、产品动态、研究论文、工具框架、融资并购、行业事件、技术社区)
+5. **Original Links**: 每条新闻必须附上原文链接，格式：`📎 原文链接: [来源名称](URL)`
+6. **Keywords**: 5-10 hashtags, 中英文混合
+7. **Footer**: 列出所有数据来源和生成时间
+
+## Link Format Examples
+
+```markdown
+📎 原文链接: [smol.ai](https://news.smol.ai/issues/26-01-19/)
+📎 原文链接: [Import AI](https://importai.substack.com/p/import-ai-440)
+📎 原文链接: [量子位](https://www.qbitai.com/2026/01/370285.html)
+📎 原文链接: [ArXiv](https://arxiv.org/abs/2601.10718)
+📎 原文链接: [Hacker News](https://news.ycombinator.com/item?id=46678550)
+📎 原文链接: [Last Week in AI](https://lastweekin.ai/p/last-week-in-ai-332)
+📎 原文链接: [Ahead of AI](https://magazine.sebastianraschka.com/p/...)
+```

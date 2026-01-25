@@ -1,0 +1,6 @@
+# article-generator skill 依赖
+
+# 图片生成（nanobanana）
+google-genai>=0.1.0
+Pillow>=10.0.0
+python-dotenv>=1.0.0

@@ -1,0 +1,10 @@
+⏺ Bash(python3 /Users/costalong/.claude/skills/article-generator/scripts/nanobanana.py --prompt "技术架构图，展示四个组件连接关系：Ollama、GLM4模型、Claude Code                 
+      CLI、CC-Switch管理面板，扁平插画风格，蓝色…)                                                                                                                               
+  ⎿  Error: Exit code 2                                                                                                                                                          
+     usage: nanobanana.py [-h] --prompt PROMPT [--output OUTPUT]                                                                                                                 
+                          [--input [INPUT ...]]                                                                                                                                  
+                          [--size {1024x1024,832x1248,1248x832,864x1184,1184x864,896x1152,1152x896,768x1344,1344x768,1536x672}]                                                  
+                          [--model {gemini-3-pro-image-preview,gemini-2.5-flash-image}]                                                                                          
+                          [--resolution {1K,2K,4K}]                                                                                                                              
+     nanobanana.py: error: argument --size: invalid choice: '1344x896' (choose from 1024x1024, 832x1248, 1248x832, 864x1184, 1184x864, 896x1152, 1152x896, 768x1344, 1344x768,   
+     1536x672)  
