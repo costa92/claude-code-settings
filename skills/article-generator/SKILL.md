@@ -5,6 +5,28 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 
 # Article Generator
 
+## 🚀 Initialization (Auto-Run on First Use)
+
+**CRITICAL**: Before executing any article generation tasks, ALWAYS run the dependency check script FIRST:
+
+```bash
+python3 ${SKILL_DIR}/scripts/setup_dependencies.py
+```
+
+This script will:
+- ✅ Check if all required Python packages are installed (google-genai, Pillow, python-dotenv)
+- 📦 Automatically install any missing dependencies
+- ⚡ Complete in seconds without user intervention
+
+**When to run:**
+- On first use of this skill
+- After any ImportError or dependency-related errors
+- When nanobanana.py fails with "cannot import name 'genai'" error
+
+**Error handling:**
+- If the script fails to auto-install, it will provide manual installation instructions
+- Always check the script output before proceeding with article generation
+
 ## Overview
 
 Generate high-quality WeChat Official Account articles that follow platform best practices, maintain brand consistency, and engage target audiences. Support complete article creation, content optimization, and batch generation workflows.

@@ -1,0 +1,206 @@
+Properties
+
+Key Name or ID
+Fixed
+Expression
+
+Ignore If Empty
+Fixed
+Expression
+
+URL
+Fixed
+Expression
+{{ $json.clean_link }}
+
+ 
+https://medium.com/n8n-io/how-to-automatically-manage-contributions-to-open-source-projects-%EF%B8%8F-e53d9cfa8ce9
+
+Key Name or ID
+Fixed
+Expression
+
+Rich Text
+Fixed
+Expression
+
+Text
+Fixed
+Expression
+{{ $json.md5_hash }}
+
+ 
+3bcda65fdb0e3b8fd97b04333876f306
+
+Key Name or ID
+Fixed
+Expression
+
+Range
+Fixed
+Expression
+
+Include Time
+Fixed
+Expression
+
+Date
+Fixed
+Expression
+{{ $json.article_date }}
+
+ 
+2021-10-29T07:02:25.000Z
+Timezone Name or ID
+Fixed
+Expression
+
+
+Key Name or ID
+Fixed
+Expression
+
+Rich Text
+Fixed
+Expression
+
+Text
+Fixed
+Expression
+{{ $json.source_name }}
+
+ 
+n8n 官方博客
+
+Key Name or ID
+Fixed
+Expression
+
+Rich Text
+Fixed
+Expression
+
+Text
+Fixed
+Expression
+{{ $json.execution_time }}
+
+ 
+2026-01-09T14:58:19.803+08:00
+
+Key Name or ID
+Fixed
+Expression
+
+Rich Text
+Fixed
+Expression
+
+Text
+Fixed
+Expression
+{{ $json.source_category }}
+
+ 
+n8n
+
+Add Property
+Blocks
+Currently no items exist
+
+Add Block
+Options
+No properties
+
+I wish this node would...
+OUTPUT
+
+Schema
+Table
+JSON
+
+
+10 items
+
+[
+  
+{
+  
+  
+"error": 
+"Cannot read properties of undefined (reading 'text')"
+  
+},
+  
+{
+  
+  
+"error": 
+"Cannot read properties of undefined (reading 'text')"
+  
+},
+  
+{
+  
+  
+"error": 
+"Cannot read properties of undefined (reading 'text')"
+  
+},
+  
+{
+  
+  
+"error": 
+"Cannot read properties of undefined (reading 'text')"
+  
+},
+  
+{
+  
+  
+"error": 
+"Cannot read properties of undefined (reading 'text')"
+  
+},
+  
+{
+  
+  
+"error": 
+"Cannot read properties of undefined (reading 'text')"
+  
+},
+  
+{
+  
+  
+"error": 
+"Cannot read properties of undefined (reading 'text')"
+  
+},
+  
+{
+  
+  
+"error": 
+"Cannot read properties of undefined (reading 'text')"
+  
+},
+  
+{
+  
+  
+"error": 
+"Cannot read properties of undefined (reading 'text')"
+  
+},
+  
+{
+  
+  
+"error": 
+"Cannot read properties of undefined (reading 'text')"
+  
+}
+]
