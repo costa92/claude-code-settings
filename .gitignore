@@ -171,3 +171,11 @@ telemetry
 settings.json
 cache/
 plugins/cache/
+
+# Transcripts
+transcripts/
+transcripts
+
+# Paste cache
+paste-cache/
+paste-cache
