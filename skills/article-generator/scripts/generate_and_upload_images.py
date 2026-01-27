@@ -365,43 +365,43 @@ def generate_and_upload_batch(configs: List[ImageConfig],
             print(f"\n[{i}/{len(configs)}] 处理: {config.name}")
             print("-" * 70)
 
-        # 生成图片
-        if generate_image(config, resolution):
-            results["generated"] += 1
+            # 生成图片
+            if generate_image(config, resolution):
+                results["generated"] += 1
 
-            # 先记录结果（确保即使上传失败也有记录）
-            results["images"].append({
-                "name": config.name,
-                "filename": config.filename,
-                "local_path": config.local_path,
-                "cdn_url": None,  # 上传成功后会更新
-                "prompt": config.prompt
-            })
+                # 先记录结果（确保即使上传失败也有记录）
+                results["images"].append({
+                    "name": config.name,
+                    "filename": config.filename,
+                    "local_path": config.local_path,
+                    "cdn_url": None,  # 上传成功后会更新
+                    "prompt": config.prompt
+                })
 
-            # 上传到图床
-            if upload and config.local_path:
-                time.sleep(1)  # 避免请求过快
-                # Fail-fast: 上传失败会停止整个批量处理
-                # 匹配原始 SKILL.md "If ANY step fails, STOP" 的要求
-                cdn_url = upload_to_picgo(config.local_path)
-                config.cdn_url = cdn_url
-                results["uploaded"] += 1
-                # 更新刚才添加的记录中的 cdn_url
-                results["images"][-1]["cdn_url"] = cdn_url
-        else:
-            results["failed"] += 1
-            # 即使生成失败也记录，方便调试
-            results["images"].append({
-                "name": config.name,
-                "filename": config.filename,
-                "local_path": None,
-                "cdn_url": None,
-                "prompt": config.prompt
-            })
+                # 上传到图床
+                if upload and config.local_path:
+                    time.sleep(1)  # 避免请求过快
+                    # Fail-fast: 上传失败会停止整个批量处理
+                    # 匹配原始 SKILL.md "If ANY step fails, STOP" 的要求
+                    cdn_url = upload_to_picgo(config.local_path)
+                    config.cdn_url = cdn_url
+                    results["uploaded"] += 1
+                    # 更新刚才添加的记录中的 cdn_url
+                    results["images"][-1]["cdn_url"] = cdn_url
+            else:
+                results["failed"] += 1
+                # 即使生成失败也记录，方便调试
+                results["images"].append({
+                    "name": config.name,
+                    "filename": config.filename,
+                    "local_path": None,
+                    "cdn_url": None,
+                    "prompt": config.prompt
+                })
 
-        # 避免请求过快
-        if i < len(configs):
-            time.sleep(2)
+            # 避免请求过快
+            if i < len(configs):
+                time.sleep(2)
 
     return results
 
