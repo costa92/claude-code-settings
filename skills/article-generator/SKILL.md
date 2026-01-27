@@ -126,7 +126,7 @@ Generate **technical blog articles** with:
    ├─ Generate rhythm images (3:2: 1248x832)
    ├─ Upload all to PicGo/CDN
    ├─ Embed CDN URLs in article
-   └─ Delete local files
+   └─ Manually delete local files (if needed)
 
 5. Final Review
    ├─ Verify all links are working (HTTP 200)

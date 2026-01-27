@@ -68,7 +68,9 @@ api_key = os.getenv("GEMINI_API_KEY") or ""
 
 if not api_key:
     raise ValueError(
-        "Missing GEMINI_API_KEY environment variable. Please check your .env file."
+        "Missing GEMINI_API_KEY. Please create ~/.nanobanana.env with:\n"
+        "  GEMINI_API_KEY=your_key_here\n"
+        "Or set environment variable: export GEMINI_API_KEY=your_key"
     )
 
 # Initialize Gemini client
@@ -114,9 +116,6 @@ def retry_on_error(max_attempts=None, initial_delay=None, backoff_factor=None):
                     print(f"   Retrying in {delay:.1f} seconds...")
                     time.sleep(delay)
                     delay *= backoff_factor
-
-            # Should never reach here, but just in case
-            raise last_exception
 
         return wrapper
     return decorator

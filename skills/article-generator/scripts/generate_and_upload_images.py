@@ -268,6 +268,15 @@ def generate_and_upload_batch(configs: List[ImageConfig],
         if generate_image(config, resolution):
             results["generated"] += 1
 
+            # 先记录结果（确保即使上传失败也有记录）
+            results["images"].append({
+                "name": config.name,
+                "filename": config.filename,
+                "local_path": config.local_path,
+                "cdn_url": None,  # 上传成功后会更新
+                "prompt": config.prompt
+            })
+
             # 上传到图床
             if upload and config.local_path:
                 time.sleep(1)  # 避免请求过快
@@ -276,17 +285,18 @@ def generate_and_upload_batch(configs: List[ImageConfig],
                 cdn_url = upload_to_picgo(config.local_path)
                 config.cdn_url = cdn_url
                 results["uploaded"] += 1
+                # 更新刚才添加的记录中的 cdn_url
+                results["images"][-1]["cdn_url"] = cdn_url
         else:
             results["failed"] += 1
-
-        # 记录结果
-        results["images"].append({
-            "name": config.name,
-            "filename": config.filename,
-            "local_path": config.local_path,
-            "cdn_url": config.cdn_url,
-            "prompt": config.prompt
-        })
+            # 即使生成失败也记录，方便调试
+            results["images"].append({
+                "name": config.name,
+                "filename": config.filename,
+                "local_path": None,
+                "cdn_url": None,
+                "prompt": config.prompt
+            })
 
         # 避免请求过快
         if i < len(configs):
