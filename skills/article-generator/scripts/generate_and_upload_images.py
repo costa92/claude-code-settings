@@ -12,12 +12,54 @@ import time
 from pathlib import Path
 from typing import List, Dict, Optional
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    # 如果 tqdm 未安装，提供一个简单的替代
+    class tqdm:
+        def __init__(self, iterable=None, desc=None, total=None):
+            self.iterable = iterable
+            self.desc = desc
+            self.total = total or (len(iterable) if iterable else 0)
+
+        def __iter__(self):
+            return iter(self.iterable)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
 # 配置
 # Use nanobanana.py from the same directory as this script
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 NANOBANANA_PATH = os.path.join(SCRIPT_DIR, "nanobanana.py")
 IMAGES_DIR = "./images"
 PICGO_CMD = "picgo"
+
+# Gemini API 定价（基于 2024 年定价）
+# 参考: https://ai.google.dev/pricing
+GEMINI_PRICING = {
+    "gemini-3-pro-image-preview": {
+        "1K": 0.10,  # $0.10 per image
+        "2K": 0.20,  # $0.20 per image
+        "4K": 0.40,  # $0.40 per image
+    },
+    "gemini-2.5-flash-image": {
+        "1K": 0.04,  # $0.04 per image (cheaper, faster)
+        "2K": 0.08,
+        "4K": 0.16,
+    },
+}
+
+# 平均生成时间估算（秒）
+AVG_GENERATION_TIME = {
+    "1K": 15,
+    "2K": 25,
+    "4K": 45,
+}
+AVG_UPLOAD_TIME = 5  # 平均上传时间（秒）
 
 # Import shared configuration
 try:
@@ -234,6 +276,62 @@ def upload_to_picgo(image_path: str) -> str:
         raise RuntimeError(error_msg) from e
 
 
+def dry_run_preview(configs: List[ImageConfig],
+                    upload: bool = True,
+                    resolution: str = "2K",
+                    model: str = "gemini-3-pro-image-preview") -> None:
+    """
+    预览将要生成的图片，显示成本和时间估算
+
+    Args:
+        configs: 图片配置列表
+        upload: 是否上传到图床
+        resolution: 图片分辨率
+        model: 使用的模型
+    """
+    print("=" * 70)
+    print("🔍 Dry-Run 模式 - 预览生成计划")
+    print("=" * 70)
+
+    total_images = len(configs)
+
+    # 成本估算
+    cost_per_image = GEMINI_PRICING.get(model, {}).get(resolution, 0.20)
+    total_cost = total_images * cost_per_image
+
+    # 时间估算
+    gen_time_per_image = AVG_GENERATION_TIME.get(resolution, 25)
+    upload_time_per_image = AVG_UPLOAD_TIME if upload else 0
+    total_time_per_image = gen_time_per_image + upload_time_per_image + 2  # +2s for delays
+    total_time_seconds = total_images * total_time_per_image
+    total_time_minutes = total_time_seconds / 60
+
+    print(f"\n📊 总览:")
+    print(f"   图片数量: {total_images}")
+    print(f"   分辨率: {resolution}")
+    print(f"   模型: {model}")
+    print(f"   上传模式: {'是' if upload else '否'}")
+
+    print(f"\n💰 成本估算:")
+    print(f"   单张成本: ${cost_per_image:.2f}")
+    print(f"   总成本: ${total_cost:.2f}")
+
+    print(f"\n⏱️  时间估算:")
+    print(f"   单张耗时: ~{total_time_per_image}秒 (生成{gen_time_per_image}s + 上传{upload_time_per_image}s + 延迟2s)")
+    print(f"   总耗时: ~{total_time_minutes:.1f}分钟 ({total_time_seconds}秒)")
+
+    print(f"\n📋 图片清单:")
+    for i, config in enumerate(configs, 1):
+        print(f"\n  [{i}] {config.name}")
+        print(f"      文件名: {config.filename}")
+        print(f"      宽高比: {config.aspect_ratio}")
+        print(f"      提示词: {config.prompt[:80]}{'...' if len(config.prompt) > 80 else ''}")
+
+    print("\n" + "=" * 70)
+    print("💡 提示: 移除 --dry-run 参数以开始实际生成")
+    print("=" * 70)
+
+
 def generate_and_upload_batch(configs: List[ImageConfig],
                                upload: bool = True,
                                resolution: str = "2K") -> Dict:
@@ -260,9 +358,12 @@ def generate_and_upload_batch(configs: List[ImageConfig],
         "images": []
     }
 
-    for i, config in enumerate(configs, 1):
-        print(f"\n[{i}/{len(configs)}] 处理: {config.name}")
-        print("-" * 70)
+    # Use tqdm for progress tracking
+    with tqdm(configs, desc="📸 生成和上传图片", unit="image") as pbar:
+        for i, config in enumerate(pbar, 1):
+            pbar.set_description(f"📸 处理 {i}/{len(configs)}: {config.name}")
+            print(f"\n[{i}/{len(configs)}] 处理: {config.name}")
+            print("-" * 70)
 
         # 生成图片
         if generate_image(config, resolution):
@@ -364,6 +465,11 @@ def main():
                        help="图片分辨率")
     parser.add_argument("--output", help="输出 Markdown 文件路径")
     parser.add_argument("--check", action="store_true", help="检查依赖")
+    parser.add_argument("--dry-run", action="store_true",
+                       help="预览模式：显示成本和时间估算，不实际生成图片")
+    parser.add_argument("--model", default="gemini-3-pro-image-preview",
+                       choices=["gemini-3-pro-image-preview", "gemini-2.5-flash-image"],
+                       help="使用的 Gemini 模型（仅用于 dry-run 成本估算）")
 
     args = parser.parse_args()
 
@@ -411,6 +517,16 @@ def main():
             ]
         }, indent=2, ensure_ascii=False))
         sys.exit(1)
+
+    # Dry-run 模式：仅预览，不实际生成
+    if args.dry_run:
+        dry_run_preview(
+            configs=configs,
+            upload=not args.no_upload,
+            resolution=args.resolution,
+            model=args.model
+        )
+        sys.exit(0)
 
     # 批量处理
     results = generate_and_upload_batch(

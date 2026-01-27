@@ -135,6 +135,60 @@ Generate **technical blog articles** with:
    └─ Ensure YAML frontmatter is complete
 ```
 
+### Article-Only Workflow (Fast Track)
+
+For users who want to **write first, add images later**:
+
+```
+1. Clarify Requirements
+   ├─ Topic and scope
+   ├─ Target audience
+   ├─ Article length
+   └─ Confirm: "Skip images for now"
+
+2. Research & Verification (MANDATORY)
+   ├─ Same as standard workflow
+   └─ Report verified/unverified items
+
+3. Content Generation (Article Only)
+   ├─ YAML frontmatter
+   ├─ Article structure with headings
+   ├─ Code examples (runnable, complete)
+   ├─ Obsidian callouts
+   ├─ Image placeholders (see below)
+   └─ Explicit reference links
+
+4. Add Images Later (Optional)
+   ├─ Review placeholder locations
+   ├─ Generate images with unique prefix
+   ├─ Upload to CDN
+   └─ Replace placeholders with CDN URLs
+```
+
+**Image Placeholder Syntax:**
+
+Use this format to mark where images should go:
+
+```markdown
+<!-- IMAGE: cover - 封面图 (16:9) -->
+<!-- PROMPT: Modern software development workflow, minimalist illustration -->
+
+<!-- IMAGE: pic1 - 架构示意图 (3:2) -->
+<!-- PROMPT: Microservices architecture diagram, flat design, technical illustration -->
+```
+
+**Benefits:**
+- ✅ Faster initial draft (no waiting for image generation)
+- ✅ Focus on content quality first
+- ✅ Easy to locate and replace placeholders later
+- ✅ Prompts are preserved for future generation
+
+**When to use:**
+- Tight deadlines (publish draft without images)
+- Uncertain about image style/requirements
+- Writing on mobile/limited bandwidth
+- Batch image generation later for multiple articles
+
 ---
 
 ## Best Practices
@@ -170,6 +224,16 @@ Generate **technical blog articles** with:
     - Ultrawide: 1536x672 (21:9)
     - **NOT supported:** 900x383 (crop from 1344x768 manually)
 
+### Article-Only Mode
+18. **Placeholder format:** Use HTML comments for future image locations:
+    ```markdown
+    <!-- IMAGE: cover - 封面图 (16:9) -->
+    <!-- PROMPT: your image generation prompt here -->
+    ```
+19. **Placeholder placement:** Cover after title, rhythm images every 400-600 words
+20. **Preserve prompts:** Always include PROMPT comment for later batch generation
+21. **Replace workflow:** Use find-replace to swap placeholders with CDN URLs when images ready
+
 ### Image Generation Workflow (MANDATORY Sequence)
 18. **Step-by-step process:**
     ```bash
@@ -197,6 +261,12 @@ Generate **technical blog articles** with:
     - Directory errors: Auto-fix with `mkdir -p`
     - Upload failures: **Fail-fast** - Any upload error stops the entire workflow to prevent generating articles with broken image links
     - Other errors: Report to user, ask for decision
+
+20. **Progress tracking:**
+    - Batch generation displays progress bar with tqdm (auto-installed)
+    - Shows: current image name, progress percentage, time estimate
+    - Example: `📸 处理 2/5: 封面图 |████░░░░| 40% [00:15<00:22]`
+    - Fallback to simple counter if tqdm not available
 
 ### Project Disambiguation
 20. **When user mentions a project:**
@@ -237,6 +307,35 @@ Generate **technical blog articles** with:
 ---
 
 ## Image Generation Examples
+
+### Dry-Run Preview (Cost & Time Estimation)
+```bash
+# Preview before generating - shows cost estimate and time
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+  --config images_config.json \
+  --dry-run \
+  --resolution 2K \
+  --model gemini-3-pro-image-preview
+
+# Example output:
+# 📊 总览: 5 images, 2K resolution
+# 💰 成本估算: $0.20/image, total $1.00
+# ⏱️  时间估算: ~27s/image, total ~2.3分钟
+```
+
+### Batch Generation with Configuration File
+```bash
+# Generate multiple images from JSON config
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+  --config images_config.json \
+  --resolution 2K
+
+# Without upload (local generation only)
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+  --config images_config.json \
+  --no-upload \
+  --resolution 4K
+```
 
 ### Cover Image (16:9 - 1344x768)
 ```bash
