@@ -16,6 +16,13 @@ import threading
 import hashlib
 from datetime import datetime
 
+# 尝试导入 requests（用于 GitHub Token 验证）
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
+
 try:
     from tqdm import tqdm
 except ImportError:
@@ -240,6 +247,127 @@ def ensure_images_dir():
     return images_dir
 
 
+def validate_github_token(config_path: str = "~/.picgo/config.json") -> Dict[str, any]:
+    """
+    验证GitHub Token权限（通过API测试）
+
+    Args:
+        config_path: PicGo配置文件路径
+
+    Returns:
+        dict: 验证结果
+            - valid: bool - Token是否有效
+            - error: str - 错误信息（如果有）
+            - repo: str - 仓库名称
+            - http_code: int - HTTP状态码
+    """
+    result = {
+        "valid": False,
+        "error": None,
+        "repo": None,
+        "http_code": None
+    }
+
+    # 检查 requests 库是否可用
+    if not REQUESTS_AVAILABLE:
+        result["error"] = "requests 库未安装，跳过 GitHub Token 验证"
+        result["valid"] = None  # None 表示无法验证
+        return result
+
+    try:
+        # 读取 PicGo 配置文件
+        config_file = Path(config_path).expanduser()
+
+        if not config_file.exists():
+            result["error"] = f"PicGo 配置文件不存在: {config_file}"
+            return result
+
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+
+        # 检查当前上传器是否为 GitHub
+        current_uploader = config.get("picBed", {}).get("current")
+
+        if current_uploader != "github":
+            # 非 GitHub 图床，跳过验证
+            result["valid"] = None
+            result["error"] = f"当前图床为 {current_uploader}，跳过 GitHub 验证"
+            return result
+
+        # 获取 GitHub 配置
+        github_config = config.get("picBed", {}).get("github", {})
+        repo = github_config.get("repo")
+        token = github_config.get("token")
+
+        if not repo:
+            result["error"] = "GitHub 仓库未配置 (picBed.github.repo)"
+            return result
+
+        if not token:
+            result["error"] = "GitHub Token 未配置 (picBed.github.token)"
+            return result
+
+        result["repo"] = repo
+
+        # 测试 GitHub API 权限
+        try:
+            response = requests.get(
+                f"https://api.github.com/repos/{repo}",
+                headers={
+                    "Authorization": f"token {token}",
+                    "Accept": "application/vnd.github.v3+json"
+                },
+                timeout=10
+            )
+
+            result["http_code"] = response.status_code
+
+            if response.status_code == 200:
+                result["valid"] = True
+                return result
+            elif response.status_code == 401:
+                result["error"] = "GitHub Token 无效或已过期 (401 Unauthorized)"
+                return result
+            elif response.status_code == 403:
+                # 403 可能是权限不足或 API 限流
+                error_data = response.json() if response.text else {}
+                error_message = error_data.get("message", "")
+
+                if "API rate limit exceeded" in error_message:
+                    result["error"] = "GitHub API 限流，请稍后重试"
+                else:
+                    result["error"] = (
+                        f"GitHub Token 权限不足 (403 Forbidden)\n"
+                        f"      常见原因: Token 缺少 'repo' 权限\n"
+                        f"      解决方法: https://github.com/settings/tokens 重新生成 Token\n"
+                        f"      必须选中: ✓ repo (Full control of private repositories)"
+                    )
+                return result
+            elif response.status_code == 404:
+                result["error"] = f"GitHub 仓库不存在或 Token 无访问权限: {repo} (404 Not Found)"
+                return result
+            else:
+                result["error"] = f"GitHub API 返回异常状态码: {response.status_code}"
+                return result
+
+        except requests.exceptions.Timeout:
+            result["error"] = "GitHub API 请求超时（网络问题）"
+            return result
+        except requests.exceptions.ConnectionError:
+            result["error"] = "无法连接到 GitHub API（网络问题）"
+            return result
+        except Exception as e:
+            result["error"] = f"GitHub API 请求失败: {str(e)}"
+            return result
+
+    except json.JSONDecodeError as e:
+        result["error"] = f"PicGo 配置文件格式错误: {str(e)}"
+        return result
+    except Exception as e:
+        result["error"] = f"验证过程出错: {str(e)}"
+        return result
+
+
 def check_dependencies():
     """检查依赖工具"""
     errors = []
@@ -311,6 +439,37 @@ def check_dependencies():
                     "   \n"
                     "   配置文档: https://picgo.github.io/PicGo-Core-Doc/zh/guide/config.html"
                 )
+            else:
+                # PicGo已配置上传器，进一步验证GitHub Token（如果是GitHub图床）
+                token_validation = validate_github_token()
+
+                if token_validation["valid"] is False:
+                    # Token验证失败
+                    error_msg = f"❌ GitHub Token 验证失败\n"
+                    if token_validation.get("repo"):
+                        error_msg += f"   仓库: {token_validation['repo']}\n"
+                    if token_validation.get("http_code"):
+                        error_msg += f"   HTTP状态码: {token_validation['http_code']}\n"
+                    error_msg += f"   错误: {token_validation['error']}"
+                    errors.append(error_msg)
+                elif token_validation["valid"] is True:
+                    # Token验证成功，打印确认信息（但不加入errors）
+                    print(f"✅ GitHub Token 验证成功: {token_validation['repo']}")
+                elif token_validation["valid"] is None:
+                    # 无法验证或非GitHub图床，显示警告信息
+                    if token_validation["error"] and "requests 库未安装" in token_validation["error"]:
+                        # 缺少 requests 库，给出警告
+                        errors.append(
+                            "⚠️  GitHub Token 验证功能不可用\n"
+                            "   原因: requests 库未安装\n"
+                            "   建议: pip3 install requests（可选，用于验证Token权限）\n"
+                            "   \n"
+                            "   如果上传时出现 403 错误，请检查:\n"
+                            "   1. GitHub Token 是否包含 'repo' 权限\n"
+                            "   2. 配置文件: cat ~/.picgo/config.json\n"
+                            "   3. 手动测试: picgo upload test.txt"
+                        )
+
         except Exception:
             # 配置检查失败，给出警告但不阻止运行
             errors.append(
