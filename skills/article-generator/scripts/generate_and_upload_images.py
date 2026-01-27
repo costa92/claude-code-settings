@@ -11,6 +11,8 @@ import subprocess
 import time
 from pathlib import Path
 from typing import List, Dict, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 try:
     from tqdm import tqdm
@@ -60,6 +62,65 @@ AVG_GENERATION_TIME = {
     "4K": 45,
 }
 AVG_UPLOAD_TIME = 5  # 平均上传时间（秒）
+
+
+class ThreadStatusTracker:
+    """线程状态跟踪器 - 监控并发任务执行状态"""
+
+    def __init__(self, max_workers: int):
+        self.max_workers = max_workers
+        self.thread_status = {}  # 线程ID -> 状态信息
+        self.lock = threading.Lock()
+        self.start_time = time.time()
+        self.total_tasks = 0
+        self.completed_tasks = 0
+
+    def start_task(self, thread_id: int, task_name: str):
+        """记录线程开始处理任务"""
+        with self.lock:
+            self.thread_status[thread_id] = {
+                "task": task_name,
+                "start_time": time.time(),
+                "status": "working"
+            }
+
+    def complete_task(self, thread_id: int, success: bool = True):
+        """记录线程完成任务"""
+        with self.lock:
+            if thread_id in self.thread_status:
+                self.thread_status[thread_id]["status"] = "idle"
+                self.thread_status[thread_id]["task"] = None
+                self.completed_tasks += 1
+
+    def get_status_summary(self) -> str:
+        """获取状态摘要"""
+        with self.lock:
+            working = sum(1 for s in self.thread_status.values() if s["status"] == "working")
+
+            elapsed = time.time() - self.start_time
+            # 并发效率 = 完成任务数 / (时间 * 线程数) * 100
+            if elapsed > 0.1 and self.completed_tasks > 0:
+                max_possible = (elapsed / 30) * self.max_workers  # 假设平均30秒/任务
+                efficiency = min(100, (self.completed_tasks / max_possible * 100))
+            else:
+                efficiency = 0
+
+            summary = f"🧵 线程: {working}/{self.max_workers} 工作中"
+            if efficiency > 0:
+                summary += f" | 效率: {efficiency:.1f}%"
+
+            return summary
+
+    def get_thread_details(self) -> List[str]:
+        """获取线程详细状态"""
+        with self.lock:
+            details = []
+            for thread_id, status in self.thread_status.items():
+                if status["status"] == "working" and status["task"]:
+                    elapsed = time.time() - status["start_time"]
+                    details.append(f"  - 线程{thread_id}: {status['task'][:30]} ({elapsed:.1f}s)")
+            return details
+
 
 # Import shared configuration
 try:
@@ -406,6 +467,305 @@ def generate_and_upload_batch(configs: List[ImageConfig],
     return results
 
 
+def generate_and_upload_parallel(configs: List[ImageConfig],
+                                   upload: bool = True,
+                                   resolution: str = "2K",
+                                   max_workers: int = 2,
+                                   fail_fast: bool = True) -> Dict:
+    """
+    并行批量生成和上传图片（性能优化版本）
+
+    Args:
+        configs: 图片配置列表
+        upload: 是否上传到图床
+        resolution: 图片分辨率
+        max_workers: 最大并行工作线程数（默认2，避免API限流）
+        fail_fast: 遇到错误立即停止（True）或继续处理（False）
+
+    Returns:
+        dict: 结果统计
+    """
+    print("=" * 70)
+    print(f"📸 开始并行批量生成和上传图片（{max_workers} 个并发线程）")
+    if fail_fast:
+        print("⚠️  Fail-Fast 模式：任意错误将立即停止")
+    else:
+        print("🔄 容错模式：遇到错误继续处理其他图片")
+    print("=" * 70)
+
+    results = {
+        "total": len(configs),
+        "generated": 0,
+        "uploaded": 0,
+        "failed": 0,
+        "errors": [],  # 新增：记录所有错误详情
+        "images": []
+    }
+
+    # 线程安全的结果锁
+    from threading import Lock
+    results_lock = Lock()
+
+    def process_single_image(config: ImageConfig) -> Dict:
+        """处理单张图片的生成"""
+        result = {
+            "name": config.name,
+            "filename": config.filename,
+            "local_path": None,
+            "cdn_url": None,
+            "prompt": config.prompt,
+            "success": False,
+            "error": None,
+            "error_type": None  # 新增：错误类型分类
+        }
+
+        try:
+            # 生成图片
+            if generate_image(config, resolution):
+                result["local_path"] = config.local_path
+                result["success"] = True
+
+                with results_lock:
+                    results["generated"] += 1
+            else:
+                result["error"] = "生成失败（未知原因）"
+                result["error_type"] = "generation_failed"
+
+                with results_lock:
+                    results["failed"] += 1
+                    results["errors"].append({
+                        "image": config.name,
+                        "stage": "generation",
+                        "error": result["error"]
+                    })
+
+        except FileNotFoundError as e:
+            result["error"] = f"文件系统错误: {str(e)}"
+            result["error_type"] = "filesystem_error"
+            with results_lock:
+                results["failed"] += 1
+                results["errors"].append({
+                    "image": config.name,
+                    "stage": "generation",
+                    "error": result["error"],
+                    "type": "FileNotFoundError"
+                })
+
+        except subprocess.TimeoutExpired as e:
+            result["error"] = f"生成超时: {str(e)}"
+            result["error_type"] = "timeout"
+            with results_lock:
+                results["failed"] += 1
+                results["errors"].append({
+                    "image": config.name,
+                    "stage": "generation",
+                    "error": result["error"],
+                    "type": "TimeoutError"
+                })
+
+        except Exception as e:
+            result["error"] = f"未知错误: {str(e)}"
+            result["error_type"] = "unknown"
+            with results_lock:
+                results["failed"] += 1
+                results["errors"].append({
+                    "image": config.name,
+                    "stage": "generation",
+                    "error": result["error"],
+                    "type": type(e).__name__
+                })
+
+        return result
+
+    # 阶段1: 并行生成所有图片
+    print(f"\n🎨 阶段 1/2: 并行生成图片 (max_workers={max_workers})")
+
+    generated_results = []
+    generation_failed = False
+
+    # 统计信息
+    start_time = time.time()
+    completed_count = 0
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # 提交所有生成任务
+        future_to_config = {
+            executor.submit(process_single_image, config): config
+            for config in configs
+        }
+
+        # 使用 tqdm 显示进度
+        with tqdm(
+            total=len(configs),
+            desc="🎨 生成图片",
+            unit="image",
+            bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
+        ) as pbar:
+            for future in as_completed(future_to_config):
+                config = future_to_config[future]
+                completed_count += 1
+
+                try:
+                    result = future.result()
+                    generated_results.append(result)
+
+                    # 计算实时统计
+                    elapsed = time.time() - start_time
+                    avg_time = elapsed / completed_count if completed_count > 0 else 0
+                    remaining = (len(configs) - completed_count) * avg_time
+
+                    # 更新进度条描述
+                    if result["success"]:
+                        status_emoji = "✅"
+                        pbar.set_description(
+                            f"{status_emoji} [{completed_count}/{len(configs)}] {result['name'][:20]}"
+                        )
+                    else:
+                        status_emoji = "❌"
+                        pbar.set_description(
+                            f"{status_emoji} [{completed_count}/{len(configs)}] {result['name'][:20]} - 失败"
+                        )
+
+                        if fail_fast:
+                            # Fail-fast: 立即停止
+                            generation_failed = True
+                            pbar.close()
+                            executor.shutdown(wait=False, cancel_futures=True)
+
+                            print(f"\n❌ 生成失败（Fail-Fast 模式）: {result['name']}")
+                            print(f"   错误: {result['error']}")
+                            raise RuntimeError(f"图片生成失败: {result['name']} - {result['error']}")
+
+                    # 更新进度条
+                    pbar.update(1)
+
+                    # 更新后缀显示统计信息
+                    pbar.set_postfix({
+                        '成功': f"{results['generated']}/{completed_count}",
+                        '平均': f"{avg_time:.1f}s/图",
+                        '剩余': f"{int(remaining)}s"
+                    })
+
+                except Exception as e:
+                    if fail_fast:
+                        # Fail-fast: 任意严重错误立即停止
+                        pbar.set_description(f"💥 严重错误: {config.name}")
+                        pbar.close()
+
+                        # 取消所有未完成的任务
+                        executor.shutdown(wait=False, cancel_futures=True)
+
+                        print(f"\n❌ 并行生成失败: {str(e)}")
+                        raise
+                    else:
+                        # 容错模式：记录错误但继续
+                        pbar.set_description(f"⚠️  错误（已跳过）: {config.name}")
+                        with results_lock:
+                            results["failed"] += 1
+                            results["errors"].append({
+                                "image": config.name,
+                                "stage": "generation",
+                                "error": str(e),
+                                "type": type(e).__name__
+                            })
+                        pbar.update(1)
+
+    # 阶段2: 串行上传图片（避免并发上传问题）
+    if upload and not generation_failed:
+        print(f"\n📤 阶段 2/2: 串行上传图片到 PicGo")
+
+        successful_results = [r for r in generated_results if r["success"]]
+
+        if len(successful_results) == 0:
+            print("⚠️  没有成功生成的图片需要上传")
+        else:
+            # 上传阶段统计
+            upload_start_time = time.time()
+            upload_count = 0
+
+            with tqdm(
+                total=len(successful_results),
+                desc="📤 上传图片",
+                unit="image",
+                bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
+            ) as pbar:
+                for idx, result in enumerate(successful_results, 1):
+                    if result["local_path"]:
+                        pbar.set_description(f"📤 [{idx}/{len(successful_results)}] {result['name'][:20]}")
+
+                        try:
+                            # 记录单次上传开始时间
+                            upload_item_start = time.time()
+
+                            # 上传到图床
+                            cdn_url = upload_to_picgo(result["local_path"])
+                            result["cdn_url"] = cdn_url
+
+                            # 计算上传耗时
+                            upload_duration = time.time() - upload_item_start
+
+                            with results_lock:
+                                results["uploaded"] += 1
+
+                            upload_count += 1
+
+                            # 计算统计信息
+                            upload_elapsed = time.time() - upload_start_time
+                            avg_upload_time = upload_elapsed / upload_count if upload_count > 0 else 0
+                            remaining_uploads = len(successful_results) - upload_count
+                            remaining_time = remaining_uploads * avg_upload_time
+
+                            pbar.set_description(f"✅ [{idx}/{len(successful_results)}] {result['name'][:20]}")
+
+                            # 更新后缀显示统计信息
+                            pbar.set_postfix({
+                                '成功': f"{upload_count}/{idx}",
+                                '平均': f"{avg_upload_time:.1f}s/图",
+                                '本次': f"{upload_duration:.1f}s",
+                                '剩余': f"{int(remaining_time)}s"
+                            })
+
+                            pbar.update(1)
+
+                        except Exception as e:
+                            # 上传失败处理
+                            error_msg = f"上传失败: {str(e)}"
+
+                            with results_lock:
+                                results["errors"].append({
+                                    "image": result['name'],
+                                    "stage": "upload",
+                                    "error": error_msg,
+                                    "type": type(e).__name__
+                                })
+
+                            if fail_fast:
+                                # Fail-fast: 上传失败立即停止
+                                pbar.close()
+                                print(f"\n❌ 上传失败（Fail-Fast 模式）: {result['name']}")
+                                print(f"   错误: {error_msg}")
+                                raise RuntimeError(f"上传 {result['name']} 失败: {str(e)}") from e
+                            else:
+                                # 容错模式：记录错误但继续
+                                pbar.set_description(f"⚠️ [{idx}/{len(successful_results)}] {result['name'][:20]} - 失败")
+                                pbar.update(1)
+
+                        # 避免请求过快
+                        time.sleep(1)
+
+    # 将结果添加到最终统计
+    for result in generated_results:
+        results["images"].append({
+            "name": result["name"],
+            "filename": result["filename"],
+            "local_path": result["local_path"],
+            "cdn_url": result["cdn_url"],
+            "prompt": result["prompt"]
+        })
+
+    return results
+
+
 def print_summary(results: Dict):
     """打印结果摘要"""
     print("\n" + "=" * 70)
@@ -416,6 +776,15 @@ def print_summary(results: Dict):
     print(f"   生成成功: {results['generated']}")
     print(f"   上传成功: {results['uploaded']}")
     print(f"   失败: {results['failed']}")
+
+    # 新增：错误报告
+    if results.get('errors') and len(results['errors']) > 0:
+        print(f"\n⚠️  错误报告: ({len(results['errors'])} 个错误)")
+        print("-" * 70)
+        for idx, error in enumerate(results['errors'], 1):
+            print(f"\n  [{idx}] {error['image']} - {error['stage'].upper()}")
+            print(f"      类型: {error.get('type', 'Unknown')}")
+            print(f"      错误: {error['error']}")
 
     print(f"\n📋 图片清单:")
     for img in results["images"]:
@@ -470,6 +839,12 @@ def main():
     parser.add_argument("--model", default="gemini-3-pro-image-preview",
                        choices=["gemini-3-pro-image-preview", "gemini-2.5-flash-image"],
                        help="使用的 Gemini 模型（仅用于 dry-run 成本估算）")
+    parser.add_argument("--parallel", action="store_true",
+                       help="启用并行生成模式（提升速度，但可能触发API限流）")
+    parser.add_argument("--max-workers", type=int, default=2,
+                       help="并行模式下的最大工作线程数（默认2，避免API限流）")
+    parser.add_argument("--continue-on-error", action="store_true",
+                       help="容错模式：遇到错误继续处理其他图片（默认Fail-Fast立即停止）")
 
     args = parser.parse_args()
 
@@ -528,12 +903,24 @@ def main():
         )
         sys.exit(0)
 
-    # 批量处理
-    results = generate_and_upload_batch(
-        configs=configs,
-        upload=not args.no_upload,
-        resolution=args.resolution
-    )
+    # 批量处理：根据参数选择串行或并行模式
+    if args.parallel:
+        # 并行模式
+        print(f"\n🚀 使用并行模式（{args.max_workers} 个工作线程）")
+        results = generate_and_upload_parallel(
+            configs=configs,
+            upload=not args.no_upload,
+            resolution=args.resolution,
+            max_workers=args.max_workers,
+            fail_fast=not args.continue_on_error  # 容错模式控制
+        )
+    else:
+        # 串行模式（默认）
+        results = generate_and_upload_batch(
+            configs=configs,
+            upload=not args.no_upload,
+            resolution=args.resolution
+        )
 
     # 打印摘要
     print_summary(results)

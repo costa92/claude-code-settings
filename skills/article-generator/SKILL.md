@@ -308,6 +308,51 @@ Use this format to mark where images should go:
 
 ## Image Generation Examples
 
+### Parallel Mode (Performance Optimization)
+
+**Parallel generation mode** enables concurrent image generation for significant speed improvements.
+
+```bash
+# Basic parallel mode (2 workers, default)
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+  --config images.json \
+  --parallel \
+  --resolution 2K
+
+# High-speed parallel (4 workers, use with caution)
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+  --config images.json \
+  --parallel \
+  --max-workers 4
+
+# Parallel with fault tolerance
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+  --config images.json \
+  --parallel \
+  --continue-on-error
+```
+
+**Performance:**
+- **2 workers**: ~1.87x faster (93.5% efficiency)
+- **4 workers**: ~2.5-3x faster (may trigger API rate limits)
+
+**Modes:**
+- **Fail-Fast (default)**: Stops immediately on any error
+- **Fault-Tolerant (--continue-on-error)**: Logs errors but continues processing
+
+**When to use:**
+- Batch generation (5+ images)
+- Time-critical workflows
+- Offline generation (--no-upload)
+
+**Caution:**
+- May trigger Gemini API rate limits with 4+ workers
+- Recommended: 2 workers for stability
+
+---
+
+## Image Generation Examples (Single Image)
+
 ### Dry-Run Preview (Cost & Time Estimation)
 ```bash
 # Preview before generating - shows cost estimate and time

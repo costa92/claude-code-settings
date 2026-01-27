@@ -1,0 +1,12 @@
+{
+  "id": "7",
+  "subject": "Implement article-only mode (no images)",
+  "description": "添加纯文本模式，支持快速生成无图片的文章\n\n实施步骤：\n1. 添加 --no-images 标志支持\n2. 更新文章生成逻辑使用占位符图片\n3. 测试纯文本文章生成\n4. 更新 SKILL.md 文档和示例\n\n预计时间：4小时\n用户满意度：⭐⭐⭐⭐",
+  "activeForm": "Implementing article-only mode",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": [],
+  "metadata": {
+    "reason": "Successfully implemented article-only mode with placeholder syntax and workflow documentation"
+  }
+}

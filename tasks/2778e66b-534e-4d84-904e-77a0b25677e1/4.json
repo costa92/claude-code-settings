@@ -1,0 +1,9 @@
+{
+  "id": "4",
+  "subject": "Update SKILL.md workflow documentation",
+  "description": "更新 SKILL.md 第122-136行的工作流说明，使其与实际实现匹配\n\n当前问题：文档声称\"Delete local files\"是自动的，但代码中未实现\n\n修复方案：要么实现自动删除功能，要么更新文档说明这是手动步骤\n\n预计时间：15分钟",
+  "activeForm": "Updating workflow documentation",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}
