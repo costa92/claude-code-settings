@@ -13,9 +13,30 @@ from pathlib import Path
 from typing import List, Dict, Optional
 
 # 配置
-NANOBANANA_PATH = os.path.expanduser("~/.claude/skills/nanobanana-skill/nanobanana.py")
+# Use nanobanana.py from the same directory as this script
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+NANOBANANA_PATH = os.path.join(SCRIPT_DIR, "nanobanana.py")
 IMAGES_DIR = "./images"
 PICGO_CMD = "picgo"
+
+# Import shared configuration
+try:
+    from config import ASPECT_RATIO_TO_SIZE, TIMEOUTS
+except ImportError:
+    # Fallback if config.py not found
+    ASPECT_RATIO_TO_SIZE = {
+        "1:1": "1024x1024",
+        "2:3": "832x1248",
+        "3:2": "1248x832",
+        "3:4": "864x1184",
+        "4:3": "1184x864",
+        "4:5": "896x1152",
+        "5:4": "1152x896",
+        "9:16": "768x1344",
+        "16:9": "1344x768",
+        "21:9": "1536x672",
+    }
+    TIMEOUTS = {"image_generation": 120, "upload": 60}
 
 
 class ImageConfig:
@@ -44,9 +65,29 @@ def check_dependencies():
     if not os.path.exists(NANOBANANA_PATH):
         errors.append(f"❌ nanobanana 脚本未找到: {NANOBANANA_PATH}")
 
-    # 检查 GEMINI_API_KEY
-    if not os.getenv("GEMINI_API_KEY"):
-        errors.append("❌ 环境变量 GEMINI_API_KEY 未设置")
+    # 检查 GEMINI_API_KEY（先检查环境变量，再检查 .env 文件）
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        # Check in ~/.nanobanana.env file
+        env_file = os.path.expanduser("~/.nanobanana.env")
+        if os.path.exists(env_file):
+            try:
+                with open(env_file, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith("GEMINI_API_KEY="):
+                            api_key = line.split("=", 1)[1].strip()
+                            if api_key:  # Non-empty value
+                                break
+            except Exception:
+                pass  # If file read fails, treat as not found
+
+        if not api_key:
+            errors.append(
+                "❌ GEMINI_API_KEY 未设置\n"
+                "   请创建 ~/.nanobanana.env 文件并添加: GEMINI_API_KEY=your_key_here\n"
+                "   或设置环境变量: export GEMINI_API_KEY=your_key_here"
+            )
 
     # 检查 picgo
     try:
@@ -74,18 +115,8 @@ def generate_image(config: ImageConfig, resolution: str = "2K") -> bool:
     images_dir = ensure_images_dir()
     output_path = images_dir / config.filename
 
-    # 映射 aspect_ratio 到 nanobanana 的 size 参数
-    aspect_ratio_map = {
-        "1:1": "1024x1024",
-        "3:2": "1152x896",
-        "2:3": "896x1152",
-        "16:9": "1344x768",
-        "9:16": "768x1344",
-        "4:3": "1184x864",
-        "3:4": "864x1184",
-    }
-
-    size = aspect_ratio_map.get(config.aspect_ratio, "1152x896")
+    # Use shared aspect ratio mapping
+    size = ASPECT_RATIO_TO_SIZE.get(config.aspect_ratio, "1248x832")
 
     print(f"\n🎨 生成图片: {config.name}")
     print(f"   提示词: {config.prompt[:60]}...")
@@ -106,7 +137,7 @@ def generate_image(config: ImageConfig, resolution: str = "2K") -> bool:
             cmd,
             capture_output=True,
             text=True,
-            timeout=120
+            timeout=TIMEOUTS.get("image_generation", 120)
         )
 
         if result.returncode == 0 and output_path.exists():
@@ -120,14 +151,15 @@ def generate_image(config: ImageConfig, resolution: str = "2K") -> bool:
             return False
 
     except subprocess.TimeoutExpired:
-        print(f"   ❌ 生成超时（120秒）")
+        timeout_val = TIMEOUTS.get("image_generation", 120)
+        print(f"   ❌ 生成超时（{timeout_val}秒）")
         return False
     except Exception as e:
         print(f"   ❌ 生成失败: {str(e)}")
         return False
 
 
-def upload_to_picgo(image_path: str) -> Optional[str]:
+def upload_to_picgo(image_path: str) -> str:
     """
     使用 PicGo 上传图片到图床
 
@@ -135,7 +167,10 @@ def upload_to_picgo(image_path: str) -> Optional[str]:
         image_path: 本地图片路径
 
     Returns:
-        str: CDN URL，失败返回 None
+        str: CDN URL
+
+    Raises:
+        RuntimeError: 上传失败时抛出异常（fail fast）
     """
     print(f"\n📤 上传图片: {image_path}")
 
@@ -145,7 +180,7 @@ def upload_to_picgo(image_path: str) -> Optional[str]:
             [PICGO_CMD, "upload", image_path],
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=TIMEOUTS.get("upload", 60)
         )
 
         if result.returncode == 0:
@@ -174,21 +209,29 @@ def upload_to_picgo(image_path: str) -> Optional[str]:
             except json.JSONDecodeError:
                 pass
 
-            print(f"   ⚠️ 上传可能成功，但无法解析 URL")
-            print(f"   输出: {output[:200]}")
-            return None
+            # 无法解析 URL - 立即失败
+            error_msg = f"PicGo 上传返回成功但无法解析 URL。输出: {output[:200]}"
+            print(f"   ❌ {error_msg}")
+            raise RuntimeError(error_msg)
         else:
-            print(f"   ❌ 上传失败")
+            # 上传失败 - 立即失败
+            error_msg = f"PicGo 上传失败 (exit code {result.returncode})"
             if result.stderr:
-                print(f"   错误: {result.stderr[:200]}")
-            return None
+                error_msg += f": {result.stderr[:200]}"
+            print(f"   ❌ {error_msg}")
+            raise RuntimeError(error_msg)
 
     except subprocess.TimeoutExpired:
-        print(f"   ❌ 上传超时（60秒）")
-        return None
+        error_msg = f"PicGo 上传超时（{TIMEOUTS.get('upload', 60)}秒）"
+        print(f"   ❌ {error_msg}")
+        raise RuntimeError(error_msg)
+    except RuntimeError:
+        # 重新抛出我们自己的错误
+        raise
     except Exception as e:
-        print(f"   ❌ 上传失败: {str(e)}")
-        return None
+        error_msg = f"PicGo 上传异常: {str(e)}"
+        print(f"   ❌ {error_msg}")
+        raise RuntimeError(error_msg) from e
 
 
 def generate_and_upload_batch(configs: List[ImageConfig],
@@ -228,11 +271,11 @@ def generate_and_upload_batch(configs: List[ImageConfig],
             # 上传到图床
             if upload and config.local_path:
                 time.sleep(1)  # 避免请求过快
+                # Fail-fast: 上传失败会停止整个批量处理
+                # 匹配原始 SKILL.md "If ANY step fails, STOP" 的要求
                 cdn_url = upload_to_picgo(config.local_path)
-
-                if cdn_url:
-                    config.cdn_url = cdn_url
-                    results["uploaded"] += 1
+                config.cdn_url = cdn_url
+                results["uploaded"] += 1
         else:
             results["failed"] += 1
 

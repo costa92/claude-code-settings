@@ -1,13 +1,64 @@
 #!/usr/bin/env python3
 # Generate or edit images using Google Gemini API
 import os
+import sys
 import argparse
 import uuid
-from dotenv import load_dotenv
-from google import genai
-from google.genai import types
-from PIL import Image
-from io import BytesIO
+import time
+import subprocess
+from functools import wraps
+
+# Auto-check dependencies on import
+try:
+    from dotenv import load_dotenv
+    from google import genai
+    from google.genai import types
+    from PIL import Image
+    from io import BytesIO
+except ImportError as e:
+    print(f"❌ 缺少依赖: {e}")
+    print("🔧 正在自动安装依赖...\n")
+
+    # Get script directory and run setup_dependencies.py
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    setup_script = os.path.join(script_dir, "setup_dependencies.py")
+
+    if os.path.exists(setup_script):
+        result = subprocess.run([sys.executable, setup_script])
+        if result.returncode == 0:
+            print("\n✅ 依赖安装完成，请重新运行此脚本")
+        else:
+            print("\n❌ 依赖安装失败，请手动运行:")
+            print(f"   python3 {setup_script}")
+        sys.exit(1)
+    else:
+        print(f"❌ 未找到 setup_dependencies.py: {setup_script}")
+        print("请手动安装依赖: pip install google-genai Pillow python-dotenv")
+        sys.exit(1)
+
+# Import shared configuration
+try:
+    from config import ASPECT_RATIO_MAP, RETRY_CONFIG
+except ImportError:
+    # Fallback if config.py not found
+    ASPECT_RATIO_MAP = {
+        "1024x1024": "1:1",
+        "832x1248": "2:3",
+        "1248x832": "3:2",
+        "864x1184": "3:4",
+        "1184x864": "4:3",
+        "896x1152": "4:5",
+        "1152x896": "5:4",
+        "768x1344": "9:16",
+        "1344x768": "16:9",
+        "1536x672": "21:9",
+    }
+    RETRY_CONFIG = {
+        "max_attempts": 3,
+        "initial_delay": 2,
+        "backoff_factor": 1.5,
+        "retriable_errors": ["SSL", "ConnectionError", "TimeoutError", "NetworkError", "500", "502", "503", "504"]
+    }
 
 # Load environment variables
 load_dotenv(os.path.expanduser("~") + "/.nanobanana.env")
@@ -23,20 +74,52 @@ if not api_key:
 # Initialize Gemini client
 client = genai.Client(api_key=api_key)
 
-# Aspect ratio to resolution mapping
-# NOTE: Only these aspect ratios are supported by Gemini API
-ASPECT_RATIO_MAP = {
-    "1024x1024": "1:1",  # 1:1
-    "832x1248": "2:3",  # 2:3
-    "1248x832": "3:2",  # 3:2
-    "864x1184": "3:4",  # 3:4
-    "1184x864": "4:3",  # 4:3
-    "896x1152": "4:5",  # 4:5
-    "1152x896": "5:4",  # 5:4
-    "768x1344": "9:16",  # 9:16
-    "1344x768": "16:9",  # 16:9 - Use this for WeChat covers, then crop to 900x383
-    "1536x672": "21:9",  # 21:9
-}
+
+def retry_on_error(max_attempts=None, initial_delay=None, backoff_factor=None):
+    """
+    Decorator to retry function calls on specific errors with exponential backoff.
+
+    Args:
+        max_attempts: Maximum number of retry attempts (default from RETRY_CONFIG)
+        initial_delay: Initial delay in seconds (default from RETRY_CONFIG)
+        backoff_factor: Multiplier for delay on each retry (default from RETRY_CONFIG)
+    """
+    max_attempts = max_attempts or RETRY_CONFIG["max_attempts"]
+    initial_delay = initial_delay or RETRY_CONFIG["initial_delay"]
+    backoff_factor = backoff_factor or RETRY_CONFIG["backoff_factor"]
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            delay = initial_delay
+            last_exception = None
+
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+                    error_str = str(e)
+
+                    # Check if error is retriable
+                    is_retriable = any(
+                        err_pattern in error_str
+                        for err_pattern in RETRY_CONFIG["retriable_errors"]
+                    )
+
+                    if not is_retriable or attempt >= max_attempts:
+                        raise
+
+                    print(f"⚠️  Attempt {attempt}/{max_attempts} failed: {error_str[:100]}")
+                    print(f"   Retrying in {delay:.1f} seconds...")
+                    time.sleep(delay)
+                    delay *= backoff_factor
+
+            # Should never reach here, but just in case
+            raise last_exception
+
+        return wrapper
+    return decorator
 
 
 def main():
@@ -62,9 +145,9 @@ def main():
     parser.add_argument(
         "--size",
         type=str,
-        default="768x1344",
+        default="1344x768",
         choices=list(ASPECT_RATIO_MAP.keys()),
-        help="Size/aspect ratio of the generated image (default: 768x1344 / 9:16)",
+        help="Size/aspect ratio of the generated image (default: 1344x768 / 16:9 - landscape cover)",
     )
     parser.add_argument(
         "--model",
@@ -107,16 +190,32 @@ def main():
         print(f"Generating image (size: {args.size}) with prompt: {args.prompt}")
         contents.append(args.prompt)
 
+    # Generate image with retry logic
+    generate_image_with_retry(args.model, contents, aspect_ratio, args.resolution, args.output)
+
+
+@retry_on_error()
+def generate_image_with_retry(model, contents, aspect_ratio, resolution, output_path):
+    """
+    Generate or edit image with automatic retry on network/SSL errors.
+
+    Args:
+        model: Model name
+        contents: Content list (prompt + optional images)
+        aspect_ratio: Aspect ratio string
+        resolution: Resolution (1K, 2K, 4K)
+        output_path: Output file path
+    """
     # Generate or edit image with config
     response = client.models.generate_content(
-        model=args.model,
+        model=model,
         contents=contents,
         config=types.GenerateContentConfig(
             response_modalities=["TEXT", "IMAGE"],
             tools=[types.Tool(google_search=types.GoogleSearch())],
             image_config=types.ImageConfig(
                 aspect_ratio=aspect_ratio,
-                image_size=args.resolution,
+                image_size=resolution,
             ),
             thinking_config=types.ThinkingConfig(
                 include_thoughts=True,
@@ -140,9 +239,9 @@ def main():
         elif part.inline_data is not None and part.inline_data.data is not None:
             image = Image.open(BytesIO(part.inline_data.data))
 
-            image.save(args.output)
+            image.save(output_path)
             image_saved = True
-            print(f"\n\nImage saved to: {args.output}")
+            print(f"\n\nImage saved to: {output_path}")
 
     if not image_saved:
         print(
