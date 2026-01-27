@@ -730,6 +730,15 @@ def generate_and_upload_batch(configs: List[ImageConfig],
                     results["uploaded"] += 1
                     # 更新刚才添加的记录中的 cdn_url
                     results["images"][-1]["cdn_url"] = cdn_url
+
+                    # 上传成功后自动删除本地文件
+                    try:
+                        if os.path.exists(config.local_path):
+                            os.remove(config.local_path)
+                            print(f"   🗑️  已删除本地文件: {config.local_path}")
+                    except Exception as e:
+                        print(f"   ⚠️  删除本地文件失败: {e}")
+                        # 删除失败不影响主流程
             else:
                 results["failed"] += 1
                 # 即使生成失败也记录，方便调试
@@ -981,6 +990,15 @@ def generate_and_upload_parallel(configs: List[ImageConfig],
                             # 上传到图床
                             cdn_url = upload_to_picgo(result["local_path"])
                             result["cdn_url"] = cdn_url
+
+                            # 上传成功后自动删除本地文件
+                            try:
+                                if os.path.exists(result["local_path"]):
+                                    os.remove(result["local_path"])
+                                    print(f"   🗑️  已删除本地文件: {result['local_path']}")
+                            except Exception as e:
+                                print(f"   ⚠️  删除本地文件失败: {e}")
+                                # 删除失败不影响主流程
 
                             # 计算上传耗时
                             upload_duration = time.time() - upload_item_start

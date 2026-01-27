@@ -445,7 +445,7 @@ Before running `generate_and_upload_images.py`, verify:
    ├─ Generate rhythm images (3:2: 1248x832)
    ├─ Upload all to PicGo/CDN
    ├─ Embed CDN URLs in article
-   └─ Manually delete local files (if needed)
+   └─ **Automatically delete local files after successful upload**
 
 5. Final Review
    ├─ Verify all links are working (HTTP 200)
