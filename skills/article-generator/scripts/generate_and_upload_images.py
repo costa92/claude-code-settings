@@ -1308,6 +1308,16 @@ def main():
             f.write(markdown)
         print(f"\n📝 Markdown 输出已保存: {args.output}")
 
+    # 自动删除配置文件（如果上传成功）
+    if args.config and not args.no_upload and results["uploaded"] > 0:
+        try:
+            if os.path.exists(args.config):
+                os.remove(args.config)
+                print(f"\n🗑️  已删除配置文件: {args.config}")
+        except Exception as e:
+            print(f"\n⚠️  删除配置文件失败: {e}")
+            # 删除失败不影响主流程
+
 
 if __name__ == "__main__":
     main()
