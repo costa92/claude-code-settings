@@ -1,9 +1,0 @@
-{
-  "id": "1",
-  "subject": "Fix API Key error message clarity",
-  "description": "更新 nanobanana.py 第71行的错误消息，明确指出 ~/.nanobanana.env 路径\n\n当前消息：\"Missing GEMINI_API_KEY environment variable. Please check your .env file.\"\n改为：\"Missing GEMINI_API_KEY. Please create ~/.nanobanana.env with:\\n  GEMINI_API_KEY=your_key_here\"\n\n预计时间：5分钟",
-  "activeForm": "Fixing API Key error message",
-  "status": "completed",
-  "blocks": [],
-  "blockedBy": []
-}

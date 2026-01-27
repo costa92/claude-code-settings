@@ -1,9 +1,0 @@
-{
-  "id": "3",
-  "subject": "Fix data inconsistency on upload failure",
-  "description": "修复 generate_and_upload_images.py 第269-278行的数据不一致问题\n\n当前问题：上传失败时 results[\"generated\"] 已递增但 results[\"images\"] 未更新，导致统计数据不一致\n\n修复方案：确保在上传成功后再更新统计数据\n\n预计时间：10分钟",
-  "activeForm": "Fixing data inconsistency",
-  "status": "completed",
-  "blocks": [],
-  "blockedBy": []
-}

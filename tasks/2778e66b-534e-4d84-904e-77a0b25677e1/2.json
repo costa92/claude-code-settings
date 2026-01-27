@@ -1,9 +1,0 @@
-{
-  "id": "2",
-  "subject": "Remove dead code in retry logic",
-  "description": "删除 nanobanana.py 第118-119行的死代码（永远不会执行的代码）\n\n这两行代码在 line 111 的 raise 语句之后，永远不会被执行到。\n\n预计时间：2分钟",
-  "activeForm": "Removing dead code",
-  "status": "completed",
-  "blocks": [],
-  "blockedBy": []
-}

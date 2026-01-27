@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import List, Dict, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
+import hashlib
+from datetime import datetime
 
 try:
     from tqdm import tqdm
@@ -120,6 +122,84 @@ class ThreadStatusTracker:
                     elapsed = time.time() - status["start_time"]
                     details.append(f"  - 线程{thread_id}: {status['task'][:30]} ({elapsed:.1f}s)")
             return details
+
+
+class CheckpointManager:
+    """检查点管理器 - 实现断点续传功能（简化版）"""
+
+    def __init__(self, config_path: str, checkpoint_dir: str = ".checkpoints"):
+        self.config_path = config_path
+        self.checkpoint_dir = Path(checkpoint_dir)
+        self.checkpoint_dir.mkdir(exist_ok=True)
+
+        # 生成检查点文件名（基于配置文件路径的哈希）
+        config_hash = hashlib.md5(config_path.encode()).hexdigest()[:8]
+        self.checkpoint_file = self.checkpoint_dir / f"checkpoint_{config_hash}.json"
+
+    def save_checkpoint(self, completed: List[str], failed: List[str],
+                       uploaded: List[str], total: int):
+        """保存检查点"""
+        checkpoint = {
+            "timestamp": datetime.now().isoformat(),
+            "config": self.config_path,
+            "total": total,
+            "completed": completed,  # 已成功生成的图片文件名
+            "failed": failed,        # 生成失败的图片文件名
+            "uploaded": uploaded     # 已上传的图片文件名
+        }
+
+        with open(self.checkpoint_file, 'w', encoding='utf-8') as f:
+            json.dump(checkpoint, f, indent=2, ensure_ascii=False)
+
+    def load_checkpoint(self) -> Optional[Dict]:
+        """加载检查点"""
+        if not self.checkpoint_file.exists():
+            return None
+
+        try:
+            with open(self.checkpoint_file, 'r', encoding='utf-8') as f:
+                checkpoint = json.load(f)
+
+            # 验证检查点配置是否匹配
+            if checkpoint.get("config") != self.config_path:
+                return None
+
+            return checkpoint
+        except Exception as e:
+            print(f"⚠️  加载检查点失败: {e}")
+            return None
+
+    def clear_checkpoint(self):
+        """清除检查点文件"""
+        if self.checkpoint_file.exists():
+            self.checkpoint_file.unlink()
+
+    def get_resume_info(self) -> Dict:
+        """获取恢复信息"""
+        checkpoint = self.load_checkpoint()
+
+        if not checkpoint:
+            return {
+                "has_checkpoint": False,
+                "completed": [],
+                "failed": [],
+                "uploaded": [],
+                "remaining": 0
+            }
+
+        completed = set(checkpoint.get("completed", []))
+        failed = set(checkpoint.get("failed", []))
+        uploaded = set(checkpoint.get("uploaded", []))
+        total = checkpoint.get("total", 0)
+
+        return {
+            "has_checkpoint": True,
+            "timestamp": checkpoint.get("timestamp"),
+            "completed": list(completed),
+            "failed": list(failed),
+            "uploaded": list(uploaded),
+            "remaining": total - len(completed)
+        }
 
 
 # Import shared configuration
@@ -845,6 +925,10 @@ def main():
                        help="并行模式下的最大工作线程数（默认2，避免API限流）")
     parser.add_argument("--continue-on-error", action="store_true",
                        help="容错模式：遇到错误继续处理其他图片（默认Fail-Fast立即停止）")
+    parser.add_argument("--resume", action="store_true",
+                       help="从检查点恢复未完成的任务（实验性功能）")
+    parser.add_argument("--checkpoint-dir", default=".checkpoints",
+                       help="检查点文件保存目录（默认: .checkpoints）")
 
     args = parser.parse_args()
 
