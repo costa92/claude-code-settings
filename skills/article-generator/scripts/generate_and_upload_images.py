@@ -273,13 +273,51 @@ def check_dependencies():
             )
 
     # 检查 picgo
+    picgo_installed = False
     try:
         subprocess.run([PICGO_CMD, "--version"],
                       capture_output=True,
                       check=True,
                       timeout=5)
+        picgo_installed = True
     except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        errors.append(f"❌ PicGo CLI 未安装或未配置\n   请运行: npm install -g picgo")
+        errors.append(
+            "❌ PicGo CLI 未安装\n"
+            "   请运行: npm install -g picgo"
+        )
+
+    # 如果PicGo已安装，检查配置
+    if picgo_installed:
+        try:
+            # 检查当前上传器配置
+            result = subprocess.run(
+                [PICGO_CMD, "config", "uploader"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+
+            if result.returncode != 0 or not result.stdout.strip():
+                errors.append(
+                    "⚠️  PicGo 未配置上传器\n"
+                    "   请运行以下命令配置:\n"
+                    "   1. picgo set uploader (选择图床: github/smms/qiniu等)\n"
+                    "   2. 根据提示配置Token和仓库信息\n"
+                    "   \n"
+                    "   GitHub图床配置要点:\n"
+                    "   - Token权限: 必须包含 'repo' 权限\n"
+                    "   - 仓库格式: username/repo-name\n"
+                    "   - 分支: 通常为 main 或 master\n"
+                    "   \n"
+                    "   配置文档: https://picgo.github.io/PicGo-Core-Doc/zh/guide/config.html"
+                )
+        except Exception:
+            # 配置检查失败，给出警告但不阻止运行
+            errors.append(
+                "⚠️  无法验证PicGo配置（可能是版本问题）\n"
+                "   如果上传失败，请运行: picgo set uploader\n"
+                "   确保配置了有效的图床和Token权限"
+            )
 
     return errors
 

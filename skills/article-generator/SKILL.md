@@ -413,6 +413,53 @@ python3 ${SKILL_DIR}/scripts/setup_dependencies.py
 ### PicGo upload fails
 → Run `picgo set uploader` to configure image hosting service
 
+**Common PicGo configuration issues:**
+
+1. **No uploader configured**
+   ```bash
+   # Configure uploader (choose: github, smms, qiniu, etc.)
+   picgo set uploader
+   ```
+
+2. **GitHub uploader - Token permissions**
+   - ❌ Error: `Resource not accessible by personal access token (403)`
+   - ✅ Solution: GitHub Token must have **`repo` permission**
+   - Generate new token: https://github.com/settings/tokens
+   - Required scope: Select **`repo`** (Full control of private repositories)
+
+3. **Configuration file mismatch**
+   - Check config: `cat ~/.picgo/config.json`
+   - Ensure `picBed.uploader` matches `picBed.current`
+   - Example:
+     ```json
+     {
+       "picBed": {
+         "uploader": "github",
+         "current": "github",
+         "github": {
+           "repo": "username/repo-name",
+           "branch": "main",
+           "token": "ghp_xxxxx",
+           "path": "images/"
+         }
+       }
+     }
+     ```
+
+4. **Verify configuration**
+   ```bash
+   # Test upload
+   echo "test" > test.txt
+   picgo upload test.txt
+
+   # Should return CDN URL
+   # If error, reconfigure: picgo set uploader
+   ```
+
+**PicGo Documentation:** https://picgo.github.io/PicGo-Core-Doc/
+
+---
+
 ### Image generation SSL/Network error
 → Automatic retry (3 attempts). If persists, check network and Gemini API Key
 
