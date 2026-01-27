@@ -417,17 +417,12 @@ def check_dependencies():
     # 如果PicGo已安装，检查配置
     if picgo_installed:
         try:
-            # 检查当前上传器配置
-            result = subprocess.run(
-                [PICGO_CMD, "config", "uploader"],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
+            # 直接读取配置文件检查上传器配置
+            config_file = Path("~/.picgo/config.json").expanduser()
 
-            if result.returncode != 0 or not result.stdout.strip():
+            if not config_file.exists():
                 errors.append(
-                    "⚠️  PicGo 未配置上传器\n"
+                    "⚠️  PicGo 配置文件不存在\n"
                     "   请运行以下命令配置:\n"
                     "   1. picgo set uploader (选择图床: github/smms/qiniu等)\n"
                     "   2. 根据提示配置Token和仓库信息\n"
@@ -440,43 +435,52 @@ def check_dependencies():
                     "   配置文档: https://picgo.github.io/PicGo-Core-Doc/zh/guide/config.html"
                 )
             else:
-                # PicGo已配置上传器，进一步验证GitHub Token（如果是GitHub图床）
-                token_validation = validate_github_token()
+                # 读取配置文件
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
 
-                if token_validation["valid"] is False:
-                    # Token验证失败
-                    error_msg = f"❌ GitHub Token 验证失败\n"
-                    if token_validation.get("repo"):
-                        error_msg += f"   仓库: {token_validation['repo']}\n"
-                    if token_validation.get("http_code"):
-                        error_msg += f"   HTTP状态码: {token_validation['http_code']}\n"
-                    error_msg += f"   错误: {token_validation['error']}"
-                    errors.append(error_msg)
-                elif token_validation["valid"] is True:
-                    # Token验证成功，打印确认信息（但不加入errors）
-                    print(f"✅ GitHub Token 验证成功: {token_validation['repo']}")
-                elif token_validation["valid"] is None:
-                    # 无法验证或非GitHub图床，显示警告信息
-                    if token_validation["error"] and "requests 库未安装" in token_validation["error"]:
-                        # 缺少 requests 库，给出警告
-                        errors.append(
-                            "⚠️  GitHub Token 验证功能不可用\n"
-                            "   原因: requests 库未安装\n"
-                            "   建议: pip3 install requests（可选，用于验证Token权限）\n"
-                            "   \n"
-                            "   如果上传时出现 403 错误，请检查:\n"
-                            "   1. GitHub Token 是否包含 'repo' 权限\n"
-                            "   2. 配置文件: cat ~/.picgo/config.json\n"
-                            "   3. 手动测试: picgo upload test.txt"
-                        )
+                current_uploader = config.get("picBed", {}).get("current")
 
-        except Exception:
-            # 配置检查失败，给出警告但不阻止运行
+                if not current_uploader:
+                    errors.append(
+                        "⚠️  PicGo 未配置上传器\n"
+                        "   请运行: picgo set uploader\n"
+                        "   配置文档: https://picgo.github.io/PicGo-Core-Doc/zh/guide/config.html"
+                    )
+                else:
+                    # PicGo已配置上传器，进一步验证GitHub Token（如果是GitHub图床）
+                    print(f"✅ PicGo 当前上传器: {current_uploader}")
+
+                    token_validation = validate_github_token()
+
+                    if token_validation["valid"] is False:
+                        # Token验证失败
+                        error_msg = f"❌ GitHub Token 验证失败\n"
+                        if token_validation.get("repo"):
+                            error_msg += f"   仓库: {token_validation['repo']}\n"
+                        if token_validation.get("http_code"):
+                            error_msg += f"   HTTP状态码: {token_validation['http_code']}\n"
+                        error_msg += f"   错误: {token_validation['error']}"
+                        errors.append(error_msg)
+                    elif token_validation["valid"] is True:
+                        # Token验证成功，打印确认信息（但不加入errors）
+                        print(f"✅ GitHub Token 验证成功: {token_validation['repo']}")
+                    elif token_validation["valid"] is None:
+                        # 无法验证或非GitHub图床，显示警告信息
+                        if token_validation["error"] and "requests 库未安装" in token_validation["error"]:
+                            # 缺少 requests 库，给出警告
+                            print(f"⚠️  {token_validation['error']}")
+                        elif token_validation["error"]:
+                            print(f"ℹ️  {token_validation['error']}")
+
+        except json.JSONDecodeError:
             errors.append(
-                "⚠️  无法验证PicGo配置（可能是版本问题）\n"
-                "   如果上传失败，请运行: picgo set uploader\n"
-                "   确保配置了有效的图床和Token权限"
+                "⚠️  PicGo 配置文件格式错误\n"
+                "   请检查 ~/.picgo/config.json 是否为有效的JSON格式"
             )
+        except Exception as e:
+            # 配置检查失败，给出警告但不阻止运行
+            print(f"⚠️  无法验证PicGo配置: {str(e)}")
 
     return errors
 
