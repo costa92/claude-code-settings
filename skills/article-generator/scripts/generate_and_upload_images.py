@@ -1152,11 +1152,84 @@ def main():
 
     # 加载配置
     if args.config:
-        with open(args.config, 'r', encoding='utf-8') as f:
-            config_data = json.load(f)
+        try:
+            with open(args.config, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+        except json.JSONDecodeError as e:
+            print(f"❌ 配置文件 JSON 格式错误: {e}")
+            print(f"\n请检查 {args.config} 是否为有效的 JSON 格式")
+            sys.exit(1)
+        except FileNotFoundError:
+            print(f"❌ 配置文件不存在: {args.config}")
+            sys.exit(1)
 
+        # 验证配置文件格式
+        if isinstance(config_data, list):
+            print("❌ 配置文件格式错误: 根元素不能是数组")
+            print("\n错误格式:")
+            print("  [{...}]  ← 直接数组")
+            print("\n正确格式:")
+            print('  {"images": [{...}]}  ← 对象包含 "images" 键')
+            print("\n请修改配置文件格式后重试")
+            sys.exit(1)
+
+        if not isinstance(config_data, dict):
+            print(f"❌ 配置文件格式错误: 根元素必须是对象，当前类型: {type(config_data).__name__}")
+            sys.exit(1)
+
+        if "images" not in config_data:
+            print('❌ 配置文件缺少 "images" 键')
+            print("\n正确格式:")
+            print(json.dumps({
+                "images": [
+                    {
+                        "name": "封面图",
+                        "prompt": "图片生成提示词",
+                        "aspect_ratio": "16:9",
+                        "filename": "cover.jpg"
+                    }
+                ]
+            }, indent=2, ensure_ascii=False))
+            sys.exit(1)
+
+        if not isinstance(config_data["images"], list):
+            print(f'❌ "images" 必须是数组，当前类型: {type(config_data["images"]).__name__}')
+            sys.exit(1)
+
+        if len(config_data["images"]) == 0:
+            print('❌ "images" 数组为空，请至少添加一张图片配置')
+            sys.exit(1)
+
+        # 解析图片配置
         configs = []
-        for item in config_data.get("images", []):
+        for idx, item in enumerate(config_data["images"], 1):
+            # 验证必需字段
+            required_fields = ["name", "prompt"]
+            missing_fields = [f for f in required_fields if f not in item]
+
+            if missing_fields:
+                print(f'❌ 图片 #{idx} 缺少必需字段: {", ".join(missing_fields)}')
+                print(f"\n当前配置: {json.dumps(item, indent=2, ensure_ascii=False)}")
+                sys.exit(1)
+
+            # 检查常见错误：使用了 "size" 或 "output" 字段
+            if "size" in item:
+                print(f'⚠️  图片 #{idx} ({item["name"]}) 使用了 "size" 字段')
+                print('   正确字段名: "aspect_ratio"')
+                print(f'   示例: "aspect_ratio": "16:9" (而不是 "size": "1344x768")')
+                print("\n是否自动转换? 常见尺寸映射:")
+                print("  1344x768 → 16:9 (封面图)")
+                print("  1248x832 → 3:2 (节奏图)")
+                print("  1024x1024 → 1:1 (方形)")
+                sys.exit(1)
+
+            if "output" in item:
+                print(f'⚠️  图片 #{idx} ({item["name"]}) 使用了 "output" 字段')
+                print('   正确字段名: "filename"')
+                print(f'   示例: "filename": "cover.jpg" (而不是 "output": "images/cover.jpg")')
+                print('   注意: 脚本会自动添加 "images/" 前缀')
+                sys.exit(1)
+
             configs.append(ImageConfig(
                 name=item["name"],
                 prompt=item["prompt"],

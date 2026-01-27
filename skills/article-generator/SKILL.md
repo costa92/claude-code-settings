@@ -325,6 +325,95 @@ Generate **technical blog articles** with:
 
 ---
 
+## 📋 Image Configuration File Format
+
+### **MANDATORY Format (JSON Schema)**
+
+When creating image configuration files, you MUST use this exact format:
+
+```json
+{
+  "images": [
+    {
+      "name": "图片描述名称",
+      "prompt": "Gemini API 图片生成提示词",
+      "aspect_ratio": "宽高比（16:9, 3:2, 1:1 等）",
+      "filename": "输出文件名.jpg"
+    }
+  ]
+}
+```
+
+**CRITICAL RULES:**
+
+1. ✅ **Root must be an object** with `"images"` key
+   - ❌ WRONG: `[{...}]` (直接数组)
+   - ✅ RIGHT: `{"images": [{...}]}` (对象包含数组)
+
+2. ✅ **Use `aspect_ratio` field** (not `size`)
+   - ❌ WRONG: `"size": "1344x768"`
+   - ✅ RIGHT: `"aspect_ratio": "16:9"`
+
+3. ✅ **Use `filename` field** (not `output`)
+   - ❌ WRONG: `"output": "images/cover.jpg"`
+   - ✅ RIGHT: `"filename": "cover.jpg"`
+
+4. ✅ **Supported aspect ratios:**
+   - `16:9` → 1344x768 (封面图)
+   - `3:2` → 1248x832 (节奏图，推荐)
+   - `1:1` → 1024x1024 (方形)
+   - `9:16` → 768x1344 (竖屏)
+   - `21:9` → 1536x672 (超宽屏)
+   - See full list in Best Practices section
+
+---
+
+### **Correct Example**
+
+```json
+{
+  "images": [
+    {
+      "name": "封面图",
+      "prompt": "Modern AI assistant robot working on computer with digital interface, minimalist illustration, tech blue and purple gradient, clean professional design",
+      "aspect_ratio": "16:9",
+      "filename": "article_cover.jpg"
+    },
+    {
+      "name": "架构示意图",
+      "prompt": "System architecture diagram showing components and data flow, flat design, technical illustration, clean lines",
+      "aspect_ratio": "3:2",
+      "filename": "article_pic1.jpg"
+    }
+  ]
+}
+```
+
+---
+
+### **Common Mistakes to Avoid**
+
+| ❌ Wrong | ✅ Right | Why |
+|---------|---------|-----|
+| `[{...}]` | `{"images": [{...}]}` | Script expects object with "images" key |
+| `"size": "1344x768"` | `"aspect_ratio": "16:9"` | Script auto-calculates size from aspect ratio |
+| `"output": "images/x.jpg"` | `"filename": "x.jpg"` | Script adds "images/" prefix automatically |
+| `"aspect_ratio": "1344x768"` | `"aspect_ratio": "16:9"` | Use ratio string, not pixel dimensions |
+
+---
+
+### **Validation Checklist**
+
+Before running `generate_and_upload_images.py`, verify:
+
+- [ ] Root is `{"images": [...]}` object (not array)
+- [ ] Each image has: `name`, `prompt`, `aspect_ratio`, `filename`
+- [ ] `aspect_ratio` is a ratio string (e.g., "16:9") not pixel size
+- [ ] `filename` does not include directory path
+- [ ] All filenames have unique prefix (e.g., `go_goroutine_cover.jpg`, `go_goroutine_pic1.jpg`)
+
+---
+
 ## Workflow
 
 ### Standard Article Generation Flow
