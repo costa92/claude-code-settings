@@ -701,6 +701,36 @@ python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
   --resolution 4K
 ```
 
+
+### Process Existing Markdown File (Automated)
+
+Scans an existing Markdown file for `<!-- IMAGE -->` placeholders, generates the images, uploads them to CDN, and automatically replaces the placeholders with the final image links.
+
+```bash
+# Process a file, generate images, and update content in-place
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+  --process-file my_article.md \
+  --resolution 2K
+```
+
+
+### Generate WeChat Article (WeChat Official Account)
+
+Process a markdown file, generate images, and automatically convert the result to a WeChat Official Account compatible HTML format.
+
+```bash
+# Process file, generate images, and convert to WeChat HTML
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+  --process-file my_article.md \
+  --wechat
+```
+
+**Required Placeholder Format:**
+```markdown
+<!-- IMAGE: unique_slug - Short Description (16:9) -->
+<!-- PROMPT: Detailed prompt for image generation -->
+```
+
 ### Cover Image (16:9 - 1344x768)
 ```bash
 python3 ${SKILL_DIR}/scripts/nanobanana.py \

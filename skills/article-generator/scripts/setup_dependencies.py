@@ -18,7 +18,10 @@ def check_python_dependencies():
     required_packages = {
         'google.genai': 'google-genai>=0.1.0',
         'PIL': 'Pillow>=10.0.0',
-        'dotenv': 'python-dotenv>=1.0.0'
+        'dotenv': 'python-dotenv>=1.0.0',
+        'markdown': 'markdown>=3.5.0',
+        'premailer': 'premailer>=3.10.0',
+        'pygments': 'Pygments>=2.17.0'
     }
 
     missing_packages = []

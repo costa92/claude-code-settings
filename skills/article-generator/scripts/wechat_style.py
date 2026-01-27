@@ -1,0 +1,722 @@
+# WeChat Official Account CSS Themes
+# 微信公众号样式主题集合
+
+# ==============================================================================
+# 1. 极简科技 (Tech Blue) - 默认主题
+# 适合：技术教程、架构分析、行业观察
+# ==============================================================================
+THEME_TECH = """
+/* 全局容器 */
+.wechat-container {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: #333333;
+    text-align: justify;
+    padding: 10px;
+    letter-spacing: 0.05em;
+}
+
+/* 标题样式 */
+h1 {
+    font-size: 22px;
+    font-weight: bold;
+    color: #000000;
+    margin-top: 40px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+h2 {
+    font-size: 18px;
+    font-weight: bold;
+    color: #1f2329;
+    margin-top: 35px;
+    margin-bottom: 15px;
+    padding-left: 10px;
+    border-left: 4px solid #4a90e2; /* 科技蓝 */
+    line-height: 1.4;
+}
+
+h3 {
+    font-size: 17px;
+    font-weight: bold;
+    color: #1f2329;
+    margin-top: 30px;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px dashed #e5e6eb;
+}
+
+/* 段落样式 */
+p {
+    margin-bottom: 16px;
+    line-height: 1.75;
+    color: #3f3f3f;
+}
+
+/* 列表样式 */
+ul, ol {
+    margin-bottom: 16px;
+    padding-left: 20px;
+    color: #3f3f3f;
+}
+
+li {
+    margin-bottom: 8px;
+    line-height: 1.75;
+}
+
+/* 引用样式 (Obsidian Callouts) */
+blockquote {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f7f9fc;
+    border-left: 4px solid #4a90e2;
+    border-radius: 4px;
+    color: #555555;
+    font-size: 15px;
+}
+
+/* 强调文字 */
+strong {
+    color: #4a90e2;
+    font-weight: bold;
+}
+
+/* 代码块 - 模拟 Mac 窗口风格 */
+pre {
+    background-color: #f6f8fa;
+    padding: 15px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 20px 0;
+    font-family: "JetBrains Mono", Consolas, Monaco, "Andale Mono", monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    border: 1px solid #e1e4e8;
+    position: relative;
+}
+
+/* 内联代码 */
+code {
+    background-color: #fff5f5;
+    color: #ff502c;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: "JetBrains Mono", Consolas, Monaco, monospace;
+    font-size: 14px;
+    margin: 0 2px;
+}
+
+/* 图片 */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 20px auto;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+/* 图片描述 */
+img + em, img + span {
+    display: block;
+    text-align: center;
+    color: #888;
+    font-size: 13px;
+    margin-top: -10px;
+    margin-bottom: 20px;
+}
+
+/* 表格 */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 14px;
+}
+
+th {
+    background-color: #f6f8fa;
+    font-weight: bold;
+    color: #333;
+    padding: 10px;
+    border: 1px solid #dfe2e5;
+}
+
+td {
+    padding: 10px;
+    border: 1px solid #dfe2e5;
+    color: #555;
+}
+
+/* 分割线 */
+hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 40px 0;
+}
+
+/* 底部参考文献 */
+.references-section {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.references-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.reference-item {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 5px;
+    word-break: break-all;
+}
+"""
+
+# ==============================================================================
+# 2. 温暖治愈 (Warm Orange)
+# 适合：生活随笔、情感共鸣、经验分享
+# ==============================================================================
+THEME_WARM = """
+/* 全局容器 */
+.wechat-container {
+    font-family: "Optima", -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 16px;
+    line-height: 1.8;
+    color: #4a4a4a;
+    text-align: justify;
+    padding: 10px;
+    letter-spacing: 0.05em;
+    background-color: #fffbf0; /* 暖色背景 */
+}
+
+h1 {
+    font-size: 24px;
+    font-weight: bold;
+    color: #d9730d;
+    margin-top: 40px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+h2 {
+    font-size: 20px;
+    font-weight: bold;
+    color: #d9730d;
+    margin-top: 40px;
+    margin-bottom: 20px;
+    text-align: center;
+    border-bottom: 2px solid #f2e3d5;
+    padding-bottom: 10px;
+    display: inline-block;
+    min-width: 30%;
+}
+
+/* 让H2居中需要父级样式配合，但在内联CSS中较难，这里用边框装饰 */
+h3 {
+    font-size: 17px;
+    font-weight: bold;
+    color: #d9730d;
+    margin-top: 30px;
+    margin-bottom: 10px;
+    padding-left: 10px;
+    border-left: 3px solid #d9730d;
+}
+
+p {
+    margin-bottom: 20px;
+    color: #595959;
+}
+
+strong {
+    color: #d9730d;
+    font-weight: bold;
+    background: linear-gradient(180deg, transparent 70%, #ffe8cc 70%);
+}
+
+blockquote {
+    margin: 20px 0;
+    padding: 20px;
+    background-color: #fff;
+    border: 1px dashed #d9730d;
+    border-radius: 8px;
+    color: #8c6b4f;
+}
+
+code {
+    background-color: #fff3e0;
+    color: #d9730d;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 14px;
+}
+
+img {
+    border-radius: 8px;
+    box-shadow: 0 8px 16px rgba(217, 115, 13, 0.1);
+    margin: 25px auto;
+}
+
+/* 其他基础样式复用 */
+ul, ol { margin-bottom: 16px; padding-left: 20px; }
+li { margin-bottom: 8px; }
+table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+th { background-color: #fff3e0; color: #d9730d; padding: 10px; border: 1px solid #f2e3d5; }
+td { padding: 10px; border: 1px solid #f2e3d5; color: #595959; }
+hr { border: none; border-top: 1px dashed #d9730d; margin: 40px 0; opacity: 0.3; }
+.references-section { margin-top: 40px; padding-top: 20px; border-top: 1px solid #f2e3d5; }
+.references-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #d9730d; }
+.reference-item { font-size: 13px; color: #a69080; margin-bottom: 5px; }
+"""
+
+# ==============================================================================
+# 3. 极简黑白 (Simple Black)
+# 适合：严肃评论、新闻简报、极简主义者
+# ==============================================================================
+THEME_SIMPLE = """
+/* 全局容器 */
+.wechat-container {
+    font-family: "Georgia", "Times New Roman", "Songti SC", "SimSun", serif;
+    font-size: 17px;
+    line-height: 1.8;
+    color: #222;
+    text-align: justify;
+    padding: 15px;
+}
+
+h1 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #000;
+    margin-top: 40px;
+    margin-bottom: 30px;
+    line-height: 1.3;
+}
+
+h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #000;
+    margin-top: 40px;
+    margin-bottom: 20px;
+    border-bottom: 3px solid #000;
+    padding-bottom: 8px;
+}
+
+h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #000;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    background-color: #f0f0f0;
+    padding: 5px 10px;
+    display: inline-block;
+}
+
+p {
+    margin-bottom: 20px;
+}
+
+strong {
+    color: #000;
+    font-weight: 900;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+}
+
+blockquote {
+    margin: 30px 0;
+    padding: 20px 30px;
+    background-color: transparent;
+    border-left: 4px solid #000;
+    color: #666;
+    font-style: italic;
+}
+
+code {
+    background-color: #f0f0f0;
+    color: #000;
+    padding: 2px 4px;
+    font-family: monospace;
+    font-size: 15px;
+    border: 1px solid #ddd;
+}
+
+img {
+    border: 1px solid #000;
+    margin: 30px auto;
+    padding: 5px;
+}
+
+/* 列表 */
+ul { list-style-type: square; }
+
+/* 引用区 */
+.references-section { margin-top: 50px; padding-top: 30px; border-top: 4px solid #000; }
+.references-title { font-weight: 900; font-size: 18px; margin-bottom: 20px; text-transform: uppercase; }
+.reference-item { font-family: monospace; font-size: 12px; margin-bottom: 8px; color: #444; }
+"""
+
+# ==============================================================================
+# 4. MD2 Classic (Green)
+# 适合：经典风格、清新阅读、文档说明
+# ==============================================================================
+THEME_MD2_CLASSIC = """
+/* 全局容器 */
+.wechat-container {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 16px;
+    line-height: 1.8;
+    color: #3f3f3f;
+    text-align: justify;
+    padding: 10px;
+}
+
+/* 标题 */
+h1 {
+    font-size: 22px;
+    font-weight: bold;
+    color: #42b983;
+    margin: 40px 0 20px 0;
+    text-align: center;
+}
+
+h2 {
+    font-size: 18px;
+    font-weight: bold;
+    color: #42b983;
+    margin: 35px 0 15px 0;
+    border-bottom: 1px solid #eaecef;
+    padding-bottom: 10px;
+}
+
+h3 {
+    font-size: 16px;
+    font-weight: bold;
+    color: #42b983;
+    margin: 30px 0 10px 0;
+}
+
+/* 段落与列表 */
+p {
+    margin-bottom: 16px;
+    line-height: 1.8;
+    color: #3f3f3f;
+}
+
+ul, ol {
+    margin-bottom: 16px;
+    padding-left: 20px;
+}
+
+li {
+    margin-bottom: 5px;
+}
+
+/* 引用 */
+blockquote {
+    border-left: 4px solid #42b983;
+    background-color: #f8fcf9;
+    padding: 15px;
+    margin: 20px 0;
+    color: #555;
+    border-radius: 4px;
+}
+
+/* 代码 */
+pre {
+    background-color: #f6f8fa;
+    padding: 15px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 20px 0;
+    font-family: "JetBrains Mono", Consolas, monospace;
+    font-size: 13px;
+    border: 1px solid #e1e4e8;
+}
+
+code {
+    background-color: #f6f8fa;
+    color: #476582;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
+    margin: 0 2px;
+}
+
+/* 强调 */
+strong {
+    color: #42b983;
+    font-weight: bold;
+}
+
+/* 图片 */
+img {
+    max-width: 100%;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin: 20px auto;
+    display: block;
+}
+
+/* 底部引用 */
+.references-section {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #eaecef;
+}
+.references-title {
+    font-weight: bold;
+    color: #42b983;
+    margin-bottom: 10px;
+}
+.reference-item {
+    font-size: 12px;
+    color: #999;
+}
+"""
+
+# ==============================================================================
+# 5. MD2 Dark (Terminal)
+# 适合：极客、终端风格、高对比度
+# ==============================================================================
+THEME_MD2_DARK = """
+/* 全局容器 */
+.wechat-container {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 16px;
+    line-height: 1.8;
+    color: #333;
+    text-align: justify;
+    padding: 10px;
+}
+
+/* 标题 */
+h1 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #2c3e50;
+    margin: 40px 0 20px 0;
+    text-align: center;
+}
+
+h2 {
+    font-size: 20px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin: 35px 0 15px 0;
+    padding-left: 10px;
+    border-left: 5px solid #2c3e50;
+}
+
+h3 {
+    font-size: 17px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin: 30px 0 10px 0;
+}
+
+/* 段落 */
+p {
+    margin-bottom: 16px;
+}
+
+/* 引用 */
+blockquote {
+    background-color: #f3f5f7;
+    border-left: 5px solid #2c3e50;
+    padding: 15px;
+    margin: 20px 0;
+    color: #666;
+    border-radius: 0 4px 4px 0;
+}
+
+/* 代码 - Terminal Style */
+pre {
+    background-color: #282c34;
+    color: #abb2bf;
+    padding: 20px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 20px 0;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 13px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    position: relative;
+}
+
+code {
+    background-color: #f3f4f4;
+    color: #c7254e;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+/* 强调 */
+strong {
+    color: #2c3e50;
+    font-weight: 900;
+}
+
+/* 图片 */
+img {
+    max-width: 100%;
+    border-radius: 6px;
+    border: 1px solid #eee;
+    margin: 20px auto;
+    display: block;
+}
+
+/* 引用区 */
+.references-section {
+    margin-top: 40px;
+    border-top: 2px solid #2c3e50;
+    padding-top: 20px;
+}
+.references-title {
+    font-weight: bold;
+    color: #2c3e50;
+}
+.reference-item {
+    font-size: 12px;
+    color: #777;
+}
+"""
+
+# ==============================================================================
+# 6. MD2 Purple (Elegant)
+# 适合：优雅、现代、设计感
+# ==============================================================================
+THEME_MD2_PURPLE = """
+/* 全局容器 */
+.wechat-container {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 16px;
+    line-height: 1.8;
+    color: #444;
+    text-align: justify;
+    padding: 10px;
+}
+
+/* 标题 */
+h1 {
+    font-size: 22px;
+    font-weight: bold;
+    color: #7b16ff;
+    margin: 40px 0 20px 0;
+    text-align: center;
+    text-shadow: 0 2px 4px rgba(123, 22, 255, 0.1);
+}
+
+h2 {
+    font-size: 18px;
+    font-weight: bold;
+    color: #7b16ff;
+    margin: 35px 0 15px 0;
+    background: linear-gradient(to right, rgba(123, 22, 255, 0.1), transparent);
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+h3 {
+    font-size: 16px;
+    font-weight: bold;
+    color: #7b16ff;
+    margin: 30px 0 10px 0;
+    padding-left: 8px;
+    border-left: 3px solid #7b16ff;
+}
+
+/* 段落 */
+p {
+    margin-bottom: 16px;
+}
+
+/* 引用 */
+blockquote {
+    background-color: #f8f4ff;
+    border: 1px solid #e0d4fc;
+    border-left: 4px solid #7b16ff;
+    padding: 15px;
+    margin: 20px 0;
+    color: #666;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(123, 22, 255, 0.05);
+}
+
+/* 代码 */
+pre {
+    background-color: #2a2a2a;
+    color: #f8f8f2;
+    padding: 15px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 20px 0;
+    font-family: Consolas, monospace;
+    font-size: 13px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+code {
+    background-color: #f0e6ff;
+    color: #7b16ff;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+/* 强调 */
+strong {
+    color: #7b16ff;
+    font-weight: bold;
+}
+
+/* 图片 */
+img {
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(123, 22, 255, 0.15);
+    margin: 25px auto;
+    display: block;
+}
+
+/* 引用区 */
+.references-section {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px dashed #7b16ff;
+}
+.references-title {
+    font-weight: bold;
+    color: #7b16ff;
+}
+.reference-item {
+    font-size: 12px;
+    color: #888;
+}
+"""
+
+# Theme Registry
+THEMES = {
+    "tech": THEME_TECH,
+    "warm": THEME_WARM,
+    "simple": THEME_SIMPLE,
+    "md2_classic": THEME_MD2_CLASSIC,
+    "md2_dark": THEME_MD2_DARK,
+    "md2_purple": THEME_MD2_PURPLE
+}
+
+# 默认样式 (向后兼容)
+WECHAT_CSS = THEME_TECH

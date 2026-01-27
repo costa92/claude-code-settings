@@ -6,6 +6,7 @@
 
 import os
 import sys
+import re
 import json
 import subprocess
 import time
@@ -1122,12 +1123,90 @@ def generate_markdown_output(results: Dict) -> str:
     return "\n".join(lines)
 
 
+
+def parse_markdown_images(file_path: str) -> List[tuple]:
+    """
+    Parse Markdown file for image placeholders.
+    Format: <!-- IMAGE: slug - desc (ratio) --> ... <!-- PROMPT: prompt -->
+    Returns: List of (ImageConfig, full_match_text)
+    """
+    with open(file_path, 'r', encoding='utf-8') as f:
+        file_content = f.read()
+
+    # Regex to match the placeholder pattern
+    pattern = r'<!-- IMAGE: (.*?) - (.*?) \((.*?)\) -->\s*<!-- PROMPT: (.*?) -->'
+    matches = []
+    
+    file_stem = Path(file_path).stem
+    
+    for match in re.finditer(pattern, file_content, re.DOTALL):
+        full_match_text = match.group(0)
+        slug = match.group(1).strip()
+        desc = match.group(2).strip()
+        ratio = match.group(3).strip()
+        prompt = match.group(4).strip()
+        
+        # Construct filename: file_stem + "_" + slug + ".jpg"
+        # Sanitize slug
+        safe_slug = re.sub(r'[^a-zA-Z0-9-_]', '_', slug)
+        filename = f"{file_stem}_{safe_slug}.jpg"
+        
+        config = ImageConfig(
+            name=desc,
+            prompt=prompt,
+            aspect_ratio=ratio,
+            filename=filename
+        )
+        matches.append((config, full_match_text))
+        
+    return matches
+
+
+def update_markdown_file(file_path: str, results: Dict, matches: List[tuple]):
+    """
+    Update Markdown file with uploaded image URLs.
+    """
+    if results['uploaded'] == 0:
+        return
+
+    with open(file_path, 'r', encoding='utf-8') as f:
+        file_content = f.read()
+        
+    updated_content = file_content
+    success_count = 0
+    
+    # Create a map of filename -> cdn_url
+    filename_to_url = {}
+    for img in results.get('images', []):
+        if img.get('cdn_url'):
+            filename_to_url[img['filename']] = img['cdn_url']
+
+    for config, match_text in matches:
+        if config.filename in filename_to_url:
+            url = filename_to_url[config.filename]
+            # Replace placeholder with Markdown image syntax
+            # ![desc](url)
+            replacement = f"![{config.name}]({url})"
+            updated_content = updated_content.replace(match_text, replacement)
+            success_count += 1
+            
+    if success_count > 0:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(updated_content)
+        print(f"\n📝 已更新 Markdown 文件: {file_path} (替换了 {success_count} 处图片占位符)")
+    else:
+        print("\n⚠️  未更新 Markdown 文件 (没有图片上传成功)")
+
+
 def main():
     """主函数"""
     import argparse
 
     parser = argparse.ArgumentParser(description="文章配图生成和上传工具")
     parser.add_argument("--config", help="配置文件路径 (JSON)")
+    parser.add_argument("--process-file", help="处理 Markdown 文件中的图片占位符 (自动解析 <!-- IMAGE --> 标签)")
+    parser.add_argument("--wechat", action="store_true", help="生成微信公众号兼容的 HTML")
+    parser.add_argument("--theme", default="tech", choices=["tech", "warm", "simple"], help="微信公众号主题 (默认: tech)")
     parser.add_argument("--no-upload", action="store_true", help="只生成不上传")
     parser.add_argument("--resolution", default="2K", choices=["1K", "2K", "4K"],
                        help="图片分辨率")
@@ -1168,8 +1247,28 @@ def main():
         print("\n请先解决以上问题，或使用 --check 参数检查依赖")
         sys.exit(1)
 
+    configs = []
+    file_matches = [] # 存储 (ImageConfig, match_text) 元组
+
+    # 模式 1: 处理 Markdown 文件
+    if args.process_file:
+        if not os.path.exists(args.process_file):
+            print(f"❌ 文件不存在: {args.process_file}")
+            sys.exit(1)
+            
+        print(f"🔍 解析文件: {args.process_file}")
+        file_matches = parse_markdown_images(args.process_file)
+        
+        if not file_matches:
+            print("⚠️  未找到符合格式的图片占位符")
+            print("格式示例: <!-- IMAGE: slug - 描述 (16:9) --> ... <!-- PROMPT: prompt -->")
+            sys.exit(0)
+            
+        print(f"✅ 找到 {len(file_matches)} 个待生成图片")
+        configs = [m[0] for m in file_matches]
+
     # 加载配置
-    if args.config:
+    elif args.config:
         try:
             with open(args.config, 'r', encoding='utf-8') as f:
                 config_data = json.load(f)
@@ -1254,8 +1353,9 @@ def main():
                 aspect_ratio=item.get("aspect_ratio", "3:2"),
                 filename=item.get("filename")
             ))
+
     else:
-        print("❌ 请提供配置文件: --config config.json")
+        print("❌ 请提供操作模式: --process-file FILE 或 --config CONFIG")
         print("\n配置文件示例:")
         print(json.dumps({
             "images": [
@@ -1288,7 +1388,7 @@ def main():
             upload=not args.no_upload,
             resolution=args.resolution,
             max_workers=args.max_workers,
-            fail_fast=not args.continue_on_error  # 容错模式控制
+            fail_fast=not args.continue_on_error
         )
     else:
         # 串行模式（默认）
@@ -1301,14 +1401,18 @@ def main():
     # 打印摘要
     print_summary(results)
 
-    # 输出 Markdown
-    if args.output:
+    # 后处理
+    if args.process_file:
+        # 更新原文件
+        update_markdown_file(args.process_file, results, file_matches)
+    elif args.output:
+        # 输出 Markdown
         markdown = generate_markdown_output(results)
         with open(args.output, 'w', encoding='utf-8') as f:
             f.write(markdown)
         print(f"\n📝 Markdown 输出已保存: {args.output}")
 
-    # 自动删除配置文件（如果上传成功）
+    # 自动删除配置文件（如果上传成功且是 config 模式）
     if args.config and not args.no_upload and results["uploaded"] > 0:
         try:
             if os.path.exists(args.config):
@@ -1318,6 +1422,24 @@ def main():
             print(f"\n⚠️  删除配置文件失败: {e}")
             # 删除失败不影响主流程
 
+    # WeChat 转换逻辑
+    if args.wechat:
+        target_file = None
+        if args.process_file:
+            target_file = args.process_file
+        elif args.output:
+            target_file = args.output
 
+        if target_file and os.path.exists(target_file):
+            print(f"\n🚀 正在转换为微信公众号格式: {target_file} (主题: {args.theme})")
+            convert_script = os.path.join(SCRIPT_DIR, "convert_to_wechat.py")
+            try:
+                subprocess.run(["python3", convert_script, target_file, "--theme", args.theme], check=True)
+            except subprocess.CalledProcessError as e:
+                print(f"❌ 微信格式转换失败: {e}")
+            except Exception as e:
+                print(f"❌ 微信格式转换发生错误: {e}")
+        else:
+            print("\n⚠️  --wechat 参数需要有效的 Markdown 文件 (通过 --process-file 或 --output 指定)")
 if __name__ == "__main__":
     main()
