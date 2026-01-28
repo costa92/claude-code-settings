@@ -210,14 +210,10 @@ def generate_image_with_retry(model, contents, aspect_ratio, resolution, output_
         model=model,
         contents=contents,
         config=types.GenerateContentConfig(
-            response_modalities=["TEXT", "IMAGE"],
-            tools=[types.Tool(google_search=types.GoogleSearch())],
+            response_modalities=["IMAGE"],
             image_config=types.ImageConfig(
                 aspect_ratio=aspect_ratio,
                 image_size=resolution,
-            ),
-            thinking_config=types.ThinkingConfig(
-                include_thoughts=True,
             ),
         ),
     )
@@ -246,6 +242,7 @@ def generate_image_with_retry(model, contents, aspect_ratio, resolution, output_
         print(
             "\n\nWarning: No image data found in the API response. This usually means the model returned only text. Please try again with a different prompt to make image generation more clear."
         )
+        sys.exit(1)
 
 
 if __name__ == "__main__":

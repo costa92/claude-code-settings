@@ -433,6 +433,13 @@ def generate_image(config: ImageConfig, resolution: str = "2K") -> bool:
     print(f"   宽高比: {config.aspect_ratio} ({size})")
     print(f"   分辨率: {resolution}")
 
+    # Ensure clean state by removing existing file
+    if output_path.exists():
+        try:
+            os.remove(output_path)
+        except Exception:
+            pass
+
     try:
         cmd = [
             "python3",
