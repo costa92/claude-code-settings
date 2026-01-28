@@ -5,8 +5,7 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 
 # Article Generator
 
-**Primary Use Case:** Technical blog articles with Markdown/Obsidian format
-**Secondary Use Case:** WeChat Official Account articles (see Appendix A)
+**专注于生成技术博客文章（Markdown/Obsidian 格式）**
 
 ## 🚀 Initialization
 
@@ -22,17 +21,68 @@ python3 ${SKILL_DIR}/scripts/setup_dependencies.py
 
 ---
 
+### Optional: Custom Configuration
+
+Create `~/.article-generator.conf` to customize timeouts and defaults:
+
+```bash
+cp ${SKILL_DIR}/.article-generator.conf.example ~/.article-generator.conf
+# Edit with your preferences
+```
+
+**Supported settings:**
+- `timeouts.image_generation`: Image generation timeout (default: 120s)
+- `timeouts.upload`: Upload timeout (default: 60s)
+- `image_defaults.resolution`: Default resolution (1K/2K/4K, default: 2K)
+- `image_defaults.model`: Gemini model (default: gemini-3-pro-image-preview)
+
+**Example:**
+```json
+{
+  "timeouts": {
+    "image_generation": 180,
+    "upload": 90
+  }
+}
+```
+
+---
+
 ## ⚠️ MANDATORY Pre-Writing Verification (ZERO TOLERANCE)
 
 **CRITICAL**: Before writing ANY article, complete this verification checklist. Missing any step results in ARTICLE REJECTION.
 
-### Step 1: Tool/Project Research (MANDATORY)
-- For EVERY tool mentioned, use WebSearch or WebFetch to find official documentation
+### Trusted Tools Whitelist (Skip Verification)
+
+The following widely-used tools are **pre-verified** - no WebSearch needed:
+
+**Development Tools:**
+- Docker, Kubernetes, Git, npm, yarn, pnpm, pip, cargo, Maven, Gradle
+- Node.js, Python, Go, Rust, Java, TypeScript, Ruby
+
+**Operating Systems & Package Managers:**
+- apt, yum, dnf, brew, pacman, apk, snap
+
+**Common CLI Tools:**
+- curl, wget, ssh, scp, rsync, grep, sed, awk, tar, gzip
+
+**Why whitelist?** These tools have stable APIs and widespread official documentation. Trust their basic commands from your knowledge base.
+
+**When to verify anyway:**
+- Niche flags or options (e.g., `docker run --gpus` requires verification)
+- Version-specific features (e.g., "Docker 24.0+ only")
+- Deprecated commands
+
+---
+
+### Step 1: Tool/Project Research (MANDATORY for non-whitelisted tools)
+- For tools NOT in the whitelist, use WebSearch or WebFetch to find official documentation
 - Read README, official docs, or GitHub repo to understand actual capabilities
 - NEVER rely on tool name similarity or "common sense" to infer features
 
 ### Step 2: Command/Feature Verification (MANDATORY)
 - For EVERY command (bash, CLI tools, API calls), verify it exists in official docs
+- **Exception**: Whitelisted tools' basic commands can be trusted
 - If you cannot find documentation for a command, it does NOT exist - DO NOT include it
 - Commands must be copy-pasted from official docs, NOT invented or assumed
 
@@ -44,7 +94,7 @@ python3 ${SKILL_DIR}/scripts/setup_dependencies.py
 ### Step 4: Pre-Generation Report (MANDATORY)
 Before generating article, report to user:
 - "✅ Verified tools: [list]"
-- "✅ Verified commands: [list]"
+- "✅ Trusted (whitelisted): [list]"
 - "❓ Unverified items: [list]" (if any - ask user for clarification)
 
 Only proceed after user confirms unverified items or you remove them.
@@ -298,6 +348,8 @@ Generate **technical blog articles** with:
 
 **Target Platforms:** Obsidian, GitHub Pages, Hugo, Jekyll, technical documentation sites
 
+**Not for:** WeChat Official Account (use wechat-article-converter skill instead)
+
 ---
 
 ## Core Capabilities
@@ -327,10 +379,11 @@ Generate **technical blog articles** with:
 
 ## 📋 Image Configuration File Format
 
-### **MANDATORY Format (JSON Schema)**
+### **Supported Formats (Flexible)**
 
-When creating image configuration files, you MUST use this exact format:
+The script now supports **two configuration formats** - use whichever is more convenient:
 
+**Format 1: Object with "images" key** (recommended for consistency)
 ```json
 {
   "images": [
@@ -344,31 +397,43 @@ When creating image configuration files, you MUST use this exact format:
 }
 ```
 
-**CRITICAL RULES:**
-
-1. ✅ **Root must be an object** with `"images"` key
-   - ❌ WRONG: `[{...}]` (直接数组)
-   - ✅ RIGHT: `{"images": [{...}]}` (对象包含数组)
-
-2. ✅ **Use `aspect_ratio` field** (not `size`)
-   - ❌ WRONG: `"size": "1344x768"`
-   - ✅ RIGHT: `"aspect_ratio": "16:9"`
-
-3. ✅ **Use `filename` field** (not `output`)
-   - ❌ WRONG: `"output": "images/cover.jpg"`
-   - ✅ RIGHT: `"filename": "cover.jpg"`
-
-4. ✅ **Supported aspect ratios:**
-   - `16:9` → 1344x768 (封面图)
-   - `3:2` → 1248x832 (节奏图，推荐)
-   - `1:1` → 1024x1024 (方形)
-   - `9:16` → 768x1344 (竖屏)
-   - `21:9` → 1536x672 (超宽屏)
-   - See full list in Best Practices section
+**Format 2: Direct array** (auto-converted internally)
+```json
+[
+  {
+    "name": "图片描述名称",
+    "prompt": "Gemini API 图片生成提示词",
+    "aspect_ratio": "16:9",
+    "filename": "输出文件名.jpg"
+  }
+]
+```
 
 ---
 
-### **Correct Example**
+### **Field Requirements**
+
+**Required fields:**
+- ✅ `name`: Image description (e.g., "封面图")
+- ✅ `prompt`: Gemini API prompt for generation
+- ✅ `aspect_ratio`: Ratio string (e.g., "16:9", not "1344x768")
+- ✅ `filename`: Output filename (e.g., "cover.jpg")
+
+**Common mistakes:**
+- ❌ `"size": "1344x768"` → ✅ Use `"aspect_ratio": "16:9"`
+- ❌ `"output": "images/cover.jpg"` → ✅ Use `"filename": "cover.jpg"`
+
+**Supported aspect ratios:**
+- `16:9` → 1344x768 (封面图)
+- `3:2` → 1248x832 (节奏图，推荐)
+- `1:1` → 1024x1024 (方形)
+- `9:16` → 768x1344 (竖屏)
+- `21:9` → 1536x672 (超宽屏)
+- See full list in Best Practices section
+
+---
+
+### **Example Configuration**
 
 ```json
 {
@@ -388,29 +453,6 @@ When creating image configuration files, you MUST use this exact format:
   ]
 }
 ```
-
----
-
-### **Common Mistakes to Avoid**
-
-| ❌ Wrong | ✅ Right | Why |
-|---------|---------|-----|
-| `[{...}]` | `{"images": [{...}]}` | Script expects object with "images" key |
-| `"size": "1344x768"` | `"aspect_ratio": "16:9"` | Script auto-calculates size from aspect ratio |
-| `"output": "images/x.jpg"` | `"filename": "x.jpg"` | Script adds "images/" prefix automatically |
-| `"aspect_ratio": "1344x768"` | `"aspect_ratio": "16:9"` | Use ratio string, not pixel dimensions |
-
----
-
-### **Validation Checklist**
-
-Before running `generate_and_upload_images.py`, verify:
-
-- [ ] Root is `{"images": [...]}` object (not array)
-- [ ] Each image has: `name`, `prompt`, `aspect_ratio`, `filename`
-- [ ] `aspect_ratio` is a ratio string (e.g., "16:9") not pixel size
-- [ ] `filename` does not include directory path
-- [ ] All filenames have unique prefix (e.g., `go_goroutine_cover.jpg`, `go_goroutine_pic1.jpg`)
 
 ---
 
@@ -713,18 +755,6 @@ python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
   --resolution 2K
 ```
 
-
-### Generate WeChat Article (WeChat Official Account)
-
-Process a markdown file, generate images, and automatically convert the result to a WeChat Official Account compatible HTML format.
-
-```bash
-# Process file, generate images, and convert to WeChat HTML
-python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
-  --process-file my_article.md \
-  --wechat
-```
-
 **Required Placeholder Format:**
 ```markdown
 <!-- IMAGE: unique_slug - Short Description (16:9) -->
@@ -820,61 +850,22 @@ GEMINI_API_KEY=your_api_key_here
 
 ---
 
-## Appendix A: WeChat Official Account Articles (Secondary Use Case)
+## Appendix A: WeChat Official Account Articles
 
-**Note:** This skill primarily targets technical blogs. For WeChat Official Account articles, follow these adjusted guidelines:
+**Note:** This skill primarily targets **technical blogs**. For WeChat Official Account articles, please refer to:
 
-### WeChat-Specific Requirements
+📄 **[WeChat Article Guidelines](references/wechat_article_guide.md)**
 
-**Headline:**
-- 15-30 Chinese characters
-- Include core keyword
-- Emotional hook or curiosity gap
-
-**Structure:**
-- Opening hook (3 paragraphs): Pain point → Value promise → Content preview
-- Main body: Segmented with emoji subheadings
-- Conclusion: Summary + CTA + Extended reading
-
-**Language Style:**
-- First-person (我, 我们) to build connection
-- Conversational tone
-- One idea per sentence
-- Specific over abstract
-
-**Formatting:**
-- Emoji before subheadings (✅ allowed for WeChat)
-- Blank lines between paragraphs
-- Use `>` for important quotes
-- Lists for 3+ parallel items
-- Bold for key points
-
-**SEO:**
-- Core keyword in headline
-- Keyword in first 100 characters
-- Keyword density 2-3%
-- Optimal length: 1500-3000 characters
-- Reading time: 3-8 minutes
-
-**Images:**
-- Cover: Generate 1344x768 (16:9), crop to 900x383 manually
-- Rhythm images: Every 300-500 words, 3:2 or 1:1 ratio
-- Style consistency across all images
-- Compression: <500KB per image
-
-### WeChat vs Technical Blog Comparison
-
-| Feature | Technical Blog | WeChat Official Account |
-|---------|---------------|-------------------------|
-| Emoji in headings | ❌ NEVER | ✅ Encouraged |
-| Format | Markdown + YAML | Plain Markdown |
-| Tone | Technical, formal | Conversational, engaging |
-| Length | 2000-3000 words | 1500-3000 characters (Chinese) |
-| Code examples | Required, runnable | Optional, simplified |
-| References | Explicit URLs | In-text links |
-| Cover image | 16:9 (1344x768) | 2.35:1 (900x383, crop from 16:9) |
+Key differences:
+- ✅ Emoji in headings (encouraged for WeChat)
+- Conversational tone vs technical formal
+- Use `--wechat` flag for automatic conversion
 
 ---
 
-**Version:** 2.0 (Restructured 2026-01-27)
-**Changes:** Clarified primary use case (technical blogs), moved WeChat content to appendix, relocated verification checklist to top, removed redundant content
+**Version:** 2.1 (Optimized 2026-01-28)
+**Changes:**
+- Removed dead code (CheckpointManager, ThreadStatusTracker)
+- Simplified config format validation (auto-converts arrays)
+- Added `--keep-files` parameter for file retention control
+- Moved WeChat content to separate reference guide

@@ -109,6 +109,17 @@ code {
     margin: 0 2px;
 }
 
+/* 代码块内的 code 标签 - 覆盖内联代码样式 */
+pre code {
+    background-color: transparent !important;
+    color: inherit !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    margin: 0 !important;
+    font-size: inherit !important;
+}
+
 /* 图片 */
 img {
     max-width: 100%;
@@ -258,6 +269,17 @@ code {
     font-size: 14px;
 }
 
+/* 代码块内的 code 标签 - 覆盖内联代码样式 */
+pre code {
+    background-color: transparent !important;
+    color: inherit !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    margin: 0 !important;
+    font-size: inherit !important;
+}
+
 img {
     border-radius: 8px;
     box-shadow: 0 8px 16px rgba(217, 115, 13, 0.1);
@@ -348,6 +370,17 @@ code {
     font-family: monospace;
     font-size: 15px;
     border: 1px solid #ddd;
+}
+
+/* 代码块内的 code 标签 - 覆盖内联代码样式 */
+pre code {
+    background-color: transparent !important;
+    color: inherit !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    margin: 0 !important;
+    font-size: inherit !important;
 }
 
 img {
@@ -451,6 +484,17 @@ code {
     font-family: monospace;
     font-size: 14px;
     margin: 0 2px;
+}
+
+/* 代码块内的 code 标签 - 覆盖内联代码样式 */
+pre code {
+    background-color: transparent !important;
+    color: inherit !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    margin: 0 !important;
+    font-size: inherit !important;
 }
 
 /* 强调 */
@@ -561,6 +605,17 @@ code {
     border-radius: 3px;
     font-family: monospace;
     font-size: 14px;
+}
+
+/* 代码块内的 code 标签 - 覆盖内联代码样式 */
+pre code {
+    background-color: transparent !important;
+    color: inherit !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    margin: 0 !important;
+    font-size: inherit !important;
 }
 
 /* 强调 */
@@ -677,6 +732,17 @@ code {
     font-size: 14px;
 }
 
+/* 代码块内的 code 标签 - 覆盖内联代码样式 */
+pre code {
+    background-color: transparent !important;
+    color: inherit !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    margin: 0 !important;
+    font-size: inherit !important;
+}
+
 /* 强调 */
 strong {
     color: #7b16ff;
@@ -708,6 +774,249 @@ img {
 }
 """
 
+# ==============================================================================
+# 7. Coffee Latte (Editorial)
+# 适合：专业评论、深度分析、编辑精选
+# ==============================================================================
+THEME_COFFEE = """
+/* 全局容器 */
+.wechat-container {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 16px;
+    line-height: 1.8;
+    color: #4a413d;
+    text-align: justify;
+    padding: 10px;
+    background-color: #faf9f5;
+}
+
+/* 标题样式 */
+h1 {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2c1810;
+    margin: 40px 0 20px 0;
+    text-align: center;
+    position: relative;
+    padding-bottom: 15px;
+}
+
+h1::after {
+    content: "◈";
+    display: block;
+    color: #d4875f;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+h2 {
+    font-size: 20px;
+    font-weight: bold;
+    color: #2c1810;
+    margin: 35px 0 15px 0;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #fff5eb 0%, #ffe8d6 100%);
+    border-left: 4px solid #d4875f;
+    border-radius: 4px;
+    position: relative;
+}
+
+h2::before {
+    content: "✦";
+    color: #d4875f;
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+h3 {
+    font-size: 17px;
+    font-weight: bold;
+    color: #d4875f;
+    margin: 30px 0 10px 0;
+    padding-left: 10px;
+    border-left: 3px solid #d4875f;
+}
+
+/* 段落样式 */
+p {
+    margin-bottom: 18px;
+    line-height: 1.8;
+    color: #4a413d;
+}
+
+/* 列表样式 */
+ul, ol {
+    margin-bottom: 16px;
+    padding-left: 20px;
+    color: #4a413d;
+}
+
+li {
+    margin-bottom: 8px;
+    line-height: 1.75;
+}
+
+/* 引用样式 */
+blockquote {
+    margin: 25px 0;
+    padding: 18px 20px;
+    background-color: #e8f4f8;
+    border-left: 4px solid #5b9fb5;
+    border-radius: 6px;
+    color: #4a413d;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 强调文字 */
+strong {
+    color: #d4875f;
+    font-weight: bold;
+    background: linear-gradient(180deg, transparent 65%, rgba(212, 135, 95, 0.2) 65%);
+}
+
+/* 代码块 */
+pre {
+    background-color: #2c1810;
+    color: #f5e6d3;
+    padding: 18px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 25px 0;
+    font-family: Monaco, Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    box-shadow: 0 4px 12px rgba(44, 24, 16, 0.3);
+}
+
+/* 内联代码 */
+code {
+    background-color: #fff5eb;
+    color: #d4875f;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-family: Monaco, Menlo, Consolas, monospace;
+    font-size: 14px;
+    margin: 0 2px;
+    border: 1px solid #ffe8d6;
+}
+
+/* 代码块内的 code 标签 - 覆盖内联代码样式 */
+pre code {
+    background-color: transparent !important;
+    color: inherit !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    margin: 0 !important;
+    font-size: inherit !important;
+}
+
+/* 图片 */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 25px auto;
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f0e6d8;
+}
+
+/* 图片描述 */
+img + em, img + span {
+    display: block;
+    text-align: center;
+    color: #8b7f74;
+    font-size: 13px;
+    margin-top: -15px;
+    margin-bottom: 20px;
+    font-style: italic;
+}
+
+/* 表格 */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 25px 0;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+th {
+    background: linear-gradient(135deg, #fff5eb 0%, #ffe8d6 100%);
+    font-weight: bold;
+    color: #2c1810;
+    padding: 12px;
+    border: 1px solid #f0e6d8;
+    text-align: left;
+}
+
+td {
+    padding: 10px 12px;
+    border: 1px solid #f0e6d8;
+    color: #4a413d;
+    background-color: #fff;
+}
+
+tr:nth-child(even) td {
+    background-color: #faf9f5;
+}
+
+/* 分割线 */
+hr {
+    border: none;
+    border-top: 2px solid #f0e6d8;
+    margin: 40px 0;
+    position: relative;
+}
+
+hr::after {
+    content: "◈";
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #faf9f5;
+    color: #d4875f;
+    padding: 0 10px;
+    font-size: 12px;
+}
+
+/* 底部参考文献 */
+.references-section {
+    margin-top: 50px;
+    padding-top: 25px;
+    border-top: 2px solid #f0e6d8;
+    background: linear-gradient(180deg, transparent 0%, #fff5eb 100%);
+    padding: 25px 15px 15px 15px;
+    border-radius: 8px;
+}
+
+.references-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #2c1810;
+    position: relative;
+    padding-left: 15px;
+}
+
+.references-title::before {
+    content: "✦";
+    position: absolute;
+    left: 0;
+    color: #d4875f;
+}
+
+.reference-item {
+    font-size: 13px;
+    color: #8b7f74;
+    margin-bottom: 8px;
+    word-break: break-all;
+    padding-left: 15px;
+}
+"""
+
 # Theme Registry
 THEMES = {
     "tech": THEME_TECH,
@@ -715,7 +1024,24 @@ THEMES = {
     "simple": THEME_SIMPLE,
     "md2_classic": THEME_MD2_CLASSIC,
     "md2_dark": THEME_MD2_DARK,
-    "md2_purple": THEME_MD2_PURPLE
+    "md2_purple": THEME_MD2_PURPLE,
+    "coffee": THEME_COFFEE
+}
+
+# Pygments style mapping for each theme
+# Available styles: default, monokai, vim, fruity, native, paraiso-dark, paraiso-light, etc.
+# Run `python -c "from pygments.styles import get_all_styles; print(list(get_all_styles()))"` to see all
+#
+# Custom styles:
+# - coffee: Custom coffee theme style defined in coffee_highlight_style.py
+THEME_PYGMENTS_STYLES = {
+    "tech": "default",          # 蓝色主题 - 默认清爽样式
+    "warm": "autumn",           # 橙色主题 - 温暖的秋天样式
+    "simple": "bw",             # 黑白主题 - 纯黑白样式
+    "md2_classic": "friendly",  # 绿色主题 - 友好清新样式
+    "md2_dark": "monokai",      # 暗黑主题 - Monokai 经典暗色
+    "md2_purple": "material",   # 紫色主题 - Material 现代紫色系
+    "coffee": "coffee_style"    # 咖啡主题 - 专属咖啡色代码高亮
 }
 
 # 默认样式 (向后兼容)

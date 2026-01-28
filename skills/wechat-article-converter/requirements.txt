@@ -1,0 +1,13 @@
+# WeChat Article Converter Dependencies
+
+# Core conversion
+markdown>=3.4.0
+premailer>=3.10.0
+
+# Code syntax highlighting
+Pygments>=2.15.0
+
+# HTML/CSS processing
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+cssutils>=2.6.0

@@ -50,6 +50,9 @@ NANOBANANA_PATH = os.path.join(SCRIPT_DIR, "nanobanana.py")
 IMAGES_DIR = "./images"
 PICGO_CMD = "picgo"
 
+# 全局验证标记（延迟验证）
+_github_token_validated = False
+
 # Gemini API 定价（基于 2024 年定价）
 # 参考: https://ai.google.dev/pricing
 GEMINI_PRICING = {
@@ -72,142 +75,6 @@ AVG_GENERATION_TIME = {
     "4K": 45,
 }
 AVG_UPLOAD_TIME = 5  # 平均上传时间（秒）
-
-
-class ThreadStatusTracker:
-    """线程状态跟踪器 - 监控并发任务执行状态"""
-
-    def __init__(self, max_workers: int):
-        self.max_workers = max_workers
-        self.thread_status = {}  # 线程ID -> 状态信息
-        self.lock = threading.Lock()
-        self.start_time = time.time()
-        self.total_tasks = 0
-        self.completed_tasks = 0
-
-    def start_task(self, thread_id: int, task_name: str):
-        """记录线程开始处理任务"""
-        with self.lock:
-            self.thread_status[thread_id] = {
-                "task": task_name,
-                "start_time": time.time(),
-                "status": "working"
-            }
-
-    def complete_task(self, thread_id: int, success: bool = True):
-        """记录线程完成任务"""
-        with self.lock:
-            if thread_id in self.thread_status:
-                self.thread_status[thread_id]["status"] = "idle"
-                self.thread_status[thread_id]["task"] = None
-                self.completed_tasks += 1
-
-    def get_status_summary(self) -> str:
-        """获取状态摘要"""
-        with self.lock:
-            working = sum(1 for s in self.thread_status.values() if s["status"] == "working")
-
-            elapsed = time.time() - self.start_time
-            # 并发效率 = 完成任务数 / (时间 * 线程数) * 100
-            if elapsed > 0.1 and self.completed_tasks > 0:
-                max_possible = (elapsed / 30) * self.max_workers  # 假设平均30秒/任务
-                efficiency = min(100, (self.completed_tasks / max_possible * 100))
-            else:
-                efficiency = 0
-
-            summary = f"🧵 线程: {working}/{self.max_workers} 工作中"
-            if efficiency > 0:
-                summary += f" | 效率: {efficiency:.1f}%"
-
-            return summary
-
-    def get_thread_details(self) -> List[str]:
-        """获取线程详细状态"""
-        with self.lock:
-            details = []
-            for thread_id, status in self.thread_status.items():
-                if status["status"] == "working" and status["task"]:
-                    elapsed = time.time() - status["start_time"]
-                    details.append(f"  - 线程{thread_id}: {status['task'][:30]} ({elapsed:.1f}s)")
-            return details
-
-
-class CheckpointManager:
-    """检查点管理器 - 实现断点续传功能（简化版）"""
-
-    def __init__(self, config_path: str, checkpoint_dir: str = ".checkpoints"):
-        self.config_path = config_path
-        self.checkpoint_dir = Path(checkpoint_dir)
-        self.checkpoint_dir.mkdir(exist_ok=True)
-
-        # 生成检查点文件名（基于配置文件路径的哈希）
-        config_hash = hashlib.md5(config_path.encode()).hexdigest()[:8]
-        self.checkpoint_file = self.checkpoint_dir / f"checkpoint_{config_hash}.json"
-
-    def save_checkpoint(self, completed: List[str], failed: List[str],
-                       uploaded: List[str], total: int):
-        """保存检查点"""
-        checkpoint = {
-            "timestamp": datetime.now().isoformat(),
-            "config": self.config_path,
-            "total": total,
-            "completed": completed,  # 已成功生成的图片文件名
-            "failed": failed,        # 生成失败的图片文件名
-            "uploaded": uploaded     # 已上传的图片文件名
-        }
-
-        with open(self.checkpoint_file, 'w', encoding='utf-8') as f:
-            json.dump(checkpoint, f, indent=2, ensure_ascii=False)
-
-    def load_checkpoint(self) -> Optional[Dict]:
-        """加载检查点"""
-        if not self.checkpoint_file.exists():
-            return None
-
-        try:
-            with open(self.checkpoint_file, 'r', encoding='utf-8') as f:
-                checkpoint = json.load(f)
-
-            # 验证检查点配置是否匹配
-            if checkpoint.get("config") != self.config_path:
-                return None
-
-            return checkpoint
-        except Exception as e:
-            print(f"⚠️  加载检查点失败: {e}")
-            return None
-
-    def clear_checkpoint(self):
-        """清除检查点文件"""
-        if self.checkpoint_file.exists():
-            self.checkpoint_file.unlink()
-
-    def get_resume_info(self) -> Dict:
-        """获取恢复信息"""
-        checkpoint = self.load_checkpoint()
-
-        if not checkpoint:
-            return {
-                "has_checkpoint": False,
-                "completed": [],
-                "failed": [],
-                "uploaded": [],
-                "remaining": 0
-            }
-
-        completed = set(checkpoint.get("completed", []))
-        failed = set(checkpoint.get("failed", []))
-        uploaded = set(checkpoint.get("uploaded", []))
-        total = checkpoint.get("total", 0)
-
-        return {
-            "has_checkpoint": True,
-            "timestamp": checkpoint.get("timestamp"),
-            "completed": list(completed),
-            "failed": list(failed),
-            "uploaded": list(uploaded),
-            "remaining": total - len(completed)
-        }
 
 
 # Import shared configuration
@@ -239,6 +106,82 @@ class ImageConfig:
         self.filename = filename or f"{name}.jpg"
         self.local_path = None
         self.cdn_url = None
+
+
+def delete_local_file(file_path: str, keep_files: bool = False) -> None:
+    """
+    删除本地文件（除非用户指定保留）
+
+    Args:
+        file_path: 文件路径
+        keep_files: 是否保留文件
+    """
+    if not keep_files:
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                print(f"   🗑️  已删除本地文件: {file_path}")
+        except Exception as e:
+            print(f"   ⚠️  删除本地文件失败: {e}")
+            # 删除失败不影响主流程
+
+
+def process_and_upload_image(config: ImageConfig,
+                              resolution: str = "2K",
+                              upload: bool = True,
+                              keep_files: bool = False) -> Dict:
+    """
+    处理单张图片：生成 + 上传 + 删除（公共逻辑）
+
+    Args:
+        config: 图片配置
+        resolution: 分辨率
+        upload: 是否上传
+        keep_files: 是否保留本地文件
+
+    Returns:
+        dict: 处理结果 {"success": bool, "local_path": str, "cdn_url": str, "error": str}
+    """
+    result = {
+        "name": config.name,
+        "filename": config.filename,
+        "local_path": None,
+        "cdn_url": None,
+        "success": False,
+        "error": None
+    }
+
+    try:
+        # 生成图片
+        if not generate_image(config, resolution):
+            result["error"] = "生成失败"
+            return result
+
+        result["local_path"] = config.local_path
+        result["success"] = True
+
+        # 上传到图床
+        if upload and config.local_path:
+            time.sleep(1)  # 避免请求过快
+            cdn_url = upload_to_picgo(config.local_path)
+            config.cdn_url = cdn_url
+            result["cdn_url"] = cdn_url
+
+            # 上传成功后删除本地文件
+            delete_local_file(config.local_path, keep_files)
+
+    except RuntimeError as e:
+        # 上传失败
+        result["success"] = False
+        result["error"] = str(e)
+        raise  # 重新抛出以支持 fail-fast 模式
+
+    except Exception as e:
+        result["success"] = False
+        result["error"] = f"未知错误: {str(e)}"
+        raise
+
+    return result
 
 
 def ensure_images_dir():
@@ -449,30 +392,12 @@ def check_dependencies():
                         "   配置文档: https://picgo.github.io/PicGo-Core-Doc/zh/guide/config.html"
                     )
                 else:
-                    # PicGo已配置上传器，进一步验证GitHub Token（如果是GitHub图床）
+                    # PicGo已配置上传器
                     print(f"✅ PicGo 当前上传器: {current_uploader}")
 
-                    token_validation = validate_github_token()
-
-                    if token_validation["valid"] is False:
-                        # Token验证失败
-                        error_msg = f"❌ GitHub Token 验证失败\n"
-                        if token_validation.get("repo"):
-                            error_msg += f"   仓库: {token_validation['repo']}\n"
-                        if token_validation.get("http_code"):
-                            error_msg += f"   HTTP状态码: {token_validation['http_code']}\n"
-                        error_msg += f"   错误: {token_validation['error']}"
-                        errors.append(error_msg)
-                    elif token_validation["valid"] is True:
-                        # Token验证成功，打印确认信息（但不加入errors）
-                        print(f"✅ GitHub Token 验证成功: {token_validation['repo']}")
-                    elif token_validation["valid"] is None:
-                        # 无法验证或非GitHub图床，显示警告信息
-                        if token_validation["error"] and "requests 库未安装" in token_validation["error"]:
-                            # 缺少 requests 库，给出警告
-                            print(f"⚠️  {token_validation['error']}")
-                        elif token_validation["error"]:
-                            print(f"ℹ️  {token_validation['error']}")
+                    # GitHub Token 验证已移至延迟验证（首次上传时）
+                    if current_uploader == "github":
+                        print(f"ℹ️  GitHub Token 将在首次上传时验证")
 
         except json.JSONDecodeError:
             errors.append(
@@ -557,6 +482,24 @@ def upload_to_picgo(image_path: str) -> str:
     Raises:
         RuntimeError: 上传失败时抛出异常（fail fast）
     """
+    global _github_token_validated
+
+    # 延迟验证：首次上传时验证 GitHub Token（仅限 GitHub 图床）
+    if not _github_token_validated:
+        token_validation = validate_github_token()
+
+        if token_validation["valid"] is False:
+            # Token 验证失败，给出警告但继续尝试上传
+            print(f"\n⚠️  GitHub Token 验证失败:")
+            if token_validation.get("repo"):
+                print(f"   仓库: {token_validation['repo']}")
+            print(f"   错误: {token_validation['error']}")
+            print(f"   继续尝试上传，但可能失败...")
+        elif token_validation["valid"] is True:
+            print(f"✅ GitHub Token 验证成功: {token_validation['repo']}")
+
+        _github_token_validated = True  # 标记已验证，后续不再检查
+
     print(f"\n📤 上传图片: {image_path}")
 
     try:
@@ -992,14 +935,15 @@ def generate_and_upload_parallel(configs: List[ImageConfig],
                             cdn_url = upload_to_picgo(result["local_path"])
                             result["cdn_url"] = cdn_url
 
-                            # 上传成功后自动删除本地文件
-                            try:
-                                if os.path.exists(result["local_path"]):
-                                    os.remove(result["local_path"])
-                                    print(f"   🗑️  已删除本地文件: {result['local_path']}")
-                            except Exception as e:
-                                print(f"   ⚠️  删除本地文件失败: {e}")
-                                # 删除失败不影响主流程
+                            # 上传成功后删除本地文件（除非用户指定保留）
+                            if not args.keep_files:
+                                try:
+                                    if os.path.exists(result["local_path"]):
+                                        os.remove(result["local_path"])
+                                        print(f"   🗑️  已删除本地文件: {result['local_path']}")
+                                except Exception as e:
+                                    print(f"   ⚠️  删除本地文件失败: {e}")
+                                    # 删除失败不影响主流程
 
                             # 计算上传耗时
                             upload_duration = time.time() - upload_item_start
@@ -1205,8 +1149,6 @@ def main():
     parser = argparse.ArgumentParser(description="文章配图生成和上传工具")
     parser.add_argument("--config", help="配置文件路径 (JSON)")
     parser.add_argument("--process-file", help="处理 Markdown 文件中的图片占位符 (自动解析 <!-- IMAGE --> 标签)")
-    parser.add_argument("--wechat", action="store_true", help="生成微信公众号兼容的 HTML")
-    parser.add_argument("--theme", default="tech", choices=["tech", "warm", "simple"], help="微信公众号主题 (默认: tech)")
     parser.add_argument("--no-upload", action="store_true", help="只生成不上传")
     parser.add_argument("--resolution", default="2K", choices=["1K", "2K", "4K"],
                        help="图片分辨率")
@@ -1223,10 +1165,8 @@ def main():
                        help="并行模式下的最大工作线程数（默认2，避免API限流）")
     parser.add_argument("--continue-on-error", action="store_true",
                        help="容错模式：遇到错误继续处理其他图片（默认Fail-Fast立即停止）")
-    parser.add_argument("--resume", action="store_true",
-                       help="从检查点恢复未完成的任务（实验性功能）")
-    parser.add_argument("--checkpoint-dir", default=".checkpoints",
-                       help="检查点文件保存目录（默认: .checkpoints）")
+    parser.add_argument("--keep-files", action="store_true",
+                       help="保留本地图片文件和配置文件（默认上传成功后自动删除）")
 
     args = parser.parse_args()
 
@@ -1280,35 +1220,24 @@ def main():
             print(f"❌ 配置文件不存在: {args.config}")
             sys.exit(1)
 
-        # 验证配置文件格式
+        # 智能格式兼容：自动转换数组格式为对象格式
         if isinstance(config_data, list):
-            print("❌ 配置文件格式错误: 根元素不能是数组")
-            print("\n错误格式:")
-            print("  [{...}]  ← 直接数组")
-            print("\n正确格式:")
-            print('  {"images": [{...}]}  ← 对象包含 "images" 键')
-            print("\n请修改配置文件格式后重试")
+            # 自动包裹为对象格式
+            print("ℹ️  检测到直接数组格式，自动转换为标准格式")
+            config_data = {"images": config_data}
+        elif isinstance(config_data, dict):
+            # 如果是对象但缺少 "images" 键，给出提示
+            if "images" not in config_data:
+                print('❌ 配置文件缺少 "images" 键')
+                print("\n支持的格式:")
+                print("1. 对象格式: {\"images\": [{...}]}")
+                print("2. 数组格式: [{...}]  (自动转换)")
+                sys.exit(1)
+        else:
+            print(f"❌ 配置文件格式错误: 根元素必须是对象或数组，当前类型: {type(config_data).__name__}")
             sys.exit(1)
 
-        if not isinstance(config_data, dict):
-            print(f"❌ 配置文件格式错误: 根元素必须是对象，当前类型: {type(config_data).__name__}")
-            sys.exit(1)
-
-        if "images" not in config_data:
-            print('❌ 配置文件缺少 "images" 键')
-            print("\n正确格式:")
-            print(json.dumps({
-                "images": [
-                    {
-                        "name": "封面图",
-                        "prompt": "图片生成提示词",
-                        "aspect_ratio": "16:9",
-                        "filename": "cover.jpg"
-                    }
-                ]
-            }, indent=2, ensure_ascii=False))
-            sys.exit(1)
-
+        # 验证 images 数组
         if not isinstance(config_data["images"], list):
             print(f'❌ "images" 必须是数组，当前类型: {type(config_data["images"]).__name__}')
             sys.exit(1)
@@ -1412,8 +1341,8 @@ def main():
             f.write(markdown)
         print(f"\n📝 Markdown 输出已保存: {args.output}")
 
-    # 自动删除配置文件（如果上传成功且是 config 模式）
-    if args.config and not args.no_upload and results["uploaded"] > 0:
+    # 自动删除配置文件（如果上传成功且是 config 模式，且用户未指定保留）
+    if args.config and not args.no_upload and not args.keep_files and results["uploaded"] > 0:
         try:
             if os.path.exists(args.config):
                 os.remove(args.config)
@@ -1422,24 +1351,5 @@ def main():
             print(f"\n⚠️  删除配置文件失败: {e}")
             # 删除失败不影响主流程
 
-    # WeChat 转换逻辑
-    if args.wechat:
-        target_file = None
-        if args.process_file:
-            target_file = args.process_file
-        elif args.output:
-            target_file = args.output
-
-        if target_file and os.path.exists(target_file):
-            print(f"\n🚀 正在转换为微信公众号格式: {target_file} (主题: {args.theme})")
-            convert_script = os.path.join(SCRIPT_DIR, "convert_to_wechat.py")
-            try:
-                subprocess.run(["python3", convert_script, target_file, "--theme", args.theme], check=True)
-            except subprocess.CalledProcessError as e:
-                print(f"❌ 微信格式转换失败: {e}")
-            except Exception as e:
-                print(f"❌ 微信格式转换发生错误: {e}")
-        else:
-            print("\n⚠️  --wechat 参数需要有效的 Markdown 文件 (通过 --process-file 或 --output 指定)")
 if __name__ == "__main__":
     main()

@@ -3,6 +3,37 @@
 Shared configuration constants for article-generator skill
 """
 
+import os
+import json
+from pathlib import Path
+from typing import Dict, Any
+
+
+def load_user_config(config_path: str = "~/.article-generator.conf") -> Dict[str, Any]:
+    """
+    Load user configuration from file
+
+    Args:
+        config_path: Path to user config file
+
+    Returns:
+        dict: User configuration or empty dict if not found
+    """
+    config_file = Path(config_path).expanduser()
+
+    if not config_file.exists():
+        return {}
+
+    try:
+        with open(config_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+# Load user configuration
+_user_config = load_user_config()
+
 # Aspect ratio to resolution mapping
 # NOTE: Only these aspect ratios are supported by Gemini API
 ASPECT_RATIO_MAP = {
@@ -33,12 +64,16 @@ ASPECT_RATIO_TO_SIZE = {
 }
 
 # Timeout configurations (in seconds)
-TIMEOUTS = {
+# User config can override these via ~/.article-generator.conf
+_default_timeouts = {
     "image_generation": 120,  # 2 minutes per image
     "upload": 60,  # 1 minute for upload
     "dependency_check": 5,  # 5 seconds for version checks
     "npm_install": 120,  # 2 minutes for npm install
 }
+
+# Merge user config with defaults (user config takes precedence)
+TIMEOUTS = {**_default_timeouts, **_user_config.get("timeouts", {})}
 
 # Retry configurations
 RETRY_CONFIG = {

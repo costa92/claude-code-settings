@@ -1,0 +1,18 @@
+{
+  "timeouts": {
+    "image_generation": 120,
+    "upload": 60,
+    "dependency_check": 5,
+    "npm_install": 120
+  },
+  "image_defaults": {
+    "resolution": "2K",
+    "model": "gemini-3-pro-image-preview",
+    "cover_aspect_ratio": "16:9",
+    "rhythm_aspect_ratio": "3:2"
+  },
+  "picgo": {
+    "command": "picgo",
+    "upload_timeout": 60
+  }
+}
