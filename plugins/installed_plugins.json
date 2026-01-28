@@ -60,6 +60,16 @@
         "lastUpdated": "2026-01-16T16:00:20.270Z",
         "gitCommitSha": "59688fea84416544444b2cff23ceb4b9e65ec08f"
       }
+    ],
+    "superpowers@superpowers-marketplace": [
+      {
+        "scope": "user",
+        "installPath": "/Users/costalong/.claude/plugins/cache/superpowers-marketplace/superpowers/4.1.1",
+        "version": "4.1.1",
+        "installedAt": "2026-01-28T13:25:07.884Z",
+        "lastUpdated": "2026-01-28T13:25:07.884Z",
+        "gitCommitSha": "469a6d81ebb8b827e284d4afb090c6c622d97747"
+      }
     ]
   }
 }
