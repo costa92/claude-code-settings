@@ -149,13 +149,44 @@ class WeChatConverter:
             return ""
 
         html = "<div class=\"references-section\">"
-        html += "<div class=\"references-title\">参考资料</div>"
 
+        # Add decoration for Coffee theme
+        title_prefix = ""
+        if self.theme_name == "coffee":
+             title_prefix = '<span style="color: #d4875f; margin-right: 8px;">✦</span>'
+
+        html += f"<div class=\"references-title\">{title_prefix}参考资料</div>"
+
+        # Use ul/li for better semantic structure and compatibility
+        html += "<ul style=\"list-style: none; padding-left: 0; margin: 0;\">"
         for i, url in enumerate(self.links, 1):
-            html += f"<div class=\"reference-item\">[{i}] {url}</div>"
+            html += f"<li class=\"reference-item\" style=\"margin-bottom: 5px;\">[{i}] {url}</li>"
+        html += "</ul>"
 
         html += "</div>"
         return html
+
+    def post_process_html(self, html_body):
+        """
+        Process HTML content after markdown conversion but before inlining CSS
+        Used for adding decorative elements that CSS pseudo-elements can't handle
+        """
+        # Coffee Theme Decorations
+        if self.theme_name == "coffee":
+            # Add H1 decoration: ◈
+            decoration_h1 = '<div style="display: block; color: #d4875f; font-size: 14px; margin-top: 10px; text-align: center;">◈</div>'
+            html_body = re.sub(r'(</h1>)', f'{decoration_h1}\\1', html_body)
+
+            # Add H2 decoration: ✦ prefix
+            decoration_h2 = '<span style="color: #d4875f; margin-right: 8px; font-size: 16px;">✦</span>'
+            html_body = re.sub(r'(<h2>)', f'\\1{decoration_h2}', html_body)
+
+            # Add HR decoration: ◈
+            # Replace <hr> with a custom div structure
+            decoration_hr = '<div style="text-align: center; margin: 40px 0;"><div style="border-top: 2px solid #f0e6d8;"></div><div style="text-align: center; margin-top: -10px; color: #d4875f; font-size: 12px; position: relative; top: -12px; background-color: #faf9f5; display: inline-block; padding: 0 10px;">◈</div></div>'
+            html_body = re.sub(r'<hr\s*/?>', decoration_hr, html_body)
+
+        return html_body
 
     def convert(self, md_file_path, output_path=None):
         """Main conversion function"""
@@ -175,7 +206,7 @@ class WeChatConverter:
             extensions=[
                 "fenced_code",
                 "tables",
-                "nl2br",
+                # "nl2br", # Disabled to prevent unexpected line breaks in lists
                 "sane_lists",
                 "codehilite"
             ],
@@ -187,6 +218,9 @@ class WeChatConverter:
                 }
             }
         )
+
+        # 3. Post-process HTML (Theme specific decorations)
+        html_body = self.post_process_html(html_body)
 
         # 4. Wrap in container and References
         references = self.generate_references_html()
