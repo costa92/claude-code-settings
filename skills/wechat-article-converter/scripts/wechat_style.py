@@ -785,7 +785,7 @@ THEME_COFFEE = """
     font-size: 16px;
     line-height: 1.8;
     color: #4a413d;
-    text-align: justify;
+    text-align: left;
     padding: 10px;
     background-color: #faf9f5;
 }
@@ -799,6 +799,7 @@ h1 {
     text-align: center;
     position: relative;
     padding-bottom: 15px;
+    line-height: 1.3;
 }
 
 h1::after {
@@ -815,10 +816,11 @@ h2 {
     color: #2c1810;
     margin: 35px 0 15px 0;
     padding: 12px 20px;
-    background: linear-gradient(135deg, #fff5eb 0%, #ffe8d6 100%);
+    background-color: #fff5eb;
     border-left: 4px solid #d4875f;
     border-radius: 4px;
     position: relative;
+    text-align: left;
 }
 
 h2::before {
@@ -835,6 +837,7 @@ h3 {
     margin: 30px 0 10px 0;
     padding-left: 10px;
     border-left: 3px solid #d4875f;
+    text-align: left;
 }
 
 /* 段落样式 */
@@ -847,13 +850,16 @@ p {
 /* 列表样式 */
 ul, ol {
     margin-bottom: 16px;
-    padding-left: 20px;
+    padding-left: 15px;
     color: #4a413d;
 }
 
 li {
     margin-bottom: 8px;
     line-height: 1.75;
+    word-break: normal;
+    word-wrap: break-word;
+    display: list-item;
 }
 
 /* 引用样式 */
@@ -871,33 +877,35 @@ blockquote {
 strong {
     color: #d4875f;
     font-weight: bold;
-    background: linear-gradient(180deg, transparent 65%, rgba(212, 135, 95, 0.2) 65%);
+    background-color: rgba(212, 135, 95, 0.1);
 }
 
 /* 代码块 */
 pre {
     background-color: #2c1810;
     color: #f5e6d3;
-    padding: 18px;
+    padding: 15px;
     border-radius: 8px;
-    overflow-x: auto;
-    margin: 25px 0;
+    margin: 20px 0;
     font-family: Monaco, Menlo, Consolas, monospace;
     font-size: 13px;
     line-height: 1.6;
     box-shadow: 0 4px 12px rgba(44, 24, 16, 0.3);
+    white-space: pre;
+    display: block;
 }
 
 /* 内联代码 */
 code {
     background-color: #fff5eb;
     color: #d4875f;
-    padding: 3px 6px;
-    border-radius: 4px;
+    padding: 1px 2px;
+    border-radius: 2px;
     font-family: Monaco, Menlo, Consolas, monospace;
     font-size: 14px;
-    margin: 0 2px;
+    margin: 0;
     border: 1px solid #ffe8d6;
+    display: inline;
 }
 
 /* 代码块内的 code 标签 - 覆盖内联代码样式 */
@@ -943,7 +951,7 @@ table {
 }
 
 th {
-    background: linear-gradient(135deg, #fff5eb 0%, #ffe8d6 100%);
+    background-color: #fff5eb;
     font-weight: bold;
     color: #2c1810;
     padding: 12px;
@@ -974,9 +982,10 @@ hr::after {
     content: "◈";
     position: absolute;
     top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #faf9f5;
+    left: 0;
+    right: 0;
+    text-align: center;
+    background-color: transparent;
     color: #d4875f;
     padding: 0 10px;
     font-size: 12px;
@@ -987,7 +996,7 @@ hr::after {
     margin-top: 50px;
     padding-top: 25px;
     border-top: 2px solid #f0e6d8;
-    background: linear-gradient(180deg, transparent 0%, #fff5eb 100%);
+    background-color: #fff5eb;
     padding: 25px 15px 15px 15px;
     border-radius: 8px;
 }
@@ -999,6 +1008,7 @@ hr::after {
     color: #2c1810;
     position: relative;
     padding-left: 15px;
+    text-align: left;
 }
 
 .references-title::before {

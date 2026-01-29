@@ -14,10 +14,10 @@
     "code-review@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/home/hellotalk/.claude/plugins/cache/claude-plugins-official/code-review/e30768372b41",
-        "version": "e30768372b41",
+        "installPath": "/home/hellotalk/.claude/plugins/cache/claude-plugins-official/code-review/d49ad3558669",
+        "version": "d49ad3558669",
         "installedAt": "2026-01-08T07:06:31.730Z",
-        "lastUpdated": "2026-01-26T08:31:28.529Z",
+        "lastUpdated": "2026-01-29T01:56:01.742Z",
         "gitCommitSha": "02f2e2f3ad35e63d1734e08cf372fea4153d92ce"
       }
     ],
