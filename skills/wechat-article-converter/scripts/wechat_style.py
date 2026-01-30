@@ -53,6 +53,8 @@ p {
     margin-bottom: 16px;
     line-height: 1.75;
     color: #3f3f3f;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* 列表样式 */
@@ -63,8 +65,11 @@ ul, ol {
 }
 
 li {
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     line-height: 1.75;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: break-word;
 }
 
 /* 引用样式 (Obsidian Callouts) */
@@ -84,6 +89,15 @@ strong {
     font-weight: bold;
 }
 
+/* 链接样式 */
+a {
+    color: #4a90e2;
+    text-decoration: none;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-all;
+}
+
 /* 代码块 - 模拟 Mac 窗口风格 */
 pre {
     background-color: #f6f8fa;
@@ -96,6 +110,9 @@ pre {
     line-height: 1.5;
     border: 1px solid #e1e4e8;
     position: relative;
+    white-space: pre;
+    word-wrap: normal;
+    overflow-wrap: normal;
 }
 
 /* 内联代码 */
@@ -107,6 +124,8 @@ code {
     font-family: "JetBrains Mono", Consolas, Monaco, monospace;
     font-size: 14px;
     margin: 0 2px;
+    white-space: nowrap;
+    word-break: keep-all;
 }
 
 /* 代码块内的 code 标签 - 覆盖内联代码样式 */
@@ -244,12 +263,23 @@ h3 {
 p {
     margin-bottom: 20px;
     color: #595959;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 strong {
     color: #d9730d;
     font-weight: bold;
     background: linear-gradient(180deg, transparent 70%, #ffe8cc 70%);
+}
+
+/* 链接样式 */
+a {
+    color: #d9730d;
+    text-decoration: none;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-all;
 }
 
 blockquote {
@@ -267,6 +297,24 @@ code {
     padding: 2px 5px;
     border-radius: 3px;
     font-size: 14px;
+    white-space: nowrap;
+    word-break: keep-all;
+}
+
+/* 代码块 */
+pre {
+    background-color: #2c1810;
+    color: #f5e6d3;
+    padding: 15px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 20px 0;
+    font-family: Monaco, Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre;
+    word-wrap: normal;
+    overflow-wrap: normal;
 }
 
 /* 代码块内的 code 标签 - 覆盖内联代码样式 */
@@ -288,7 +336,13 @@ img {
 
 /* 其他基础样式复用 */
 ul, ol { margin-bottom: 16px; padding-left: 20px; }
-li { margin-bottom: 8px; }
+li {
+    margin-bottom: 4px;
+    line-height: 1.75;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+}
 table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
 th { background-color: #fff3e0; color: #d9730d; padding: 10px; border: 1px solid #f2e3d5; }
 td { padding: 10px; border: 1px solid #f2e3d5; color: #595959; }
@@ -345,6 +399,8 @@ h3 {
 
 p {
     margin-bottom: 20px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 strong {
@@ -352,6 +408,15 @@ strong {
     font-weight: 900;
     text-decoration: underline;
     text-decoration-thickness: 2px;
+}
+
+/* 链接样式 */
+a {
+    color: #000;
+    text-decoration: underline;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-all;
 }
 
 blockquote {
@@ -370,6 +435,24 @@ code {
     font-family: monospace;
     font-size: 15px;
     border: 1px solid #ddd;
+    white-space: nowrap;
+    word-break: keep-all;
+}
+
+/* 代码块 */
+pre {
+    background-color: #f8f8f8;
+    color: #000;
+    padding: 15px;
+    border: 2px solid #000;
+    margin: 25px 0;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre;
+    word-wrap: normal;
+    overflow-wrap: normal;
+    overflow-x: auto;
 }
 
 /* 代码块内的 code 标签 - 覆盖内联代码样式 */
@@ -443,6 +526,8 @@ p {
     margin-bottom: 16px;
     line-height: 1.8;
     color: #3f3f3f;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 ul, ol {
@@ -451,7 +536,11 @@ ul, ol {
 }
 
 li {
-    margin-bottom: 5px;
+    margin-bottom: 4px;
+    line-height: 1.75;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: break-word;
 }
 
 /* 引用 */
@@ -474,6 +563,9 @@ pre {
     font-family: "JetBrains Mono", Consolas, monospace;
     font-size: 13px;
     border: 1px solid #e1e4e8;
+    white-space: pre;
+    word-wrap: normal;
+    overflow-wrap: normal;
 }
 
 code {
@@ -484,6 +576,8 @@ code {
     font-family: monospace;
     font-size: 14px;
     margin: 0 2px;
+    white-space: nowrap;
+    word-break: keep-all;
 }
 
 /* 代码块内的 code 标签 - 覆盖内联代码样式 */
@@ -501,6 +595,15 @@ pre code {
 strong {
     color: #42b983;
     font-weight: bold;
+}
+
+/* 链接样式 */
+a {
+    color: #42b983;
+    text-decoration: none;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-all;
 }
 
 /* 图片 */
@@ -572,6 +675,8 @@ h3 {
 /* 段落 */
 p {
     margin-bottom: 16px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* 引用 */
@@ -596,6 +701,9 @@ pre {
     font-size: 13px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     position: relative;
+    white-space: pre;
+    word-wrap: normal;
+    overflow-wrap: normal;
 }
 
 code {
@@ -605,6 +713,8 @@ code {
     border-radius: 3px;
     font-family: monospace;
     font-size: 14px;
+    white-space: nowrap;
+    word-break: keep-all;
 }
 
 /* 代码块内的 code 标签 - 覆盖内联代码样式 */
@@ -622,6 +732,15 @@ pre code {
 strong {
     color: #2c3e50;
     font-weight: 900;
+}
+
+/* 链接样式 */
+a {
+    color: #2c3e50;
+    text-decoration: none;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-all;
 }
 
 /* 图片 */
@@ -696,6 +815,8 @@ h3 {
 /* 段落 */
 p {
     margin-bottom: 16px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* 引用 */
@@ -721,6 +842,9 @@ pre {
     font-family: Consolas, monospace;
     font-size: 13px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    white-space: pre;
+    word-wrap: normal;
+    overflow-wrap: normal;
 }
 
 code {
@@ -730,6 +854,8 @@ code {
     border-radius: 4px;
     font-family: monospace;
     font-size: 14px;
+    white-space: nowrap;
+    word-break: keep-all;
 }
 
 /* 代码块内的 code 标签 - 覆盖内联代码样式 */
@@ -747,6 +873,15 @@ pre code {
 strong {
     color: #7b16ff;
     font-weight: bold;
+}
+
+/* 链接样式 */
+a {
+    color: #7b16ff;
+    text-decoration: none;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-all;
 }
 
 /* 图片 */
@@ -845,6 +980,8 @@ p {
     margin-bottom: 18px;
     line-height: 1.8;
     color: #4a413d;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* 列表样式 */
@@ -855,11 +992,12 @@ ul, ol {
 }
 
 li {
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     line-height: 1.75;
-    word-break: normal;
+    word-break: keep-all;
     word-wrap: break-word;
-    display: list-item;
+    white-space: normal;
+    overflow-wrap: break-word;
 }
 
 /* 引用样式 */
@@ -880,6 +1018,15 @@ strong {
     background-color: rgba(212, 135, 95, 0.1);
 }
 
+/* 链接样式 */
+a {
+    color: #d4875f;
+    text-decoration: none;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-all;
+}
+
 /* 代码块 */
 pre {
     background-color: #2c1810;
@@ -892,6 +1039,8 @@ pre {
     line-height: 1.6;
     box-shadow: 0 4px 12px rgba(44, 24, 16, 0.3);
     white-space: pre;
+    word-wrap: normal;
+    overflow-wrap: normal;
     display: block;
 }
 
@@ -906,6 +1055,8 @@ code {
     margin: 0;
     border: 1px solid #ffe8d6;
     display: inline;
+    white-space: nowrap;
+    word-break: keep-all;
 }
 
 /* 代码块内的 code 标签 - 覆盖内联代码样式 */
@@ -941,29 +1092,50 @@ img + em, img + span {
     font-style: italic;
 }
 
-/* 表格 */
+/* 表格 - 微信编辑器优化版 */
 table {
     width: 100%;
     border-collapse: collapse;
     margin: 25px 0;
     font-size: 14px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 2px solid #d4875f;
+    background-color: #fff;
+    table-layout: auto;
 }
 
 th {
     background-color: #fff5eb;
     font-weight: bold;
     color: #2c1810;
-    padding: 12px;
-    border: 1px solid #f0e6d8;
-    text-align: left;
+    padding: 12px 10px;
+    border: 1px solid #d4875f;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 1.5;
+    white-space: normal;
+    word-break: keep-all;
+    min-width: 80px;
 }
 
 td {
-    padding: 10px 12px;
-    border: 1px solid #f0e6d8;
+    padding: 10px;
+    border: 1px solid #e8d5c4;
     color: #4a413d;
     background-color: #fff;
+    text-align: left;
+    vertical-align: top;
+    line-height: 1.6;
+    white-space: normal;
+    word-break: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* 特殊处理：只对包含代码的第一列允许断词 */
+td:first-child {
+    font-weight: 600;
+    color: #2c1810;
+    word-break: break-word;
 }
 
 tr:nth-child(even) td {

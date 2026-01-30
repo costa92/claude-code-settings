@@ -1,0 +1,38 @@
+{
+  "alwaysThinkingEnabled": true,
+  "enabledPlugins": {
+    "code-review@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true,
+    "kiro-skill@claude-code-settings": true,
+    "n8n-mcp-skills@n8n-mcp-skills": true
+  },
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "sk-6abfe21fa1424a94859f39e1f90b1d85",
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:8045",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "gemini-3-pro-high",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "gemini-3-flash",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-5",
+    "ANTHROPIC_MODEL": "gemini-3-flash",
+    "ANTHROPIC_REASONING_MODEL": "claude-sonnet-4-5-thinking"
+  },
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "Skill(codex-skill)",
+      "Skill(claude-code-settings:codex-skill)",
+      "Skill(nanobanana-skill)",
+      "Skill(claude-code-settings:nanobanana-skill)",
+      "Skill(youtube-transcribe-skill)",
+      "Skill(claude-code-settings:youtube-transcribe-skill)",
+      "Skill(autonomous-skill)",
+      "Skill(claude-code-settings:autonomous-skill)",
+      "Bash(codex:*)"
+    ],
+    "ask": [],
+    "deny": []
+  },
+  "statusLine": {
+    "command": "~/.claude/status-line.sh",
+    "type": "command"
+  }
+}
