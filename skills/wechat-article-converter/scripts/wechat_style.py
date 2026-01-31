@@ -104,6 +104,7 @@ pre {
     padding: 15px;
     border-radius: 6px;
     overflow-x: auto;
+    white-space: pre; /* Ensure horizontal scrolling works */
     margin: 20px 0;
     font-family: "JetBrains Mono", Consolas, Monaco, "Andale Mono", monospace;
     font-size: 13px;
@@ -696,6 +697,7 @@ pre {
     padding: 20px;
     border-radius: 6px;
     overflow-x: auto;
+    white-space: pre; /* Ensure horizontal scrolling works */
     margin: 20px 0;
     font-family: Consolas, Monaco, monospace;
     font-size: 13px;
@@ -838,6 +840,7 @@ pre {
     padding: 15px;
     border-radius: 6px;
     overflow-x: auto;
+    white-space: pre; /* Ensure horizontal scrolling works */
     margin: 20px 0;
     font-family: Consolas, monospace;
     font-size: 13px;
@@ -937,13 +940,9 @@ h1 {
     line-height: 1.3;
 }
 
-h1::after {
-    content: "◈";
-    display: block;
-    color: #d4875f;
-    font-size: 14px;
-    margin-top: 10px;
-}
+/* Pseudo-elements removed as they don't work with inline styles
+   Logic moved to python script
+*/
 
 h2 {
     font-size: 20px;
@@ -958,12 +957,9 @@ h2 {
     text-align: left;
 }
 
-h2::before {
-    content: "✦";
-    color: #d4875f;
-    margin-right: 8px;
-    font-size: 16px;
-}
+/* Pseudo-elements removed as they don't work with inline styles
+   Logic moved to python script
+*/
 
 h3 {
     font-size: 17px;
@@ -1038,9 +1034,16 @@ pre {
     font-size: 13px;
     line-height: 1.6;
     box-shadow: 0 4px 12px rgba(44, 24, 16, 0.3);
+<<<<<<< HEAD
     white-space: pre;
     word-wrap: normal;
     overflow-wrap: normal;
+||||||| 5c93349
+    white-space: pre;
+=======
+    white-space: pre; /* Ensure horizontal scrolling works */
+    overflow-x: auto;
+>>>>>>> 1f5691301a511fa7d29796457c349af229d2f904
     display: block;
 }
 
@@ -1142,6 +1145,10 @@ tr:nth-child(even) td {
     background-color: #faf9f5;
 }
 
+/* Pseudo-elements removed as they don't work with inline styles
+   Logic moved to python script
+*/
+
 /* 分割线 */
 hr {
     border: none;
@@ -1150,18 +1157,9 @@ hr {
     position: relative;
 }
 
-hr::after {
-    content: "◈";
-    position: absolute;
-    top: -10px;
-    left: 0;
-    right: 0;
-    text-align: center;
-    background-color: transparent;
-    color: #d4875f;
-    padding: 0 10px;
-    font-size: 12px;
-}
+/* Pseudo-elements removed as they don't work with inline styles
+   Logic moved to python script
+*/
 
 /* 底部参考文献 */
 .references-section {
@@ -1183,12 +1181,9 @@ hr::after {
     text-align: left;
 }
 
-.references-title::before {
-    content: "✦";
-    position: absolute;
-    left: 0;
-    color: #d4875f;
-}
+/* Pseudo-elements removed as they don't work with inline styles
+   Logic moved to python script
+*/
 
 .reference-item {
     font-size: 13px;

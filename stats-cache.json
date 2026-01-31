@@ -1,6 +1,12 @@
 {
   "version": 1,
+<<<<<<< HEAD
   "lastComputedDate": "2026-01-29",
+||||||| 5c93349
+  "lastComputedDate": "2026-01-27",
+=======
+  "lastComputedDate": "2026-01-28",
+>>>>>>> 1f5691301a511fa7d29796457c349af229d2f904
   "dailyActivity": [
     {
       "date": "2026-01-08",
@@ -115,6 +121,7 @@
       "messageCount": 563,
       "sessionCount": 3,
       "toolCallCount": 78
+<<<<<<< HEAD
     },
     {
       "date": "2026-01-28",
@@ -127,6 +134,15 @@
       "messageCount": 531,
       "sessionCount": 15,
       "toolCallCount": 44
+||||||| 5c93349
+=======
+    },
+    {
+      "date": "2026-01-28",
+      "messageCount": 986,
+      "sessionCount": 5,
+      "toolCallCount": 78
+>>>>>>> 1f5691301a511fa7d29796457c349af229d2f904
     }
   ],
   "dailyModelTokens": [
@@ -246,6 +262,7 @@
         "claude-sonnet-4-5": 120466,
         "claude-sonnet-4-5-thinking": 235028
       }
+<<<<<<< HEAD
     },
     {
       "date": "2026-01-28",
@@ -260,6 +277,15 @@
         "gemini-3-flash": 701436,
         "claude-sonnet-4-5-thinking": 26815
       }
+||||||| 5c93349
+=======
+    },
+    {
+      "date": "2026-01-28",
+      "tokensByModel": {
+        "gemini-3-pro-high": 390899
+      }
+>>>>>>> 1f5691301a511fa7d29796457c349af229d2f904
     }
   ],
   "modelUsage": {
@@ -342,10 +368,28 @@
       "costUSD": 0,
       "contextWindow": 0,
       "maxOutputTokens": 0
+    },
+    "gemini-3-pro-high": {
+      "inputTokens": 373167,
+      "outputTokens": 17732,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0
     }
   },
+<<<<<<< HEAD
   "totalSessions": 144,
   "totalMessages": 15011,
+||||||| 5c93349
+  "totalSessions": 123,
+  "totalMessages": 13603,
+=======
+  "totalSessions": 128,
+  "totalMessages": 14589,
+>>>>>>> 1f5691301a511fa7d29796457c349af229d2f904
   "longestSession": {
     "sessionId": "f1405a0d-e41b-4135-86d4-48be9a191767",
     "duration": 80662540,
@@ -367,8 +411,8 @@
     "18": 4,
     "19": 4,
     "20": 5,
-    "21": 14,
+    "21": 18,
     "22": 21,
-    "23": 17
+    "23": 18
   }
 }
