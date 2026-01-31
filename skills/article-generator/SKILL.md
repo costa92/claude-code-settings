@@ -7,6 +7,47 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 
 **专注于生成技术博客文章（Markdown/Obsidian 格式）**
 
+---
+
+## 🚨 EXECUTION CHECKLIST (Read This FIRST)
+
+**Before you finish ANY article generation task, verify ALL items below are completed:**
+
+### ✅ Mandatory Actions (Cannot Skip)
+
+1. **[ ] Save article to file**
+   - ❌ WRONG: Display article content in chat only
+   - ✅ CORRECT: Use `Write` tool to save content to `.md` file
+   - Example: `Write(path="./kimi-k25-review.md", contents="...")`
+
+2. **[ ] Generate images (if user requested)**
+   - ❌ WRONG: Mention image generation without executing scripts
+   - ✅ CORRECT: Use `Shell` tool to call `generate_and_upload_images.py` or `nanobanana.py`
+   - Example: `Shell(command="python3 /home/hellotalk/.claude/skills/article-generator/scripts/nanobanana.py ...")`
+
+3. **[ ] Update article with image URLs**
+   - ❌ WRONG: Leave placeholder comments in saved file
+   - ✅ CORRECT: Replace placeholders with actual CDN URLs after upload
+
+4. **[ ] Confirm completion to user**
+   - ✅ CORRECT: "✅ 文章已保存到: ./article-name.md"
+   - ✅ CORRECT: "✅ 图片已生成并上传，CDN 链接已更新"
+
+### ⚠️ Common Mistakes to Avoid
+
+- **Mistake 1:** Generate article content but never call `Write` tool
+  - **Impact:** User has nothing to work with - task incomplete
+
+- **Mistake 2:** Say "images will be generated" but never execute shell commands
+  - **Impact:** No images created - task incomplete
+
+- **Mistake 3:** Save article with placeholder comments but don't process them
+  - **Impact:** Article has broken image placeholders - task incomplete
+
+**IF ANY CHECKBOX ABOVE IS UNCHECKED, THE TASK IS INCOMPLETE.**
+
+---
+
 ## 🚀 Initialization
 
 **Dependency Auto-Check**: `nanobanana.py` automatically checks and installs missing dependencies on first run. When using `generate_and_upload_images.py`, dependencies are checked when it calls `nanobanana.py` as a subprocess - you may need to re-run the command after the initial auto-install.
@@ -460,6 +501,8 @@ The script now supports **two configuration formats** - use whichever is more co
 
 ### Standard Article Generation Flow
 
+**⚠️ CRITICAL: You MUST execute actual tool calls (Write, Shell) to complete each step. Simply displaying content in chat is NOT sufficient.**
+
 ```
 1. Clarify Requirements
    ├─ Topic and scope
@@ -480,21 +523,33 @@ The script now supports **two configuration formats** - use whichever is more co
    ├─ Obsidian callouts for key information
    └─ Explicit reference links
 
-4. Image Generation (if requested)
-   ├─ Create images/ directory
+4. 💾 SAVE ARTICLE TO FILE (MANDATORY - DO NOT SKIP)
+   ├─ Generate filename from article title (e.g., "kimi-k25-claude-code.md")
+   ├─ Use Write tool to save content to file
+   ├─ Confirm file path to user (e.g., "./kimi-k25-claude-code.md")
+   └─ NEVER just display content in chat without saving to file
+
+5. 🎨 Image Generation (if requested)
+   ├─ Create images/ directory: mkdir -p images
    ├─ Generate unique filename prefix (e.g., article_slug_)
+   ├─ Use Shell tool to call generate_and_upload_images.py OR nanobanana.py
    ├─ Generate cover (16:9: 1344x768)
    ├─ Generate rhythm images (3:2: 1248x832)
    ├─ Upload all to PicGo/CDN
-   ├─ Embed CDN URLs in article
+   ├─ Update article file with CDN URLs
    └─ **Automatically delete local files after successful upload**
 
-5. Final Review
+6. Final Review
    ├─ Verify all links are working (HTTP 200)
    ├─ Confirm all code examples are complete
    ├─ Check no AI clichés or marketing fluff
    └─ Ensure YAML frontmatter is complete
 ```
+
+**ENFORCEMENT:**
+- Step 4 (Save to file) is **NON-NEGOTIABLE** - you MUST call the Write tool
+- Step 5 (Image generation) requires **actual Shell command execution**
+- If you only display content without saving files, the task is **INCOMPLETE**
 
 ### Article-Only Workflow (Fast Track)
 
@@ -519,12 +574,23 @@ For users who want to **write first, add images later**:
    ├─ Image placeholders (see below)
    └─ Explicit reference links
 
-4. Add Images Later (Optional)
-   ├─ Review placeholder locations
-   ├─ Generate images with unique prefix
-   ├─ Upload to CDN
-   └─ Replace placeholders with CDN URLs
+4. 💾 SAVE ARTICLE TO FILE (MANDATORY)
+   ├─ Generate filename from title
+   ├─ Use Write tool to save to file
+   ├─ Confirm file path to user
+   └─ Include image placeholders in saved file
+
+5. Add Images Later (Optional)
+   ├─ Use generate_and_upload_images.py --process-file
+   ├─ Script will parse placeholders and generate images
+   ├─ Upload to CDN automatically
+   └─ Script will update file with CDN URLs
 ```
+
+**CRITICAL REMINDER:**
+- **ALWAYS save to file using Write tool** - displaying in chat is insufficient
+- Even without images, the article file MUST be created
+- Image placeholders should be included in the saved file for later processing
 
 **Image Placeholder Syntax:**
 
@@ -664,6 +730,91 @@ Use this format to mark where images should go:
 ### assets/ Directory
 
 **article_template.md** - Markdown structure template
+
+---
+
+## 🛠️ How to Execute Image Generation (Shell Tool Usage)
+
+**IMPORTANT:** When user requests image generation, you MUST use the Shell tool to call these scripts. DO NOT just describe what should be done.
+
+### Method 1: Batch Generation from Config File (Recommended)
+
+**Step 1: Create image configuration JSON**
+```json
+{
+  "images": [
+    {
+      "name": "封面图",
+      "prompt": "Your detailed image prompt here",
+      "aspect_ratio": "16:9",
+      "filename": "article_slug_cover.jpg"
+    },
+    {
+      "name": "节奏图1",
+      "prompt": "Another image prompt",
+      "aspect_ratio": "3:2",
+      "filename": "article_slug_pic1.jpg"
+    }
+  ]
+}
+```
+
+**Step 2: Execute Shell command**
+```bash
+# Replace ${SKILL_DIR} with actual path: /home/hellotalk/.claude/skills/article-generator
+python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_upload_images.py \
+  --config images_config.json \
+  --resolution 2K
+```
+
+**Example Shell tool call:**
+```
+Shell(
+  command="python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_upload_images.py --config images_config.json --resolution 2K",
+  description="Generate images from config and upload to CDN"
+)
+```
+
+---
+
+### Method 2: Process Markdown File with Placeholders (Easiest)
+
+**If article has placeholders like:**
+```markdown
+<!-- IMAGE: cover - 封面图 (16:9) -->
+<!-- PROMPT: Your image prompt -->
+```
+
+**Execute Shell command:**
+```bash
+python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_upload_images.py \
+  --process-file ./article_name.md \
+  --resolution 2K
+```
+
+**This will:**
+1. Parse placeholders
+2. Generate all images
+3. Upload to CDN
+4. Update file with CDN URLs automatically
+
+---
+
+### Method 3: Single Image Generation
+
+**For one-off images:**
+```bash
+python3 /home/hellotalk/.claude/skills/article-generator/scripts/nanobanana.py \
+  --prompt "Detailed image description" \
+  --size 1344x768 \
+  --resolution 2K \
+  --output images/cover.jpg
+```
+
+**Then upload:**
+```bash
+picgo upload images/cover.jpg
+```
 
 ---
 
@@ -835,7 +986,37 @@ python3 ${SKILL_DIR}/scripts/setup_dependencies.py
    # If error, reconfigure: picgo set uploader
    ```
 
-**PicGo Documentation:** https://picgo.github.io/PicGo-Core-Doc/
+### PicGo Documentation:** https://picgo.github.io/PicGo-Core-Doc/
+
+---
+
+### Web Reader MCP "Insufficient balance" Error
+
+**Error message:**
+```
+MCP error -429: {"error":{"code":"1113","message":"Insufficient balance or no resource package. Please recharge."}}
+```
+
+**Cause:** Web Reader MCP tool has reached quota limit or requires payment.
+
+**Solutions:**
+1. **Use WebSearch + WebFetch instead:**
+   ```
+   WebSearch(search_term="article title author name")
+   # Then manually extract key information
+   ```
+
+2. **Use WebFetch directly (if you have full URL):**
+   ```
+   WebFetch(url="https://example.com/article")
+   ```
+
+3. **Ask user to provide article content:**
+   - User can copy-paste article text
+   - User can provide summary or key points
+   - User can share article in accessible format (PDF, local file)
+
+**Recommendation:** Always have fallback plan when using paid MCP tools. Prefer free alternatives (WebSearch, WebFetch) for article research.
 
 ---
 

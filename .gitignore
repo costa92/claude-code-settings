@@ -180,3 +180,6 @@ transcripts
 paste-cache/
 paste-cache
 tasks/
+
+# Stats cache
+stats-cache.json
