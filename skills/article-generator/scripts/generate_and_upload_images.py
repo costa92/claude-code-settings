@@ -1087,21 +1087,21 @@ def parse_markdown_images(file_path: str) -> List[tuple]:
     # Regex to match the placeholder pattern
     pattern = r'<!-- IMAGE: (.*?) - (.*?) \((.*?)\) -->\s*<!-- PROMPT: (.*?) -->'
     matches = []
-    
+
     file_stem = Path(file_path).stem
-    
+
     for match in re.finditer(pattern, file_content, re.DOTALL):
         full_match_text = match.group(0)
         slug = match.group(1).strip()
         desc = match.group(2).strip()
         ratio = match.group(3).strip()
         prompt = match.group(4).strip()
-        
+
         # Construct filename: file_stem + "_" + slug + ".jpg"
         # Sanitize slug
         safe_slug = re.sub(r'[^a-zA-Z0-9-_]', '_', slug)
         filename = f"{file_stem}_{safe_slug}.jpg"
-        
+
         config = ImageConfig(
             name=desc,
             prompt=prompt,
@@ -1109,7 +1109,7 @@ def parse_markdown_images(file_path: str) -> List[tuple]:
             filename=filename
         )
         matches.append((config, full_match_text))
-        
+
     return matches
 
 
@@ -1122,10 +1122,10 @@ def update_markdown_file(file_path: str, results: Dict, matches: List[tuple]):
 
     with open(file_path, 'r', encoding='utf-8') as f:
         file_content = f.read()
-        
+
     updated_content = file_content
     success_count = 0
-    
+
     # Create a map of filename -> cdn_url
     filename_to_url = {}
     for img in results.get('images', []):
@@ -1140,7 +1140,7 @@ def update_markdown_file(file_path: str, results: Dict, matches: List[tuple]):
             replacement = f"![{config.name}]({url})"
             updated_content = updated_content.replace(match_text, replacement)
             success_count += 1
-            
+
     if success_count > 0:
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(updated_content)
@@ -1199,18 +1199,26 @@ def main():
 
     # 模式 1: 处理 Markdown 文件
     if args.process_file:
+        # 检查文件是否存在
         if not os.path.exists(args.process_file):
             print(f"❌ 文件不存在: {args.process_file}")
+            print(f"\n💡 提示:")
+            print(f"   - 请确保文件路径正确")
+            print(f"   - 建议使用绝对路径，而不是相对路径")
+            print(f"   - 获取绝对路径: realpath {os.path.basename(args.process_file)}")
+            print(f"\n示例:")
+            print(f"   ❌ 错误: --process-file ./article.md")
+            print(f"   ✅ 正确: --process-file /home/user/docs/article.md")
             sys.exit(1)
-            
+
         print(f"🔍 解析文件: {args.process_file}")
         file_matches = parse_markdown_images(args.process_file)
-        
+
         if not file_matches:
             print("⚠️  未找到符合格式的图片占位符")
             print("格式示例: <!-- IMAGE: slug - 描述 (16:9) --> ... <!-- PROMPT: prompt -->")
             sys.exit(0)
-            
+
         print(f"✅ 找到 {len(file_matches)} 个待生成图片")
         configs = [m[0] for m in file_matches]
 
