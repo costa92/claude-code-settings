@@ -60,17 +60,23 @@ except ImportError:
         "retriable_errors": ["SSL", "ConnectionError", "TimeoutError", "NetworkError", "500", "502", "503", "504"]
     }
 
-# Load environment variables
-load_dotenv(os.path.expanduser("~") + "/.nanobanana.env")
+# Priority: Environment variable > .nanobanana.env file
+# This prevents configuration inconsistency issues
+api_key = os.getenv("GEMINI_API_KEY")
 
-# Google API configuration from environment variables
-api_key = os.getenv("GEMINI_API_KEY") or ""
+# Fallback: Load from ~/.nanobanana.env if environment variable not set
+if not api_key:
+    dotenv_path = os.path.expanduser("~/.nanobanana.env")
+    if os.path.exists(dotenv_path):
+        load_dotenv(dotenv_path)
+        api_key = os.getenv("GEMINI_API_KEY")
 
 if not api_key:
     raise ValueError(
-        "Missing GEMINI_API_KEY. Please create ~/.nanobanana.env with:\n"
-        "  GEMINI_API_KEY=your_key_here\n"
-        "Or set environment variable: export GEMINI_API_KEY=your_key"
+        "Missing GEMINI_API_KEY. Please either:\n"
+        "  1. Set environment variable: export GEMINI_API_KEY=your_key_here\n"
+        "  2. Or create ~/.nanobanana.env with: GEMINI_API_KEY=your_key_here\n"
+        "Priority: Environment variable > .nanobanana.env file"
     )
 
 # CRITICAL FIX: Remove GOOGLE_API_KEY from environment to prevent conflicts

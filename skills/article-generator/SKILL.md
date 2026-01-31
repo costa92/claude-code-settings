@@ -50,6 +50,8 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 
 ## 🚀 Initialization
 
+### 1. Install Dependencies
+
 **Dependency Auto-Check**: `nanobanana.py` automatically checks and installs missing dependencies on first run. When using `generate_and_upload_images.py`, dependencies are checked when it calls `nanobanana.py` as a subprocess - you may need to re-run the command after the initial auto-install.
 
 **When to manually run setup:**
@@ -58,11 +60,51 @@ python3 ${SKILL_DIR}/scripts/setup_dependencies.py
 ```
 - After fresh installation
 - When automatic dependency check fails
-- To verify PicGo and Gemini API Key configuration
+- To verify PicGo configuration
 
 ---
 
-### Optional: Custom Configuration
+### 2. Configure Gemini API Key
+
+**Priority: Environment Variable > Config File**
+
+The image generation script prioritizes environment variables to avoid configuration inconsistency issues.
+
+**Method 1: Environment Variable (Recommended)**
+```bash
+# Set for current session
+export GEMINI_API_KEY=your_api_key_here
+
+# Make permanent (choose your shell)
+echo 'export GEMINI_API_KEY=your_api_key_here' >> ~/.bashrc   # Bash
+echo 'export GEMINI_API_KEY=your_api_key_here' >> ~/.zshrc    # Zsh
+source ~/.bashrc  # or ~/.zshrc
+```
+
+**Method 2: Config File (Fallback)**
+```bash
+cat > ~/.nanobanana.env << 'EOF'
+GEMINI_API_KEY=your_api_key_here
+EOF
+```
+
+**Get API Key:** https://aistudio.google.com/apikey
+
+**Verification:**
+```bash
+# Check environment variable
+echo $GEMINI_API_KEY
+
+# Test image generation
+python3 ${SKILL_DIR}/scripts/nanobanana.py \
+  --prompt "Test image" \
+  --size 1024x1024 \
+  --output test.jpg
+```
+
+---
+
+### 3. Optional: Custom Configuration
 
 Create `~/.article-generator.conf` to customize timeouts and defaults:
 
@@ -1024,10 +1066,38 @@ MCP error -429: {"error":{"code":"1113","message":"Insufficient balance or no re
 → Automatic retry (3 attempts). If persists, check network and Gemini API Key
 
 ### Gemini API Key not found
-→ Create `~/.nanobanana.env` with:
+
+**Priority: Environment Variable > Config File**
+
+The script prioritizes environment variables to avoid configuration inconsistency.
+
+**Method 1: Set Environment Variable (Recommended)**
+```bash
+export GEMINI_API_KEY=your_api_key_here
+
+# Add to shell profile for persistence
+echo 'export GEMINI_API_KEY=your_api_key_here' >> ~/.bashrc  # or ~/.zshrc
+source ~/.bashrc  # or ~/.zshrc
 ```
+
+**Method 2: Create Config File (Fallback)**
+```bash
+cat > ~/.nanobanana.env << 'EOF'
 GEMINI_API_KEY=your_api_key_here
+EOF
 ```
+
+**Verification:**
+```bash
+# Check environment variable
+echo $GEMINI_API_KEY
+
+# Test image generation
+python3 /home/hellotalk/.claude/skills/article-generator/scripts/nanobanana.py \
+  --prompt "Test" --size 1024x1024 --output test.jpg
+```
+
+**Get API Key:** https://aistudio.google.com/apikey
 
 ---
 
