@@ -73,6 +73,12 @@ if not api_key:
         "Or set environment variable: export GEMINI_API_KEY=your_key"
     )
 
+# CRITICAL FIX: Remove GOOGLE_API_KEY from environment to prevent conflicts
+# google.genai library prioritizes GOOGLE_API_KEY over explicit api_key parameter
+# This prevents using an exhausted GOOGLE_API_KEY when GEMINI_API_KEY is valid
+if "GOOGLE_API_KEY" in os.environ:
+    del os.environ["GOOGLE_API_KEY"]
+
 # Initialize Gemini client
 client = genai.Client(api_key=api_key)
 

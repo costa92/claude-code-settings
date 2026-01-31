@@ -188,7 +188,6 @@ class WeChatConverter:
         html += "</div>"
         return html
 
-<<<<<<< HEAD
     def _get_current_time(self):
         """Get current time in WeChat format"""
         from datetime import datetime
@@ -299,8 +298,6 @@ class WeChatConverter:
 
         return html_content
 
-||||||| 5c93349
-=======
     def post_process_html(self, html_body):
         """
         Process HTML content after markdown conversion but before inlining CSS
@@ -323,7 +320,6 @@ class WeChatConverter:
 
         return html_body
 
->>>>>>> 1f5691301a511fa7d29796457c349af229d2f904
     def convert(self, md_file_path, output_path=None):
         """Main conversion function"""
         if not os.path.exists(md_file_path):
@@ -343,12 +339,8 @@ class WeChatConverter:
             extensions=[
                 "fenced_code",
                 "tables",
-<<<<<<< HEAD
-||||||| 5c93349
                 "nl2br",
-=======
                 # "nl2br", # Disabled to prevent unexpected line breaks in lists
->>>>>>> 1f5691301a511fa7d29796457c349af229d2f904
                 "sane_lists",
                 "codehilite"
             ],
@@ -361,16 +353,12 @@ class WeChatConverter:
             }
         )
 
-<<<<<<< HEAD
         # 3. Fix list item line breaks for WeChat compatibility
         html_body = self._fix_list_item_breaks(html_body)
 
-||||||| 5c93349
-=======
         # 3. Post-process HTML (Theme specific decorations)
         html_body = self.post_process_html(html_body)
 
->>>>>>> 1f5691301a511fa7d29796457c349af229d2f904
         # 4. Wrap in container and References
         references = self.generate_references_html()
 
