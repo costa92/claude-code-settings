@@ -174,6 +174,11 @@ def main():
         choices=["1K", "2K", "4K"],
         help="Resolution of the generated image (default: 1K)",
     )
+    parser.add_argument(
+        "--enhance",
+        action="store_true",
+        help="Automatically enhance the prompt using Gemini before generation",
+    )
 
     args = parser.parse_args()
 
@@ -198,11 +203,52 @@ def main():
             image = Image.open(img_path)
             contents.append(image)
     else:
-        print(f"Generating image (size: {args.size}) with prompt: {args.prompt}")
-        contents.append(args.prompt)
+        # Prompt enhancement logic
+        final_prompt = args.prompt
+        if args.enhance:
+            print(f"✨ Enhancing prompt: {args.prompt}")
+            try:
+                final_prompt = enhance_prompt(client, args.prompt)
+                print(f"🚀 Enhanced prompt: {final_prompt}")
+            except Exception as e:
+                print(f"⚠️  Prompt enhancement failed: {e}")
+                print(f"   Using original prompt.")
+
+        print(f"Generating image (size: {args.size}) with prompt: {final_prompt}")
+        contents.append(final_prompt)
 
     # Generate image with retry logic
     generate_image_with_retry(args.model, contents, aspect_ratio, args.resolution, args.output)
+
+
+def enhance_prompt(client, original_prompt):
+    """
+    Enhance the prompt using Gemini text model.
+    """
+    system_instruction = (
+        "You are an expert AI art prompt engineer. "
+        "Your task is to rewrite the input prompt into a detailed, high-quality image generation prompt "
+        "suitable for a technical blog article. "
+        "Style requirements: Minimalist, modern, flat design, tech-focused, professional, high resolution, "
+        "clean lines, soft lighting, tech blue and orange color scheme (optional). "
+        "Avoid text in images. "
+        "Output ONLY the enhanced prompt, no explanations."
+    )
+
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=original_prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            temperature=0.7,
+            max_output_tokens=200,
+        )
+    )
+
+    if response.text:
+        return response.text.strip()
+    return original_prompt
+
 
 
 @retry_on_error()

@@ -275,14 +275,44 @@ echo "2. 脚本依赖:"
 python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_upload_images.py --check
 echo ""
 
-# 3. 测试图片生成
-echo "3. 测试图片生成:"
+# 3. S3 检查 (可选)
+if python3 -c "import boto3" 2>/dev/null; then
+    echo "3. S3 支持: ✅ boto3 已安装"
+else
+    echo "3. S3 支持: ⚪ boto3 未安装 (仅支持 PicGo)"
+fi
+echo ""
+
+# 4. 测试图片生成
+echo "4. 测试图片生成:"
 python3 /home/hellotalk/.claude/skills/article-generator/scripts/nanobanana.py \
   --prompt "test" --size 1024x1024 --output /tmp/test_diagnosis.jpg
 echo ""
 
 echo "=== 诊断完成 ==="
 ```
+
+---
+
+## S3 上传问题
+
+### `RuntimeError: boto3 is not installed`
+
+**原因**: 启用了 S3 但未安装 Python SDK。
+
+**解决**:
+```bash
+pip install boto3
+```
+
+### `S3 upload failed: An error occurred (403)`
+
+**原因**: Access Key 或 Secret Key 错误，或权限不足。
+
+**解决**:
+1. 检查 `~/.article-generator.conf` 中的密钥配置。
+2. 确认 Bucket 名称正确。
+3. 确认 IAM 用户有 `PutObject` 权限。
 
 ---
 

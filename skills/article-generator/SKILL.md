@@ -7,6 +7,8 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 
 **专注于生成技术博客文章（Markdown/Obsidian 格式）**
 
+> **🚀 新手？** 查看 [快速开始指南 (5分钟)](QUICKSTART.md) | [完整示例](examples/)
+
 ---
 
 ## 🚨 EXECUTION CHECKLIST (Read This FIRST)
@@ -60,7 +62,12 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
    - ❌ WRONG: Leave placeholder comments in saved file
    - ✅ CORRECT: Replace placeholders with actual CDN URLs after upload
 
-4. **[ ] Confirm completion to user**
+4. **[ ] Verify Content Depth**
+   - ✅ CORRECT: "Includes Real-world Case Study section"
+   - ✅ CORRECT: "Word count > 2000 words (unless 'quick start')"
+   - ❌ WRONG: Superficial tutorial without performance analysis
+
+5. **[ ] Confirm completion to user**
    - ✅ CORRECT: "✅ 文章已保存到: ./article-name.md"
    - ✅ CORRECT: "✅ 图片已生成并上传，CDN 链接已更新"
 
@@ -79,7 +86,91 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 
 ---
 
-## 🚀 Initialization
+## 🚀 快速配置 (2 分钟)
+
+**如果你只想快速开始，无需深入了解所有配置细节：**
+
+### 最简配置三步走
+
+#### 第 1 步: 安装 Python 依赖 (30 秒)
+
+```bash
+pip install -r requirements.txt
+```
+
+#### 第 2 步: 设置 API Key (1 分钟)
+
+```bash
+# 获取 API Key: https://aistudio.google.com/apikey
+export GEMINI_API_KEY="your_api_key_here"
+
+# 永久保存 (可选但推荐)
+echo 'export GEMINI_API_KEY="your_key"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+#### 第 3 步: 开始使用 (30 秒)
+
+```
+# 在 Cursor/Claude 中调用
+@article-generator 写一篇关于 Docker 的技术文章
+```
+
+**就这么简单！** 🎉
+
+---
+
+### 图片自动处理说明
+
+**无需手动配置图片生成！**
+
+- ✅ AI 会自动使用绝对路径
+- ✅ 自动选择正确的图片尺寸
+- ✅ 自动生成图片配置
+- ✅ 如果配置了 PicGo，自动上传 CDN
+
+**可选**: 如需手动上传图片，参见 [图片生成章节](#image-generation-examples)
+
+---
+
+### (可选) 配置 PicGo 图床
+
+只有当你需要自动上传图片到 CDN 时才需要配置：
+
+```bash
+# macOS 安装
+brew install picgo
+
+# 配置图床 (选择 GitHub、SM.MS、七牛云等)
+picgo set uploader
+
+# 测试上传
+echo "test" > test.txt
+picgo upload test.txt
+```
+
+**S3 支持 (替代 PicGo)**:
+如果不想安装 PicGo，可以直接配置 S3 (AWS/OSS/R2)。在 `~/.article-generator.conf` 中添加 S3 配置：
+```json
+{
+  "s3": {
+    "enabled": true,
+    "endpoint_url": "https://<accountid>.r2.cloudflarestorage.com",
+    "access_key_id": "your_access_key",
+    "secret_access_key": "your_secret_key",
+    "bucket_name": "your-bucket",
+    "public_url_prefix": "https://pub-domain.com"
+  }
+}
+```
+
+**不配置也可以**：图片会保存在本地，你可以手动上传。
+
+---
+
+## 🔧 完整配置 (进阶)
+
+**如果你需要自定义配置或遇到问题，查看以下详细说明：**
 
 ### 1. Install Dependencies
 
@@ -181,6 +272,21 @@ cp ${SKILL_DIR}/.article-generator.conf.example ~/.article-generator.conf
 
 **CRITICAL**: Before writing ANY article, complete this verification checklist. Missing any step results in ARTICLE REJECTION.
 
+### Verification Philosophy
+
+**核心原则：验证先行，绝不编造**
+
+- ✅ 验证过的内容 → 可以写入文章
+- ❓ 无法验证的内容 → 标记 "[需要验证]" 或询问用户
+- ❌ 编造的内容 → 立即拒绝整篇文章
+
+**所有技术内容必须经过以下验证流程之一：**
+
+1. **官方文档验证**（最可靠）
+2. **受信任工具白名单**（预验证）
+3. **用户提供的信息**（需确认可靠性）
+
+---
 
 ### Trusted Tools Whitelist (Skip Verification)
 
@@ -210,48 +316,225 @@ The following widely-used tools are **pre-verified** - no WebSearch needed:
 - Niche flags or options (e.g., `docker run --gpus` requires verification)
 - Version-specific features (e.g., "Docker 24.0+ only")
 - Deprecated commands
+- Any command you're unsure about
 
 ---
 
 
 ### Step 1: Tool/Project Research (MANDATORY for non-whitelisted tools)
 
-- For tools NOT in the whitelist, use WebSearch or WebFetch to find official documentation
-- Read README, official docs, or GitHub repo to understand actual capabilities
+**对于不在白名单中的工具，必须先验证存在性和准确性：**
 
-- NEVER rely on tool name similarity or "common sense" to infer features
+1. **使用 WebSearch 查找官方文档**
+   ```
+   WebSearch(search_term="[tool_name] official documentation")
+   WebSearch(search_term="[tool_name] GitHub repository")
+   ```
 
+2. **验证工具真实存在**
+   - 检查官方网站
+   - 确认 GitHub 仓库（星标数、维护状态）
+   - 阅读 README 和官方文档
+
+3. **理解实际功能**
+   - 不要根据工具名称推测功能
+   - 不要根据"常识"假设用法
+   - 必须从官方文档确认功能
+
+**示例验证流程：**
+
+```
+用户请求："写一篇关于 XYZ 工具的文章"
+
+❌ 错误做法：直接开始写，根据名称猜测功能
+✅ 正确做法：
+  1. WebSearch("XYZ tool official documentation")
+  2. WebFetch(找到的官方文档 URL)
+  3. 确认工具存在、功能、安装方法
+  4. 如果找不到可靠信息 → 询问用户或拒绝任务
+```
+
+---
 
 ### Step 2: Command/Feature Verification (MANDATORY)
 
-- For EVERY command (bash, CLI tools, API calls), verify it exists in official docs
-- **Exception**: Whitelisted tools' basic commands can be trusted
-- If you cannot find documentation for a command, it does NOT exist - DO NOT include it
-- Commands must be copy-pasted from official docs, NOT invented or assumed
+**对于文章中的每个命令、API 调用、配置项，必须验证：**
 
+1. **命令存在性验证**
+   - ✅ 在官方文档中找到该命令
+   - ✅ 参数、选项与官方文档一致
+   - ❌ 无法找到文档 → 该命令不存在，不要包含
+
+2. **代码示例验证**
+   - ✅ 代码是完整可运行的
+   - ✅ API 用法与官方示例一致
+   - ✅ 依赖版本明确标注
+   - ❌ 编造的代码 → 拒绝
+
+3. **配置文件验证**
+   - ✅ 配置项在官方文档中存在
+   - ✅ 值的格式正确
+   - ❌ 猜测的配置 → 拒绝
+
+**Exception**: Whitelisted tools' basic commands can be trusted
+
+**验证要求：**
+
+- **每个命令都必须能在官方文档中找到对应说明**
+- **如果无法找到文档，命令就是不存在的 → 不要包含**
+- **命令必须从官方文档复制，不能发明或假设**
+
+**示例：**
+
+```markdown
+❌ 错误（编造的命令）：
+docker magic-deploy --auto-scale
+
+✅ 正确（验证过的命令）：
+docker run -d --name myapp nginx
+# 来源：https://docs.docker.com/engine/reference/run/
+```
+
+---
 
 ### Step 3: Workflow Validation (MANDATORY)
 
-- For multi-step workflows, verify EACH step is documented in official sources
-- If any step is uncertain, mark it as "[需要验证]" and ask user to confirm
-- NEVER fill gaps with "reasonable assumptions"
+**对于多步骤教程，验证每一步：**
 
-### Step 4: Pre-Generation Report (MANDATORY)
+1. **步骤完整性**
+   - 每一步都有官方文档支持
+   - 没有"应该能工作"的假设步骤
+   - 步骤顺序经过验证
 
-Before generating article, report to user:
+2. **依赖关系验证**
+   - 前置条件明确列出
+   - 版本兼容性已确认
+   - 环境要求已说明
 
-- "✅ Verified tools: [list]"
-- "✅ Trusted (whitelisted): [list]"
+3. **潜在问题标记**
+   - 如果某步不确定 → 标记 "[需要验证]"
+   - 询问用户确认或提供补充信息
+   - 绝不用"合理假设"填补空白
 
-- "❓ Unverified items: [list]" (if any - ask user for clarification)
+**示例：**
 
-Only proceed after user confirms unverified items or you remove them.
+```markdown
+❌ 错误（假设的步骤）：
+1. 安装工具
+2. 运行 `tool magic-command`  # 编造的命令
+3. 应该就能工作了  # 模糊不清
 
-**Enforcement:**
+✅ 正确（验证过的步骤）：
+1. 安装 Docker (v20.10+)：apt install docker.io
+2. 验证安装：docker --version
+3. 拉取镜像：docker pull nginx:latest
+4. 运行容器：docker run -d -p 80:80 nginx
+# 每一步都有官方文档来源
+```
 
-- ANY fabricated command/feature → REJECT entire article
-- ANY unverified claim → ASK user or OMIT section
-- When in doubt → ASK, NEVER GUESS
+---
+
+### Step 4: Link Verification (MANDATORY)
+
+**所有引用链接必须验证可用性：**
+
+1. **使用 WebFetch 验证链接**
+   ```
+   WebFetch(url="https://example.com/docs")
+   # 确认返回 200 状态码，内容存在
+   ```
+
+2. **链接类型要求**
+   - ✅ 官方文档链接（优先）
+   - ✅ GitHub 官方仓库
+   - ✅ 经验证的技术博客
+   - ❌ 404 错误链接 → 移除或替换
+   - ❌ 编造的 URL → 拒绝文章
+
+3. **链接格式**
+   - 使用明确格式：`**名称**: https://url`
+   - 不使用 `[[Obsidian links]]`（除非用户明确要求）
+
+---
+
+### Step 5: Pre-Generation Report (MANDATORY)
+
+**生成文章前，必须向用户报告验证结果：**
+
+```markdown
+## 📋 内容验证报告
+
+### ✅ 已验证工具
+- Docker (官方文档: https://docs.docker.com/)
+- nginx (官方文档: https://nginx.org/en/docs/)
+
+### ✅ 受信任工具（白名单）
+- Git, npm, curl
+
+### ❓ 需要验证的内容
+- [工具X] 的高级配置选项 - 未找到官方文档
+- [步骤Y] 的兼容性 - 需要确认版本要求
+
+### 📝 处理建议
+- 已验证内容将包含在文章中
+- 未验证内容已标记或省略
+- 是否继续生成文章？
+```
+
+**只有在以下情况才继续生成：**
+
+1. ✅ 用户确认未验证项目
+2. ✅ 或者已移除所有未验证内容
+
+---
+
+### Enforcement Rules
+
+**严格执行：**
+
+| 情况 | 处理方式 |
+|------|---------|
+| ❌ 编造的命令/功能 | **拒绝整篇文章** |
+| ❌ 未验证的声明 | **询问用户或省略该部分** |
+| ❌ 无法验证的工作流 | **标记或移除** |
+| ❌ 404 链接 | **移除或替换** |
+| ❓ 有疑问的内容 | **询问用户，绝不猜测** |
+
+**验证失败示例：**
+
+```
+用户："写一篇关于 SuperTool 的文章"
+
+验证步骤：
+1. WebSearch("SuperTool official documentation") → 无结果
+2. WebSearch("SuperTool GitHub") → 找到 3 个不同的项目
+
+处理方式：
+❌ 错误：随便选一个开始写
+✅ 正确：
+   "找到 3 个名为 SuperTool 的项目：
+   1. owner1/supertool (1.2k stars) - CLI 工具
+   2. owner2/SuperTool (500 stars) - Web 框架  
+   3. owner3/super-tool (50 stars) - Python 库
+   
+   您指的是哪一个？"
+```
+
+---
+
+### Quick Reference Checklist
+
+**生成文章前，确保：**
+
+- [ ] 所有非白名单工具已通过 WebSearch/WebFetch 验证
+- [ ] 所有命令在官方文档中存在
+- [ ] 所有代码示例完整可运行
+- [ ] 所有链接已验证可访问（HTTP 200）
+- [ ] 多步骤教程每一步都有文档支持
+- [ ] 已向用户报告验证结果
+- [ ] 用户确认继续或已移除未验证内容
+
+**如果任何一项未完成 → 不要生成文章**
 
 ---
 
@@ -525,7 +808,6 @@ multiSelect: true  // Allow multiple selections
 
 Generate **technical blog articles** with:
 
-
 - Authentic, non-AI writing style (no marketing fluff)
 - Markdown format with YAML frontmatter
 - Obsidian callouts for better information hierarchy
@@ -533,10 +815,11 @@ Generate **technical blog articles** with:
 - CDN-hosted images (via Gemini API + PicGo)
 - Verified technical accuracy (no hallucinated commands)
 
+**Primary Target Platforms:** Obsidian, GitHub Pages, Hugo, Jekyll, Hexo, technical documentation sites
 
-**Target Platforms:** Obsidian, GitHub Pages, Hugo, Jekyll, technical documentation sites
+**Secondary Use Case:** Can be converted to WeChat Official Account format using wechat-article-converter skill
 
-**Not for:** WeChat Official Account (use wechat-article-converter skill instead)
+**Not a Primary Use Case:** Direct WeChat Official Account article generation (use wechat-article-converter for that)
 
 ---
 

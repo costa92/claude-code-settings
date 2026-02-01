@@ -1,0 +1,34 @@
+{
+  "images": [
+    {
+      "name": "封面图",
+      "prompt": "Docker container technology illustration, blue whale logo concept, modern tech style, containers and microservices visualization, clean minimalist design, professional tech aesthetic, blue and white color scheme, 16:9 aspect ratio",
+      "aspect_ratio": "16:9",
+      "filename": "docker_cover.jpg"
+    },
+    {
+      "name": "基础命令示意图",
+      "prompt": "Docker command line interface visualization, terminal window with docker commands, flat design illustration, technical diagram style, blue and gray colors, simple and clean, 3:2 aspect ratio",
+      "aspect_ratio": "3:2",
+      "filename": "docker_pic1.jpg"
+    },
+    {
+      "name": "实战部署流程图",
+      "prompt": "Docker deployment workflow diagram, containers and images flow, step by step process illustration, flat design style, technical drawing, blue and orange accent colors, clean layout, 3:2 aspect ratio",
+      "aspect_ratio": "3:2",
+      "filename": "docker_pic2.jpg"
+    },
+    {
+      "name": "Docker Compose 架构图",
+      "prompt": "Docker Compose multi-container architecture, services interconnection diagram, database and application containers, flat technical illustration, modern design, blue color scheme, 3:2 aspect ratio",
+      "aspect_ratio": "3:2",
+      "filename": "docker_pic3.jpg"
+    },
+    {
+      "name": "最佳实践示意图",
+      "prompt": "Docker best practices visualization, security and optimization concepts, layered architecture diagram, flat design illustration, professional tech style, blue and green colors, 3:2 aspect ratio",
+      "aspect_ratio": "3:2",
+      "filename": "docker_pic4.jpg"
+    }
+  ]
+}

@@ -105,3 +105,14 @@ PICGO_CONFIG = {
     "command": "picgo",
     "upload_timeout": 60,
 }
+
+# S3 Configuration (Optional - Alternative to PicGo)
+# Set these in ~/.article-generator.conf or environment variables
+S3_CONFIG = {
+    "enabled": _user_config.get("s3", {}).get("enabled", False),
+    "endpoint_url": os.getenv("S3_ENDPOINT", _user_config.get("s3", {}).get("endpoint_url", "")),
+    "access_key_id": os.getenv("S3_ACCESS_KEY", _user_config.get("s3", {}).get("access_key_id", "")),
+    "secret_access_key": os.getenv("S3_SECRET_KEY", _user_config.get("s3", {}).get("secret_access_key", "")),
+    "bucket_name": os.getenv("S3_BUCKET", _user_config.get("s3", {}).get("bucket_name", "")),
+    "public_url_prefix": os.getenv("S3_PUBLIC_URL", _user_config.get("s3", {}).get("public_url_prefix", "")),
+}

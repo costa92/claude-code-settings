@@ -79,7 +79,7 @@ AVG_UPLOAD_TIME = 5  # 平均上传时间（秒）
 
 # Import shared configuration
 try:
-    from config import ASPECT_RATIO_TO_SIZE, TIMEOUTS
+    from config import ASPECT_RATIO_TO_SIZE, TIMEOUTS, S3_CONFIG
 except ImportError:
     # Fallback if config.py not found
     ASPECT_RATIO_TO_SIZE = {
@@ -95,15 +95,26 @@ except ImportError:
         "21:9": "1536x672",
     }
     TIMEOUTS = {"image_generation": 120, "upload": 60}
+    S3_CONFIG = {"enabled": False}
+
+# Try importing boto3 for S3 support
+try:
+    import boto3
+    from botocore.exceptions import NoCredentialsError, ClientError
+    BOTO3_AVAILABLE = True
+except ImportError:
+    BOTO3_AVAILABLE = False
+
 
 
 class ImageConfig:
     """图片配置"""
-    def __init__(self, name: str, prompt: str, aspect_ratio: str = "3:2", filename: str = None):
+    def __init__(self, name: str, prompt: str, aspect_ratio: str = "3:2", filename: str = None, enhance: bool = False):
         self.name = name
         self.prompt = prompt
         self.aspect_ratio = aspect_ratio
         self.filename = filename or f"{name}.jpg"
+        self.enhance = enhance
         self.local_path = None
         self.cdn_url = None
 
@@ -476,6 +487,69 @@ def generate_image(config: ImageConfig, resolution: str = "2K") -> bool:
         return False
 
 
+def upload_to_s3(image_path: str) -> str:
+    """
+    Upload image to S3-compatible storage
+    """
+    if not BOTO3_AVAILABLE:
+        raise RuntimeError("boto3 is not installed. Please run: pip install boto3")
+
+    if not S3_CONFIG["endpoint_url"] or not S3_CONFIG["bucket_name"]:
+        raise ValueError("S3 configuration missing endpoint_url or bucket_name")
+
+    print(f"\n☁️  Uploading to S3: {image_path}")
+
+    try:
+        s3_client = boto3.client(
+            's3',
+            endpoint_url=S3_CONFIG["endpoint_url"],
+            aws_access_key_id=S3_CONFIG["access_key_id"],
+            aws_secret_access_key=S3_CONFIG["secret_access_key"]
+        )
+
+        filename = os.path.basename(image_path)
+        # Add date prefix to avoid collisions and keep organized
+        date_prefix = datetime.now().strftime("%Y/%m/%d")
+        key = f"articles/{date_prefix}/{filename}"
+
+        s3_client.upload_file(
+            image_path,
+            S3_CONFIG["bucket_name"],
+            key,
+            ExtraArgs={'ContentType': 'image/jpeg'}
+        )
+
+        # Construct public URL
+        if S3_CONFIG["public_url_prefix"]:
+            # Remove trailing slash from prefix if present
+            prefix = S3_CONFIG["public_url_prefix"].rstrip("/")
+            # Ensure key doesn't start with slash
+            clean_key = key.lstrip("/")
+            url = f"{prefix}/{clean_key}"
+        else:
+            # Fallback to endpoint/bucket/key style
+            endpoint = S3_CONFIG["endpoint_url"].rstrip("/")
+            url = f"{endpoint}/{S3_CONFIG['bucket_name']}/{key}"
+
+        print(f"   ✅ Upload success: {url}")
+        return url
+
+    except (NoCredentialsError, ClientError) as e:
+        error_msg = f"S3 upload failed: {str(e)}"
+        print(f"   ❌ {error_msg}")
+        raise RuntimeError(error_msg)
+
+
+def upload_image(image_path: str) -> str:
+    """
+    Upload image using configured uploader (S3 or PicGo)
+    """
+    if S3_CONFIG.get("enabled"):
+        return upload_to_s3(image_path)
+    else:
+        return upload_to_picgo(image_path)
+
+
 def upload_to_picgo(image_path: str) -> str:
     """
     使用 PicGo 上传图片到图床
@@ -675,8 +749,7 @@ def generate_and_upload_batch(configs: List[ImageConfig],
                 if upload and config.local_path:
                     time.sleep(1)  # 避免请求过快
                     # Fail-fast: 上传失败会停止整个批量处理
-                    # 匹配原始 SKILL.md "If ANY step fails, STOP" 的要求
-                    cdn_url = upload_to_picgo(config.local_path)
+                    cdn_url = upload_image(config.local_path)
                     config.cdn_url = cdn_url
                     results["uploaded"] += 1
                     # 更新刚才添加的记录中的 cdn_url
@@ -939,7 +1012,7 @@ def generate_and_upload_parallel(configs: List[ImageConfig],
                             upload_item_start = time.time()
 
                             # 上传到图床
-                            cdn_url = upload_to_picgo(result["local_path"])
+                            cdn_url = upload_image(result["local_path"])
                             result["cdn_url"] = cdn_url
 
                             # 上传成功后删除本地文件（除非用户指定保留）
@@ -1084,8 +1157,9 @@ def parse_markdown_images(file_path: str) -> List[tuple]:
     with open(file_path, 'r', encoding='utf-8') as f:
         file_content = f.read()
 
-    # Regex to match the placeholder pattern
-    pattern = r'<!-- IMAGE: (.*?) - (.*?) \((.*?)\) -->\s*<!-- PROMPT: (.*?) -->'
+    # Regex to match the placeholder pattern (Made more robust)
+    # Allows optional spaces around components
+    pattern = r'<!--\s*IMAGE:\s*(.*?)\s*-\s*(.*?)\s*\((.*?)\)\s*-->\s*<!--\s*PROMPT:\s*(.*?)\s*-->'
     matches = []
 
     file_stem = Path(file_path).stem
@@ -1174,6 +1248,8 @@ def main():
                        help="容错模式：遇到错误继续处理其他图片（默认Fail-Fast立即停止）")
     parser.add_argument("--keep-files", action="store_true",
                        help="保留本地图片文件和配置文件（默认上传成功后自动删除）")
+    parser.add_argument("--enhance", action="store_true",
+                       help="自动优化图片提示词 (使用 Gemini 润色)")
 
     args = parser.parse_args()
 
