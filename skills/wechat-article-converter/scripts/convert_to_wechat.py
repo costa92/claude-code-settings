@@ -231,13 +231,39 @@ class WeChatConverter:
         # - Standard \w+ for type
         md_content = re.sub(r"^>\s*\[!(\w+)\]\s*(.*)$", callout_replace, md_content, flags=re.MULTILINE)
 
+        # 2.5 Process Reference Links (Best Effort)
+        # Extract definitions: [id]: url
+        ref_links = {}
+        def extract_refs(match):
+            ref_id = match.group(1).lower()
+            url = match.group(2)
+            ref_links[ref_id] = url
+            return ""  # Remove definition from output
+
+        # Regex: Start of line, [id]: url (handling optional title/junk at end of line)
+        md_content = re.sub(r'^\s*\[([^\]]+)\]:\s*(\S+).*$', extract_refs, md_content, flags=re.MULTILINE)
+
+        # Replace usages: [text][id] or [text][]
+        def replace_refs(match):
+            text = match.group(1)
+            ref_id = match.group(2).lower()
+            if not ref_id:  # Case [text][] -> id is text
+                ref_id = text.lower()
+
+            if ref_id in ref_links:
+                return f"[{text}]({ref_links[ref_id]})"
+            return match.group(0)
+
+        md_content = re.sub(r'\[([^\]]+)\]\[([^\]]*)\]', replace_refs, md_content)
+
         # 3. Process Links
         # Reset links
         self.links = []
 
         # Match standard markdown links: [text](url) but NOT images ![text](url)
-        # Regex: (?<!!)\[(.*?)\]\((.*?)\)
-        pattern = r"(?<!!)\[(.*?)\]\((.*?)\)"
+        # Improved Regex to handle balanced parentheses in URLs (e.g. Wikipedia links)
+        # Pattern: (?<!!)\[([^\]]+)\]\(([^)]+(?:\([^)]+\)[^)]*)*)\)
+        pattern = r'(?<!!)\[([^\]]+)\]\(([^)]+(?:\([^)]+\)[^)]*)*)\)'
 
         # Helper wrapper for re.sub
         def replacement(m):
@@ -428,7 +454,8 @@ class WeChatConverter:
                 "nl2br",
                 # "nl2br", # Disabled to prevent unexpected line breaks in lists
                 "sane_lists",
-                "codehilite"
+                "codehilite",
+                "extra"
             ],
             extension_configs={
                 "codehilite": {
