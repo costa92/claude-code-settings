@@ -103,17 +103,21 @@ pre {
     background-color: #f6f8fa;
     padding: 15px;
     border-radius: 6px;
-    overflow-x: auto;
-    white-space: pre; /* Ensure horizontal scrolling works */
+
+     /* Ensure horizontal scrolling works */
     margin: 20px 0;
     font-family: "JetBrains Mono", Consolas, Monaco, "Andale Mono", monospace;
     font-size: 13px;
     line-height: 1.5;
     border: 1px solid #e1e4e8;
     position: relative;
+
+
+
+
+    display: block;
     white-space: pre;
-    word-wrap: normal;
-    overflow-wrap: normal;
+    overflow-x: auto;
 }
 
 /* 内联代码 */
@@ -137,7 +141,9 @@ pre code {
     border: none !important;
     margin: 0 !important;
     font-size: inherit !important;
-}
+
+    white-space: inherit !important;
+    display: inline;}
 
 /* 图片 */
 img {
@@ -306,14 +312,18 @@ pre {
     color: #f5e6d3;
     padding: 15px;
     border-radius: 6px;
-    overflow-x: auto;
+
     margin: 20px 0;
     font-family: Monaco, Menlo, Consolas, monospace;
     font-size: 13px;
     line-height: 1.6;
+
+
+
+
+    display: block;
     white-space: pre;
-    word-wrap: normal;
-    overflow-wrap: normal;
+    overflow-x: auto;
 }
 
 /* 代码块内的 code 标签 - 覆盖内联代码样式 */
@@ -325,7 +335,9 @@ pre code {
     border: none !important;
     margin: 0 !important;
     font-size: inherit !important;
-}
+
+    white-space: inherit !important;
+    display: inline;}
 
 img {
     border-radius: 8px;
@@ -447,9 +459,13 @@ pre {
     font-family: "Courier New", Courier, monospace;
     font-size: 13px;
     line-height: 1.5;
+
+
+
+
+
+    display: block;
     white-space: pre;
-    word-wrap: normal;
-    overflow-wrap: normal;
     overflow-x: auto;
 }
 
@@ -462,7 +478,9 @@ pre code {
     border: none !important;
     margin: 0 !important;
     font-size: inherit !important;
-}
+
+    white-space: inherit !important;
+    display: inline;}
 
 img {
     border: 1px solid #000;
@@ -556,14 +574,18 @@ pre {
     background-color: #f6f8fa;
     padding: 15px;
     border-radius: 6px;
-    overflow-x: auto;
+
     margin: 20px 0;
     font-family: "JetBrains Mono", Consolas, monospace;
     font-size: 13px;
     border: 1px solid #e1e4e8;
+
+
+
+
+    display: block;
     white-space: pre;
-    word-wrap: normal;
-    overflow-wrap: normal;
+    overflow-x: auto;
 }
 
 code {
@@ -586,7 +608,9 @@ pre code {
     border: none !important;
     margin: 0 !important;
     font-size: inherit !important;
-}
+
+    white-space: inherit !important;
+    display: inline;}
 
 /* 强调 */
 strong {
@@ -692,16 +716,20 @@ pre {
     color: #abb2bf;
     padding: 20px;
     border-radius: 6px;
-    overflow-x: auto;
-    white-space: pre; /* Ensure horizontal scrolling works */
+
+     /* Ensure horizontal scrolling works */
     margin: 20px 0;
     font-family: Consolas, Monaco, monospace;
     font-size: 13px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     position: relative;
+
+
+
+
+    display: block;
     white-space: pre;
-    word-wrap: normal;
-    overflow-wrap: normal;
+    overflow-x: auto;
 }
 
 code {
@@ -723,7 +751,9 @@ pre code {
     border: none !important;
     margin: 0 !important;
     font-size: inherit !important;
-}
+
+    white-space: inherit !important;
+    display: inline;}
 
 /* 强调 */
 strong {
@@ -834,15 +864,19 @@ pre {
     color: #f8f8f2;
     padding: 15px;
     border-radius: 6px;
-    overflow-x: auto;
-    white-space: pre; /* Ensure horizontal scrolling works */
+
+     /* Ensure horizontal scrolling works */
     margin: 20px 0;
     font-family: Consolas, monospace;
     font-size: 13px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+
+
+
+
+    display: block;
     white-space: pre;
-    word-wrap: normal;
-    overflow-wrap: normal;
+    overflow-x: auto;
 }
 
 code {
@@ -864,7 +898,9 @@ pre code {
     border: none !important;
     margin: 0 !important;
     font-size: inherit !important;
-}
+
+    white-space: inherit !important;
+    display: inline;}
 
 /* 强调 */
 strong {
@@ -1029,16 +1065,20 @@ pre {
     line-height: 1.6;
     box-shadow: 0 4px 12px rgba(44, 24, 16, 0.3);
 <<<<<<< HEAD
-    white-space: pre;
-    word-wrap: normal;
-    overflow-wrap: normal;
+
+
+
 ||||||| 5c93349
-    white-space: pre;
+
 =======
-    white-space: pre; /* Ensure horizontal scrolling works */
-    overflow-x: auto;
+     /* Ensure horizontal scrolling works */
+
 >>>>>>> 1f5691301a511fa7d29796457c349af229d2f904
+
+
     display: block;
+    white-space: pre;
+    overflow-x: auto;
 }
 
 /* 内联代码 */
@@ -1064,7 +1104,9 @@ pre code {
     border: none !important;
     margin: 0 !important;
     font-size: inherit !important;
-}
+
+    white-space: inherit !important;
+    display: inline;}
 
 /* 图片 */
 img {
