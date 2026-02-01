@@ -82,6 +82,87 @@ class WeChatConverter:
         index = len(self.links)
         return f"{text}<sup style=\"color: #4a90e2;\">[{index}]</sup>"
 
+    def _normalize_code_blocks(self, md_content):
+        """
+        Normalize indentation of fenced code blocks to the nearest 4-space boundary.
+        This ensures that code blocks nested in lists are preserved (not dedented to 0),
+        while satisfying the parser's requirement for 4-space indentation levels.
+        """
+        import math
+        lines = md_content.split('\n')
+        new_lines = []
+        in_block = False
+        block_indent_len = 0
+        fence_char = ""
+        fence_length = 0
+        indent_delta = 0
+
+        for line in lines:
+            if not in_block:
+                # Detect start of code block
+                # Match: start of line, optional whitespace group, fence (``` or ~~~), optional info
+                match = re.match(r'^([ \t]*)(`{3,}|~{3,})(.*)$', line)
+                if match:
+                    current_indent = match.group(1)
+                    fence_part = match.group(2)
+                    info_part = match.group(3)
+
+                    indent_len = len(current_indent)
+
+                    # Calculate target indentation (nearest multiple of 4)
+                    if indent_len % 4 == 0:
+                        target_indent = indent_len
+                    else:
+                        target_indent = math.ceil(indent_len / 4) * 4
+
+                    indent_delta = target_indent - indent_len
+
+                    in_block = True
+                    block_indent_len = indent_len
+                    fence_char = fence_part[0]
+                    fence_length = len(fence_part)
+
+                    # Output opening fence with adjusted indentation
+                    new_lines.append(" " * target_indent + fence_part + info_part)
+                else:
+                    new_lines.append(line)
+            else:
+                # Inside block
+                # Check for closing fence
+                m_close = re.match(r'^([ \t]*)([`~]+)[ \t]*$', line)
+                is_closing = False
+
+                if m_close:
+                    captured_indent = m_close.group(1)
+                    captured_fence = m_close.group(2)
+                    if captured_fence.startswith(fence_char) and len(captured_fence) >= fence_length:
+                        is_closing = True
+
+                if is_closing:
+                    in_block = False
+                    # Output closing fence with adjusted indentation
+                    # We use the same delta as the opening fence to keep it aligned
+                    # Alternatively, calculate fresh based on its own indent, but alignment to opener is safer
+                    # However, if user wrote mismatched indentation, we should probably respect the structure relative to start
+                    # Simpler: just indent by block_indent_len + delta (which is target_indent)
+                    # But the closing fence might be indented differently in source?
+                    # Let's assume closing fence matches opening fence intent.
+
+                    # If we use the original line's content and add delta:
+                    if len(line.strip()) == 0:
+                         new_lines.append("")
+                    else:
+                         new_lines.append(" " * indent_delta + line)
+                else:
+                    # Content line
+                    # Add delta spaces
+                    if len(line.strip()) == 0:
+                        new_lines.append("")
+                    else:
+                        new_lines.append(" " * indent_delta + line)
+
+        return '\n'.join(new_lines)
+
     def process_markdown(self, md_content):
         """
         Custom processing before standard markdown conversion
@@ -163,6 +244,11 @@ class WeChatConverter:
             return self._replace_links_with_footnotes(m)
 
         processed_content = re.sub(pattern, replacement, md_content)
+
+        # 4. Fix indented code blocks
+        # Smartly dedent fenced code blocks to ensure they render correctly (especially in lists)
+        processed_content = self._normalize_code_blocks(processed_content)
+
         return processed_content
 
     def generate_references_html(self):
