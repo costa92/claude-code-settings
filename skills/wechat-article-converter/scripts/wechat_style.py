@@ -125,7 +125,6 @@ code {
     font-family: "JetBrains Mono", Consolas, Monaco, monospace;
     font-size: 14px;
     margin: 0 2px;
-    white-space: nowrap;
     word-break: keep-all;
 }
 
@@ -298,7 +297,6 @@ code {
     padding: 2px 5px;
     border-radius: 3px;
     font-size: 14px;
-    white-space: nowrap;
     word-break: keep-all;
 }
 
@@ -436,7 +434,6 @@ code {
     font-family: monospace;
     font-size: 15px;
     border: 1px solid #ddd;
-    white-space: nowrap;
     word-break: keep-all;
 }
 
@@ -577,7 +574,6 @@ code {
     font-family: monospace;
     font-size: 14px;
     margin: 0 2px;
-    white-space: nowrap;
     word-break: keep-all;
 }
 
@@ -715,7 +711,6 @@ code {
     border-radius: 3px;
     font-family: monospace;
     font-size: 14px;
-    white-space: nowrap;
     word-break: keep-all;
 }
 
@@ -857,7 +852,6 @@ code {
     border-radius: 4px;
     font-family: monospace;
     font-size: 14px;
-    white-space: nowrap;
     word-break: keep-all;
 }
 
@@ -1058,7 +1052,6 @@ code {
     margin: 0;
     border: 1px solid #ffe8d6;
     display: inline;
-    white-space: nowrap;
     word-break: keep-all;
 }
 

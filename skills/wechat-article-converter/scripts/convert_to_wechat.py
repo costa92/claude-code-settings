@@ -338,7 +338,7 @@ class WeChatConverter:
         """
         import re
 
-        # Step 1: Remove newlines inside <strong> and <code> tags
+        # Step 1: Remove newlines inside <strong> tags (removed code tag processing to fix code blocks)
         html_content = re.sub(
             r'(<strong[^>]*>)(.*?)(</strong>)',
             lambda m: m.group(1) + re.sub(r'\s+', ' ', m.group(2)).strip() + m.group(3),
@@ -346,12 +346,7 @@ class WeChatConverter:
             flags=re.DOTALL
         )
 
-        html_content = re.sub(
-            r'(<code[^>]*>)(.*?)(</code>)',
-            lambda m: m.group(1) + re.sub(r'\s+', ' ', m.group(2)).strip() + m.group(3),
-            html_content,
-            flags=re.DOTALL
-        )
+        # Removed the code tag whitespace collapsing block that was destroying code block formatting
 
         # Step 2: Move separator INSIDE <strong> and wrap content in <section><span>
         # Pattern: <strong>Title</strong>: content -> <strong>Title:</strong><section><span>content</span></section>
