@@ -284,10 +284,10 @@ class WeChatConverter:
 
         html = "<div class=\"references-section\">"
 
-        # Add decoration for Coffee theme
+        # Add decoration for Coffee theme (disabled - WeChat compatibility)
         title_prefix = ""
-        if self.theme_name == "coffee":
-             title_prefix = '<span style="color: #d4875f; margin-right: 8px;">✦</span>'
+        # if self.theme_name == "coffee":
+        #      title_prefix = '<span style="color: #d4875f; margin-right: 8px;">✦</span>'
 
         html += f"<div class=\"references-title\">{title_prefix}参考资料</div>"
 
@@ -405,6 +405,69 @@ class WeChatConverter:
 
         return html_content
 
+    def _preserve_code_indentation(self, html_content):
+        """Preserve code block indentation and line breaks for WeChat compatibility
+
+        WeChat editor has two major issues with code blocks:
+        1. Collapses multiple spaces and strips leading spaces when pasting
+        2. Removes newlines, causing all code to appear on one line
+
+        This function fixes both issues by:
+        - Replacing leading spaces with non-breaking space entities (&nbsp;)
+        - Converting newlines (\n) to <br> tags for explicit line breaks
+        """
+        from bs4 import BeautifulSoup
+        import re
+
+        soup = BeautifulSoup(html_content, 'html.parser')
+
+        # Find all code blocks
+        for pre_tag in soup.find_all('pre'):
+            code_tag = pre_tag.find('code')
+            if not code_tag:
+                continue
+
+            # Get the HTML content inside <code> tag
+            code_html = str(code_tag)
+
+            # Split into lines while preserving the HTML structure
+            lines = code_html.split('\n')
+            new_lines = []
+
+            for i, line in enumerate(lines):
+                # Skip if line is empty or just the opening/closing code tag
+                if not line.strip() or line.strip().startswith('<code') or line.strip() == '</code>':
+                    new_lines.append(line)
+                    continue
+
+                # Count leading spaces (before any HTML tags)
+                # We need to find spaces at the very beginning OR after closing tags
+                match = re.match(r'^(\s+)', line)
+                if match:
+                    leading_spaces = match.group(1)
+                    # Count actual space characters (not tabs)
+                    space_count = leading_spaces.count(' ')
+
+                    # Replace leading spaces with &nbsp;
+                    # Keep tabs as-is (they're less common in code)
+                    rest_of_line = line[len(leading_spaces):]
+                    new_line = ('&nbsp;' * space_count) + leading_spaces.replace(' ', '') + rest_of_line
+                    new_lines.append(new_line)
+                else:
+                    new_lines.append(line)
+
+            # Reconstruct the code block with <br> tags for line breaks
+            # Join lines with <br> instead of \n to ensure WeChat preserves line breaks
+            # Skip the last line if it's empty (avoid trailing <br>)
+            new_code_html = '<br>'.join(new_lines)
+
+            # Replace the old code tag with the new one
+            # We use replace_with to maintain the structure
+            new_soup = BeautifulSoup(new_code_html, 'html.parser')
+            code_tag.replace_with(new_soup)
+
+        return str(soup)
+
     def post_process_html(self, html_body):
         """
         Process HTML content after markdown conversion but before inlining CSS
@@ -412,13 +475,13 @@ class WeChatConverter:
         """
         # Coffee Theme Decorations
         if self.theme_name == "coffee":
-            # Add H1 decoration: ◈
-            decoration_h1 = '<div style="display: block; color: #d4875f; font-size: 14px; margin-top: 10px; text-align: center;">◈</div>'
-            html_body = re.sub(r'(</h1>)', f'{decoration_h1}\\1', html_body)
+            # Add H1 decoration: ◈ (disabled - WeChat compatibility)
+            # decoration_h1 = '<div style="display: block; color: #d4875f; font-size: 14px; margin-top: 10px; text-align: center;">◈</div>'
+            # html_body = re.sub(r'(</h1>)', f'{decoration_h1}\\1', html_body)
 
-            # Add H2 decoration: ✦ prefix
-            decoration_h2 = '<span style="color: #d4875f; margin-right: 8px; font-size: 16px;">✦</span>'
-            html_body = re.sub(r'(<h2>)', f'\\1{decoration_h2}', html_body)
+            # Add H2 decoration: ✦ prefix (disabled - WeChat compatibility)
+            # decoration_h2 = '<span style="color: #d4875f; margin-right: 8px; font-size: 16px;">✦</span>'
+            # html_body = re.sub(r'(<h2>)', f'\\1{decoration_h2}', html_body)
 
             # Add HR decoration: ◈
             # Replace <hr> with a custom div structure
@@ -678,11 +741,15 @@ class WeChatConverter:
         )
         final_html = p.transform()
 
-        # 6. Fix list item line breaks again (after premailer processing)
+        # 6. Preserve code block indentation and line breaks for WeChat compatibility
+        # Must be done after premailer to ensure modifications persist
+        final_html = self._preserve_code_indentation(final_html)
+
+        # 7. Fix list item line breaks again (after premailer processing)
         # Premailer might normalize some HTML, so we apply the fix again
         final_html = self._fix_list_item_breaks(final_html)
 
-        # 7. Fix table header alignment (premailer may override text-align)
+        # 8. Fix table header alignment (premailer may override text-align)
         final_html = self._fix_table_alignment(final_html)
 
         # Output file - use custom path or default
