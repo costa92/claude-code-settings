@@ -405,21 +405,45 @@ class WeChatConverter:
 
         return html_content
 
+    @staticmethod
+    def _replace_spaces_in_text_nodes(html_str):
+        """Replace all space characters with &nbsp; in HTML text nodes only.
+
+        Walks through the HTML string character by character:
+        - Inside HTML tags (<...>): spaces are preserved as-is (for attributes)
+        - Outside HTML tags (text nodes): spaces are replaced with &nbsp;
+
+        This ensures WeChat's editor cannot collapse any spaces in code blocks,
+        regardless of how Pygments tokenizes the code (whitespace-only spans,
+        bare text spaces, trailing spaces in keyword spans, etc.)
+        """
+        result = []
+        in_tag = False
+        for ch in html_str:
+            if ch == '<':
+                in_tag = True
+                result.append(ch)
+            elif ch == '>':
+                in_tag = False
+                result.append(ch)
+            elif ch == ' ' and not in_tag:
+                result.append('&nbsp;')
+            else:
+                result.append(ch)
+        return ''.join(result)
+
     def _preserve_code_indentation(self, html_content):
         """Preserve code block indentation and line breaks for WeChat compatibility
 
-        WeChat editor has three major issues with code blocks:
-        1. Collapses multiple spaces and strips leading spaces when pasting
+        WeChat editor has major issues with code blocks:
+        1. Collapses spaces (both in text nodes and stripped <span> tags)
         2. Removes newlines, causing all code to appear on one line
-        3. Strips Pygments whitespace <span> tags, losing spaces between words
 
         This function fixes all issues by:
-        - Replacing Pygments whitespace-only spans with &nbsp; entities
-        - Replacing leading spaces with non-breaking space entities (&nbsp;)
-        - Converting newlines (\n) to <br> tags for explicit line breaks
+        - Replacing ALL spaces in text nodes with &nbsp; entities
+        - Converting newlines (\\n) to <br> tags for explicit line breaks
         """
         from bs4 import BeautifulSoup
-        import re
 
         soup = BeautifulSoup(html_content, 'html.parser')
 
@@ -432,48 +456,25 @@ class WeChatConverter:
             # Get the HTML content inside <code> tag
             code_html = str(code_tag)
 
-            # Replace Pygments whitespace-only spans with &nbsp; entities
-            # Pygments wraps spaces in <span style="color: #BBB"> </span>
-            # WeChat's editor strips these spans, losing the spaces between words
+            # Step 1: Replace whitespace-only spans with &nbsp; entities
+            # Pygments wraps some spaces in <span style="color: #BBB"> </span>
+            # Remove these spans entirely, replacing with &nbsp;
             code_html = re.sub(
                 r'<span[^>]*>([ \t]+)</span>',
-                lambda m: m.group(1).replace(' ', '&nbsp;').replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;'),
+                lambda m: '&nbsp;' * len(m.group(1)),
                 code_html
             )
 
-            # Split into lines while preserving the HTML structure
+            # Step 2: Replace ALL remaining spaces in text nodes with &nbsp;
+            # This handles bare text spaces (e.g., "</span> OpenAI" after keywords)
+            # and trailing spaces inside spans (e.g., "<span>import </span>")
+            code_html = self._replace_spaces_in_text_nodes(code_html)
+
+            # Step 3: Split into lines and join with <br> for explicit line breaks
             lines = code_html.split('\n')
-            new_lines = []
-
-            for i, line in enumerate(lines):
-                # Skip if line is empty or just the opening/closing code tag
-                if not line.strip() or line.strip().startswith('<code') or line.strip() == '</code>':
-                    new_lines.append(line)
-                    continue
-
-                # Count leading spaces (before any HTML tags)
-                # We need to find spaces at the very beginning OR after closing tags
-                match = re.match(r'^(\s+)', line)
-                if match:
-                    leading_spaces = match.group(1)
-                    # Count actual space characters (not tabs)
-                    space_count = leading_spaces.count(' ')
-
-                    # Replace leading spaces with &nbsp;
-                    # Keep tabs as-is (they're less common in code)
-                    rest_of_line = line[len(leading_spaces):]
-                    new_line = ('&nbsp;' * space_count) + leading_spaces.replace(' ', '') + rest_of_line
-                    new_lines.append(new_line)
-                else:
-                    new_lines.append(line)
-
-            # Reconstruct the code block with <br> tags for line breaks
-            # Join lines with <br> instead of \n to ensure WeChat preserves line breaks
-            # Skip the last line if it's empty (avoid trailing <br>)
-            new_code_html = '<br>'.join(new_lines)
+            new_code_html = '<br>'.join(lines)
 
             # Replace the old code tag with the new one
-            # We use replace_with to maintain the structure
             new_soup = BeautifulSoup(new_code_html, 'html.parser')
             code_tag.replace_with(new_soup)
 
