@@ -408,11 +408,13 @@ class WeChatConverter:
     def _preserve_code_indentation(self, html_content):
         """Preserve code block indentation and line breaks for WeChat compatibility
 
-        WeChat editor has two major issues with code blocks:
+        WeChat editor has three major issues with code blocks:
         1. Collapses multiple spaces and strips leading spaces when pasting
         2. Removes newlines, causing all code to appear on one line
+        3. Strips Pygments whitespace <span> tags, losing spaces between words
 
-        This function fixes both issues by:
+        This function fixes all issues by:
+        - Replacing Pygments whitespace-only spans with &nbsp; entities
         - Replacing leading spaces with non-breaking space entities (&nbsp;)
         - Converting newlines (\n) to <br> tags for explicit line breaks
         """
@@ -429,6 +431,15 @@ class WeChatConverter:
 
             # Get the HTML content inside <code> tag
             code_html = str(code_tag)
+
+            # Replace Pygments whitespace-only spans with &nbsp; entities
+            # Pygments wraps spaces in <span style="color: #BBB"> </span>
+            # WeChat's editor strips these spans, losing the spaces between words
+            code_html = re.sub(
+                r'<span[^>]*>([ \t]+)</span>',
+                lambda m: m.group(1).replace(' ', '&nbsp;').replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;'),
+                code_html
+            )
 
             # Split into lines while preserving the HTML structure
             lines = code_html.split('\n')

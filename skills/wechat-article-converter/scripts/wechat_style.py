@@ -1064,16 +1064,7 @@ pre {
     font-size: 13px;
     line-height: 1.6;
     box-shadow: 0 4px 12px rgba(44, 24, 16, 0.3);
-<<<<<<< HEAD
 
-
-
-||||||| 5c93349
-
-=======
-     /* Ensure horizontal scrolling works */
-
->>>>>>> 1f5691301a511fa7d29796457c349af229d2f904
 
 
     display: block;
