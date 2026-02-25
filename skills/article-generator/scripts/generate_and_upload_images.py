@@ -140,7 +140,8 @@ def delete_local_file(file_path: str, keep_files: bool = False) -> None:
 def process_and_upload_image(config: ImageConfig,
                               resolution: str = "2K",
                               upload: bool = True,
-                              keep_files: bool = False) -> Dict:
+                              keep_files: bool = False,
+                              model: str = "gemini-3-pro-image-preview") -> Dict:
     """
     处理单张图片：生成 + 上传 + 删除（公共逻辑）
 
@@ -149,6 +150,7 @@ def process_and_upload_image(config: ImageConfig,
         resolution: 分辨率
         upload: 是否上传
         keep_files: 是否保留本地文件
+        model: Gemini 模型名称
 
     Returns:
         dict: 处理结果 {"success": bool, "local_path": str, "cdn_url": str, "error": str}
@@ -164,7 +166,7 @@ def process_and_upload_image(config: ImageConfig,
 
     try:
         # 生成图片
-        if not generate_image(config, resolution):
+        if not generate_image(config, resolution, model):
             result["error"] = "生成失败"
             return result
 
@@ -422,13 +424,14 @@ def check_dependencies():
     return errors
 
 
-def generate_image(config: ImageConfig, resolution: str = "2K") -> bool:
+def generate_image(config: ImageConfig, resolution: str = "2K", model: str = "gemini-3-pro-image-preview") -> bool:
     """
     使用 Gemini API 生成图片
 
     Args:
         config: 图片配置
         resolution: 分辨率 (1K, 2K, 4K)
+        model: Gemini 模型名称
 
     Returns:
         bool: 是否成功
@@ -458,6 +461,7 @@ def generate_image(config: ImageConfig, resolution: str = "2K") -> bool:
             "--prompt", config.prompt,
             "--size", size,
             "--resolution", resolution,
+            "--model", model,
             "--output", str(output_path)
         ]
 
@@ -701,7 +705,8 @@ def dry_run_preview(configs: List[ImageConfig],
 
 def generate_and_upload_batch(configs: List[ImageConfig],
                                upload: bool = True,
-                               resolution: str = "2K") -> Dict:
+                               resolution: str = "2K",
+                               model: str = "gemini-3-pro-image-preview") -> Dict:
     """
     批量生成和上传图片
 
@@ -709,6 +714,7 @@ def generate_and_upload_batch(configs: List[ImageConfig],
         configs: 图片配置列表
         upload: 是否上传到图床
         resolution: 图片分辨率
+        model: Gemini 模型名称
 
     Returns:
         dict: 结果统计
@@ -733,7 +739,7 @@ def generate_and_upload_batch(configs: List[ImageConfig],
             print("-" * 70)
 
             # 生成图片
-            if generate_image(config, resolution):
+            if generate_image(config, resolution, model):
                 results["generated"] += 1
 
                 # 先记录结果（确保即使上传失败也有记录）
@@ -785,7 +791,8 @@ def generate_and_upload_parallel(configs: List[ImageConfig],
                                    upload: bool = True,
                                    resolution: str = "2K",
                                    max_workers: int = 2,
-                                   fail_fast: bool = True) -> Dict:
+                                   fail_fast: bool = True,
+                                   model: str = "gemini-3-pro-image-preview") -> Dict:
     """
     并行批量生成和上传图片（性能优化版本）
 
@@ -795,6 +802,7 @@ def generate_and_upload_parallel(configs: List[ImageConfig],
         resolution: 图片分辨率
         max_workers: 最大并行工作线程数（默认2，避免API限流）
         fail_fast: 遇到错误立即停止（True）或继续处理（False）
+        model: Gemini 模型名称
 
     Returns:
         dict: 结果统计
@@ -835,7 +843,7 @@ def generate_and_upload_parallel(configs: List[ImageConfig],
 
         try:
             # 生成图片
-            if generate_image(config, resolution):
+            if generate_image(config, resolution, model):
                 result["local_path"] = config.local_path
                 result["success"] = True
 
@@ -1239,7 +1247,7 @@ def main():
                        help="预览模式：显示成本和时间估算，不实际生成图片")
     parser.add_argument("--model", default="gemini-3-pro-image-preview",
                        choices=["gemini-3-pro-image-preview", "gemini-2.5-flash-image"],
-                       help="使用的 Gemini 模型（仅用于 dry-run 成本估算）")
+                       help="使用的 Gemini 模型")
     parser.add_argument("--parallel", action="store_true",
                        help="启用并行生成模式（提升速度，但可能触发API限流）")
     parser.add_argument("--max-workers", type=int, default=2,
@@ -1408,14 +1416,16 @@ def main():
             upload=not args.no_upload,
             resolution=args.resolution,
             max_workers=args.max_workers,
-            fail_fast=not args.continue_on_error
+            fail_fast=not args.continue_on_error,
+            model=args.model
         )
     else:
         # 串行模式（默认）
         results = generate_and_upload_batch(
             configs=configs,
             upload=not args.no_upload,
-            resolution=args.resolution
+            resolution=args.resolution,
+            model=args.model
         )
 
     # 打印摘要
