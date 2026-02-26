@@ -1,0 +1,19 @@
+{
+  "timeouts": {
+    "image_generation": 120,
+    "upload": 60
+  },
+  "image_defaults": {
+    "resolution": "2K",
+    "model": "gemini-3-pro-image-preview"
+  },
+  "s3": {
+    "enabled": false,
+    "endpoint_url": "https://<accountid>.r2.cloudflarestorage.com",
+    "bucket": "your-bucket",
+    "region": "auto",
+    "access_key": "",
+    "secret_key": "",
+    "public_url": "https://cdn.yourdomain.com"
+  }
+}

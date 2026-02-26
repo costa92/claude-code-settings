@@ -14,10 +14,10 @@
     "code-review@claude-plugins-official": [
       {
         "scope": "user",
-        "installPath": "/home/hellotalk/.claude/plugins/cache/claude-plugins-official/code-review/27d2b86d72da",
-        "version": "27d2b86d72da",
+        "installPath": "/home/hellotalk/.claude/plugins/cache/claude-plugins-official/code-review/55b58ec6e564",
+        "version": "55b58ec6e564",
         "installedAt": "2026-01-08T07:06:31.730Z",
-        "lastUpdated": "2026-01-30T01:37:17.416Z",
+        "lastUpdated": "2026-02-26T01:16:24.684Z",
         "gitCommitSha": "02f2e2f3ad35e63d1734e08cf372fea4153d92ce"
       }
     ],
@@ -44,30 +44,20 @@
     "ralph-wiggum@claude-code-plugins": [
       {
         "scope": "user",
-        "installPath": "/Users/costalong/.claude/plugins/cache/claude-code-plugins/ralph-wiggum/1.0.0",
+        "installPath": "/home/hellotalk/.claude/plugins/cache/claude-code-plugins/ralph-wiggum/1.0.0",
         "version": "1.0.0",
-        "installedAt": "2026-01-08T15:13:20.013Z",
-        "lastUpdated": "2026-01-08T15:13:20.013Z",
+        "installedAt": "2026-02-26T01:40:00.000Z",
+        "lastUpdated": "2026-02-26T01:40:00.000Z",
         "gitCommitSha": "317bc19080633c977bf2bd3d40a85f71a3af3776"
-      }
-    ],
-    "md2wechat@md2wechat-tools": [
-      {
-        "scope": "user",
-        "installPath": "/Users/costalong/.claude/plugins/cache/md2wechat-tools/md2wechat/1.4.0",
-        "version": "1.4.0",
-        "installedAt": "2026-01-16T16:00:20.270Z",
-        "lastUpdated": "2026-01-16T16:00:20.270Z",
-        "gitCommitSha": "59688fea84416544444b2cff23ceb4b9e65ec08f"
       }
     ],
     "superpowers@superpowers-marketplace": [
       {
         "scope": "user",
-        "installPath": "/Users/costalong/.claude/plugins/cache/superpowers-marketplace/superpowers/4.1.1",
+        "installPath": "/home/hellotalk/.claude/plugins/cache/superpowers-marketplace/superpowers/4.1.1",
         "version": "4.1.1",
-        "installedAt": "2026-01-28T13:25:07.884Z",
-        "lastUpdated": "2026-01-28T13:25:07.884Z",
+        "installedAt": "2026-02-26T01:40:00.000Z",
+        "lastUpdated": "2026-02-26T01:40:00.000Z",
         "gitCommitSha": "469a6d81ebb8b827e284d4afb090c6c622d97747"
       }
     ]
