@@ -94,7 +94,7 @@ except ImportError:
         "16:9": "1344x768",
         "21:9": "1536x672",
     }
-    TIMEOUTS = {"image_generation": 120, "upload": 60}
+    TIMEOUTS = {"image_generation": 120, "upload": 60, "screenshot": 60}
     S3_CONFIG = {"enabled": False}
 
 # Try importing boto3 for S3 support
@@ -115,6 +115,22 @@ class ImageConfig:
         self.aspect_ratio = aspect_ratio
         self.filename = filename or f"{name}.jpg"
         self.enhance = enhance
+        self.local_path = None
+        self.cdn_url = None
+
+
+class ScreenshotConfig:
+    """截图配置"""
+    def __init__(self, slug: str, description: str, url: str,
+                 selector: str = None, wait: int = None, js: str = None,
+                 filename: str = None):
+        self.slug = slug
+        self.description = description
+        self.url = url
+        self.selector = selector
+        self.wait = wait
+        self.js = js
+        self.filename = filename or f"{slug}.png"
         self.local_path = None
         self.cdn_url = None
 
@@ -491,6 +507,85 @@ def generate_image(config: ImageConfig, resolution: str = "2K", model: str = "ge
         return False
 
 
+def take_screenshot(config: 'ScreenshotConfig', output_dir: str = None) -> bool:
+    """
+    使用 shot-scraper 截取网页截图
+
+    Args:
+        config: 截图配置 (ScreenshotConfig)
+        output_dir: 输出目录（默认 ./images）
+
+    Returns:
+        bool: 是否成功
+    """
+    images_dir = Path(output_dir) if output_dir else ensure_images_dir()
+    images_dir.mkdir(exist_ok=True)
+    output_path = images_dir / config.filename
+
+    print(f"\n📸 截图: {config.description}")
+    print(f"   URL: {config.url}")
+    if config.selector:
+        print(f"   选择器: {config.selector}")
+    if config.wait:
+        print(f"   等待: {config.wait}ms")
+    if config.js:
+        print(f"   预执行 JS: {config.js[:60]}...")
+
+    # Remove existing file
+    if output_path.exists():
+        try:
+            os.remove(output_path)
+        except Exception:
+            pass
+
+    try:
+        cmd = [
+            "shot-scraper",
+            config.url,
+            "-o", str(output_path),
+            "--width", "1280",
+            "--retina",
+        ]
+
+        if config.selector:
+            cmd.extend(["-s", config.selector, "--padding", "10"])
+
+        if config.wait:
+            cmd.extend(["--wait", str(config.wait)])
+
+        if config.js:
+            cmd.extend(["--javascript", config.js])
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=TIMEOUTS.get("screenshot", 60)
+        )
+
+        if result.returncode == 0 and output_path.exists():
+            config.local_path = str(output_path)
+            print(f"   ✅ 截图成功: {output_path}")
+            return True
+        else:
+            print(f"   ❌ 截图失败")
+            if result.stderr:
+                print(f"   错误: {result.stderr[:200]}")
+            return False
+
+    except subprocess.TimeoutExpired:
+        timeout_val = TIMEOUTS.get("screenshot", 60)
+        print(f"   ❌ 截图超时（{timeout_val}秒）")
+        return False
+    except FileNotFoundError:
+        print(f"   ❌ shot-scraper 未安装")
+        print(f"   请运行: pip install shot-scraper && shot-scraper install")
+        return False
+    except Exception as e:
+        print(f"   ❌ 截图失败: {str(e)}")
+        return False
+
+
 def upload_to_s3(image_path: str) -> str:
     """
     Upload image to S3-compatible storage
@@ -792,7 +887,8 @@ def generate_and_upload_parallel(configs: List[ImageConfig],
                                    resolution: str = "2K",
                                    max_workers: int = 2,
                                    fail_fast: bool = True,
-                                   model: str = "gemini-3-pro-image-preview") -> Dict:
+                                   model: str = "gemini-3-pro-image-preview",
+                                   keep_files: bool = False) -> Dict:
     """
     并行批量生成和上传图片（性能优化版本）
 
@@ -1024,7 +1120,7 @@ def generate_and_upload_parallel(configs: List[ImageConfig],
                             result["cdn_url"] = cdn_url
 
                             # 上传成功后删除本地文件（除非用户指定保留）
-                            if not args.keep_files:
+                            if not keep_files:
                                 try:
                                     if os.path.exists(result["local_path"]):
                                         os.remove(result["local_path"])
@@ -1195,11 +1291,86 @@ def parse_markdown_images(file_path: str) -> List[tuple]:
     return matches
 
 
-def update_markdown_file(file_path: str, results: Dict, matches: List[tuple]):
+def parse_markdown_screenshots(file_path: str) -> List[tuple]:
     """
-    Update Markdown file with uploaded image URLs.
+    Parse Markdown file for screenshot placeholders.
+
+    Format:
+        <!-- SCREENSHOT: slug - description -->
+        <!-- URL: https://example.com -->
+        <!-- SELECTOR: .css-selector -->       (optional)
+        <!-- WAIT: 3000 -->                    (optional)
+        <!-- JS: document.querySelector(...)?.remove() -->  (optional)
+
+    Returns: List of (ScreenshotConfig, full_match_text)
     """
-    if results['uploaded'] == 0:
+    with open(file_path, 'r', encoding='utf-8') as f:
+        file_content = f.read()
+
+    file_stem = Path(file_path).stem
+    matches = []
+
+    # Match SCREENSHOT + URL (required), then optional SELECTOR, WAIT, JS in any order
+    # The slug uses [\w-]+ to allow hyphens, separated from description by ' - '
+    pattern = (
+        r'<!--\s*SCREENSHOT:\s*([\w-]+)\s+-\s+(.*?)\s*-->\s*\n'
+        r'<!--\s*URL:\s*(.*?)\s*-->'
+        r'((?:\s*\n<!--\s*(?:SELECTOR|WAIT|JS):\s*.*?-->)*)'
+    )
+
+    for match in re.finditer(pattern, file_content):
+        full_match_text = match.group(0)
+        slug = match.group(1).strip()
+        description = match.group(2).strip()
+        url = match.group(3).strip()
+        optional_block = match.group(4)
+
+        # Parse optional parameters from the trailing block
+        selector = None
+        wait = None
+        js = None
+
+        if optional_block:
+            selector_match = re.search(r'<!--\s*SELECTOR:\s*(.*?)\s*-->', optional_block)
+            if selector_match:
+                selector = selector_match.group(1).strip()
+
+            wait_match = re.search(r'<!--\s*WAIT:\s*(\d+)\s*-->', optional_block)
+            if wait_match:
+                wait = int(wait_match.group(1))
+
+            js_match = re.search(r'<!--\s*JS:\s*(.*?)\s*-->', optional_block)
+            if js_match:
+                js = js_match.group(1).strip()
+
+        # Construct filename
+        safe_slug = re.sub(r'[^a-zA-Z0-9-_]', '_', slug)
+        filename = f"{file_stem}_{safe_slug}.png"
+
+        config = ScreenshotConfig(
+            slug=slug,
+            description=description,
+            url=url,
+            selector=selector,
+            wait=wait,
+            js=js,
+            filename=filename
+        )
+        matches.append((config, full_match_text))
+
+    return matches
+
+
+def update_markdown_file(file_path: str, results: Dict, matches: List[tuple],
+                         screenshot_matches: List[tuple] = None):
+    """
+    Update Markdown file with uploaded image/screenshot URLs.
+    """
+    total_uploaded = results.get('uploaded', 0)
+    screenshot_results = results.get('screenshot_results', {})
+    screenshot_uploaded = screenshot_results.get('uploaded', 0)
+
+    if total_uploaded == 0 and screenshot_uploaded == 0:
         return
 
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -1208,7 +1379,7 @@ def update_markdown_file(file_path: str, results: Dict, matches: List[tuple]):
     updated_content = file_content
     success_count = 0
 
-    # Create a map of filename -> cdn_url
+    # Handle AI-generated image replacements
     filename_to_url = {}
     for img in results.get('images', []):
         if img.get('cdn_url'):
@@ -1217,18 +1388,32 @@ def update_markdown_file(file_path: str, results: Dict, matches: List[tuple]):
     for config, match_text in matches:
         if config.filename in filename_to_url:
             url = filename_to_url[config.filename]
-            # Replace placeholder with Markdown image syntax
-            # ![desc](url)
             replacement = f"![{config.name}]({url})"
             updated_content = updated_content.replace(match_text, replacement)
             success_count += 1
 
+    # Handle screenshot replacements
+    if screenshot_matches:
+        screenshot_url_map = {}
+        for s in screenshot_results.get('screenshots', []):
+            if s.get('cdn_url'):
+                screenshot_url_map[s['filename']] = s['cdn_url']
+            elif s.get('local_path'):
+                screenshot_url_map[s['filename']] = s['local_path']
+
+        for config, match_text in screenshot_matches:
+            url_or_path = screenshot_url_map.get(config.filename)
+            if url_or_path:
+                replacement = f"![{config.description}]({url_or_path})"
+                updated_content = updated_content.replace(match_text, replacement)
+                success_count += 1
+
     if success_count > 0:
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(updated_content)
-        print(f"\n📝 已更新 Markdown 文件: {file_path} (替换了 {success_count} 处图片占位符)")
+        print(f"\n📝 已更新 Markdown 文件: {file_path} (替换了 {success_count} 处占位符)")
     else:
-        print("\n⚠️  未更新 Markdown 文件 (没有图片上传成功)")
+        print("\n⚠️  未更新 Markdown 文件 (没有图片/截图处理成功)")
 
 
 def main():
@@ -1272,14 +1457,9 @@ def main():
             print("✅ 所有依赖已就绪")
             sys.exit(0)
 
-    errors = check_dependencies()
-    if errors:
-        print("\n".join(errors))
-        print("\n请先解决以上问题，或使用 --check 参数检查依赖")
-        sys.exit(1)
-
     configs = []
     file_matches = [] # 存储 (ImageConfig, match_text) 元组
+    screenshot_file_matches = [] # 存储 (ScreenshotConfig, match_text) 元组
 
     # 模式 1: 处理 Markdown 文件
     if args.process_file:
@@ -1297,13 +1477,20 @@ def main():
 
         print(f"🔍 解析文件: {args.process_file}")
         file_matches = parse_markdown_images(args.process_file)
+        screenshot_file_matches = parse_markdown_screenshots(args.process_file)
 
-        if not file_matches:
-            print("⚠️  未找到符合格式的图片占位符")
-            print("格式示例: <!-- IMAGE: slug - 描述 (16:9) --> ... <!-- PROMPT: prompt -->")
+        if not file_matches and not screenshot_file_matches:
+            print("⚠️  未找到符合格式的图片/截图占位符")
+            print("格式示例:")
+            print("  AI 图片: <!-- IMAGE: slug - 描述 (16:9) --> <!-- PROMPT: prompt -->")
+            print("  截图:    <!-- SCREENSHOT: slug - 描述 -->")
+            print("           <!-- URL: https://example.com -->")
             sys.exit(0)
 
-        print(f"✅ 找到 {len(file_matches)} 个待生成图片")
+        if file_matches:
+            print(f"✅ 找到 {len(file_matches)} 个待生成 AI 图片")
+        if screenshot_file_matches:
+            print(f"✅ 找到 {len(screenshot_file_matches)} 个待截图")
         configs = [m[0] for m in file_matches]
 
     # 加载配置
@@ -1397,46 +1584,157 @@ def main():
         }, indent=2, ensure_ascii=False))
         sys.exit(1)
 
+    # Check dependencies based on what we need
+    if configs:
+        # AI image generation requires nanobanana + Gemini API
+        errors = check_dependencies()
+        if errors:
+            print("\n".join(errors))
+            print("\n请先解决以上问题，或使用 --check 参数检查依赖")
+            sys.exit(1)
+
+    if screenshot_file_matches:
+        # Check shot-scraper availability
+        try:
+            subprocess.run(["shot-scraper", "--version"],
+                          capture_output=True, check=True, timeout=5)
+        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+            print("❌ shot-scraper 未安装")
+            print("   请运行: pip install shot-scraper && shot-scraper install")
+            if not configs:
+                sys.exit(1)
+            else:
+                print("   ⚠️  截图功能不可用，将跳过截图任务")
+                screenshot_file_matches = []
+
     # Dry-run 模式：仅预览，不实际生成
     if args.dry_run:
-        dry_run_preview(
-            configs=configs,
-            upload=not args.no_upload,
-            resolution=args.resolution,
-            model=args.model
-        )
+        if configs:
+            dry_run_preview(
+                configs=configs,
+                upload=not args.no_upload,
+                resolution=args.resolution,
+                model=args.model
+            )
+        if screenshot_file_matches:
+            print("\n" + "=" * 70)
+            print("📸 截图任务预览")
+            print("=" * 70)
+            for i, (sc, _) in enumerate(screenshot_file_matches, 1):
+                print(f"\n  [{i}] {sc.description}")
+                print(f"      URL: {sc.url}")
+                if sc.selector:
+                    print(f"      选择器: {sc.selector}")
+                if sc.wait:
+                    print(f"      等待: {sc.wait}ms")
+                if sc.js:
+                    print(f"      JS: {sc.js[:60]}...")
+            print("\n" + "=" * 70)
         sys.exit(0)
 
-    # 批量处理：根据参数选择串行或并行模式
-    if args.parallel:
-        # 并行模式
-        print(f"\n🚀 使用并行模式（{args.max_workers} 个工作线程）")
-        results = generate_and_upload_parallel(
-            configs=configs,
-            upload=not args.no_upload,
-            resolution=args.resolution,
-            max_workers=args.max_workers,
-            fail_fast=not args.continue_on_error,
-            model=args.model
-        )
-    else:
-        # 串行模式（默认）
-        results = generate_and_upload_batch(
-            configs=configs,
-            upload=not args.no_upload,
-            resolution=args.resolution,
-            model=args.model
-        )
+    # Initialize results (may be empty if no AI images)
+    results = {
+        "total": 0,
+        "generated": 0,
+        "uploaded": 0,
+        "failed": 0,
+        "images": [],
+        "screenshot_results": {
+            "total": 0,
+            "captured": 0,
+            "uploaded": 0,
+            "failed": 0,
+            "screenshots": []
+        }
+    }
+
+    # Phase 1: AI image generation (if any)
+    if configs:
+        if args.parallel:
+            print(f"\n🚀 使用并行模式（{args.max_workers} 个工作线程）")
+            results = generate_and_upload_parallel(
+                configs=configs,
+                upload=not args.no_upload,
+                resolution=args.resolution,
+                max_workers=args.max_workers,
+                fail_fast=not args.continue_on_error,
+                model=args.model,
+                keep_files=args.keep_files
+            )
+        else:
+            results = generate_and_upload_batch(
+                configs=configs,
+                upload=not args.no_upload,
+                resolution=args.resolution,
+                model=args.model
+            )
+        # Ensure screenshot_results key exists
+        if 'screenshot_results' not in results:
+            results['screenshot_results'] = {
+                "total": 0, "captured": 0, "uploaded": 0, "failed": 0, "screenshots": []
+            }
+
+    # Phase 2: Screenshots (if any)
+    if screenshot_file_matches:
+        print("\n" + "=" * 70)
+        print(f"📸 开始截图 ({len(screenshot_file_matches)} 个)")
+        print("=" * 70)
+
+        screenshot_results = results['screenshot_results']
+        screenshot_results['total'] = len(screenshot_file_matches)
+
+        for i, (sc_config, _) in enumerate(screenshot_file_matches, 1):
+            print(f"\n[{i}/{len(screenshot_file_matches)}] 截图: {sc_config.description}")
+            print("-" * 70)
+
+            if take_screenshot(sc_config):
+                screenshot_results['captured'] += 1
+                screenshot_entry = {
+                    "name": sc_config.description,
+                    "filename": sc_config.filename,
+                    "local_path": sc_config.local_path,
+                    "cdn_url": None,
+                    "url": sc_config.url
+                }
+
+                # Upload screenshot
+                if not args.no_upload and sc_config.local_path:
+                    try:
+                        time.sleep(1)
+                        cdn_url = upload_image(sc_config.local_path)
+                        sc_config.cdn_url = cdn_url
+                        screenshot_entry['cdn_url'] = cdn_url
+                        screenshot_results['uploaded'] += 1
+
+                        if not args.keep_files:
+                            delete_local_file(sc_config.local_path)
+                    except Exception as e:
+                        print(f"   ❌ 截图上传失败: {str(e)}")
+                        screenshot_results['failed'] += 1
+
+                screenshot_results['screenshots'].append(screenshot_entry)
+            else:
+                screenshot_results['failed'] += 1
+                screenshot_results['screenshots'].append({
+                    "name": sc_config.description,
+                    "filename": sc_config.filename,
+                    "local_path": None,
+                    "cdn_url": None,
+                    "url": sc_config.url
+                })
+
+        # Print screenshot summary
+        print(f"\n📸 截图统计: 成功 {screenshot_results['captured']}/{screenshot_results['total']}, "
+              f"上传 {screenshot_results['uploaded']}")
 
     # 打印摘要
-    print_summary(results)
+    if configs:
+        print_summary(results)
 
     # 后处理
     if args.process_file:
-        # 更新原文件
-        update_markdown_file(args.process_file, results, file_matches)
+        update_markdown_file(args.process_file, results, file_matches, screenshot_file_matches)
     elif args.output:
-        # 输出 Markdown
         markdown = generate_markdown_output(results)
         with open(args.output, 'w', encoding='utf-8') as f:
             f.write(markdown)

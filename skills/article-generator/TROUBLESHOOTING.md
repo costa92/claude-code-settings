@@ -294,6 +294,86 @@ echo "=== 诊断完成 ==="
 
 ---
 
+## 并行模式 `--parallel` 崩溃问题
+
+### 问题症状
+
+使用 `--parallel` 标志批量生成图片时，图片生成和上传成功后脚本崩溃：
+
+```
+NameError: name 'args' is not defined
+```
+
+错误出现在 `generate_and_upload_parallel()` 函数内部，上传完成后尝试删除本地文件时。
+
+---
+
+### 根本原因
+
+`generate_and_upload_parallel()` 函数内部使用了 `args.keep_files`（全局 argparse 变量），但该函数作为独立函数不应依赖全局变量。
+
+**Bug 位置：**
+- 函数签名（约第 885 行）：缺少 `keep_files` 参数
+- 函数内部（约第 1122 行）：引用 `args.keep_files` 而非本地参数
+- 调用处（约第 1655 行）：未传递 `keep_files` 参数
+
+---
+
+### 解决方案
+
+**已在 2026-02-26 修复。** 如果你使用的是修复前的版本：
+
+#### 临时解决方案（不修改代码）
+
+当并行模式崩溃但图片已生成时，手动上传：
+
+```bash
+# 检查已生成的本地图片
+ls -la images/*.jpg
+
+# 手动上传到 CDN
+picgo upload images/*.jpg
+
+# 手动删除本地文件
+rm images/*.jpg
+```
+
+#### 永久修复
+
+修改 `generate_and_upload_images.py` 三处：
+
+1. **函数签名**（约第 885 行）— 添加 `keep_files` 参数：
+```python
+def generate_and_upload_parallel(configs: List[ImageConfig],
+                                   upload: bool = True,
+                                   resolution: str = "2K",
+                                   max_workers: int = 2,
+                                   fail_fast: bool = True,
+                                   model: str = "gemini-3-pro-image-preview",
+                                   keep_files: bool = False) -> Dict:
+```
+
+2. **函数内部**（约第 1122 行）— 使用本地参数：
+```python
+# 之前: if not args.keep_files:
+if not keep_files:
+```
+
+3. **调用处**（约第 1655 行）— 传递参数：
+```python
+results = generate_and_upload_parallel(
+    configs=configs,
+    upload=not args.no_upload,
+    resolution=args.resolution,
+    max_workers=args.max_workers,
+    fail_fast=not args.continue_on_error,
+    model=args.model,
+    keep_files=args.keep_files  # 新增
+)
+```
+
+---
+
 ## S3 上传问题
 
 ### `RuntimeError: boto3 is not installed`

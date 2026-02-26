@@ -1083,6 +1083,15 @@ For users who want to **write first, add images later**:
 <!-- PROMPT: Microservices architecture diagram, flat design, technical illustration -->
 ```
 
+**Screenshot Placeholder Syntax:**
+
+```markdown
+<!-- SCREENSHOT: vscode-ui - VS Code 界面截图 -->
+<!-- URL: https://vscode.dev -->
+<!-- SELECTOR: #workbench.web -->
+<!-- WAIT: 3000 -->
+```
+
 
 **Benefits:**
 
@@ -1155,6 +1164,28 @@ For users who want to **write first, add images later**:
 19. **Placeholder placement:** Cover after title, rhythm images every 400-600 words
 3. **Preserve prompts:** Always include PROMPT comment for later batch generation
 4. **Replace workflow:** Use find-replace to swap placeholders with CDN URLs when images ready
+
+#### Screenshot Placeholders (shot-scraper)
+
+For real webpage screenshots (tool interfaces, code editors, web components), use:
+
+```markdown
+<!-- SCREENSHOT: slug - 描述文字 -->
+<!-- URL: https://example.com -->
+<!-- SELECTOR: .css-selector -->
+```
+
+Optional parameters (add as needed):
+```markdown
+<!-- WAIT: 3000 -->
+<!-- JS: document.querySelector('.cookie-banner')?.remove() -->
+```
+
+- `SCREENSHOT` + `URL` are required; `SELECTOR`, `WAIT`, `JS` are optional
+- Screenshots are processed alongside AI images in `--process-file` mode
+- Default: `--width 1280 --retina --padding 10`
+- Output format: PNG (vs JPG for AI-generated images)
+- Best for: tool UI screenshots, code editor captures, web component demos
 
 ### Image Generation Workflow (MANDATORY Sequence)
 
@@ -1444,14 +1475,18 @@ python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
 
 ### Process Existing Markdown File (Automated)
 
-Scans an existing Markdown file for `<!-- IMAGE -->` placeholders, generates the images, uploads them to CDN, and automatically replaces the placeholders with the final image links.
+Scans an existing Markdown file for `<!-- IMAGE -->` and `<!-- SCREENSHOT -->` placeholders, generates/captures the images, uploads them to CDN, and automatically replaces the placeholders with the final image links.
 
 ```bash
-# Process a file, generate images, and update content in-place
-
+# Process a file with AI images and screenshots
 python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
   --process-file my_article.md \
   --resolution 2K
+
+# Screenshots only (no Gemini API needed)
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+  --process-file my_article.md \
+  --no-upload
 ```
 
 **Required Placeholder Format:**
@@ -1460,6 +1495,18 @@ python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
 <!-- IMAGE: unique_slug - Short Description (16:9) -->
 <!-- PROMPT: Detailed promp<https://picgo.github.io/PicGo-Core-Doc/>
 ```
+
+**Screenshot Placeholder Format (for real webpage captures):**
+
+```markdown
+<!-- SCREENSHOT: unique_slug - Short Description -->
+<!-- URL: https://example.com -->
+<!-- SELECTOR: .main-content -->
+<!-- WAIT: 3000 -->
+<!-- JS: document.querySelector('.cookie-banner')?.remove() -->
+```
+
+Requires: `pip install shot-scraper && shot-scraper install`
 
 ### Cover Image (16:9 - 1344x768)
 
