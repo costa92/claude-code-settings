@@ -254,5 +254,6 @@ A: 在 `writers/` 目录下创建 YAML 配置文件，格式参考 `writers/dan-
 
 ## 相关文档
 
-- [writers/README.md](../../writers/README.md) - 自定义风格完整指南
-- [docs/WRITING_FAQ.md](../../docs/WRITING_FAQ.md) - 写作功能问答
+- [humanizer.md](./humanizer.md) - AI 写作去痕
+- [image_syntax.md](./image_syntax.md) - 图片语法与 AI 图片生成
+- [md2wechat_themes.md](./md2wechat_themes.md) - AI/API 主题风格指南
