@@ -662,6 +662,7 @@ Generate technical blog articles with authentic, non-AI style. Outputs Markdown 
 **Requirements:**
 
 - Python: `pip install -r skills/article-generator/requirements.txt`
+- Screenshot tool: `pip install shot-scraper && shot-scraper install` (for webpage screenshots)
 - `GEMINI_API_KEY` env var for image generation (optional)
 - PicGo or S3/R2 config for image hosting (optional)
 

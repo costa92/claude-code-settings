@@ -363,6 +363,12 @@ $f"
         info "pip install -r ${f#$CLAUDE_DIR/}"
         python3 -m pip install -r "$f" --quiet 2>/dev/null && ok "完成" || warn "安装失败: $f"
       done
+
+      # shot-scraper needs a post-install step to download Playwright browser
+      if command -v shot-scraper &>/dev/null; then
+        info "shot-scraper install (下载 Playwright 浏览器)..."
+        shot-scraper install --quiet 2>/dev/null && ok "shot-scraper 浏览器就绪" || warn "shot-scraper install 失败，可稍后手动运行: shot-scraper install"
+      fi
     else
       info "跳过"
     fi
