@@ -34,11 +34,11 @@
 ```bash
 # Step 1: 获取绝对路径
 realpath my_article.md
-# 输出: /home/hellotalk/onedrive/docs/my_article.md
+# 输出: /path/to/your/my_article.md
 
 # Step 2: 使用绝对路径调用脚本
-python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_upload_images.py \
-  --process-file /home/hellotalk/onedrive/docs/my_article.md \
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+  --process-file /path/to/your/my_article.md \
   --resolution 2K
 ```
 
@@ -50,7 +50,7 @@ python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_up
 --process-file article.md
 
 # ✅ 正确 - 绝对路径
---process-file /home/hellotalk/onedrive/docs/article.md
+--process-file /path/to/your/article.md
 ```
 
 ---
@@ -114,7 +114,7 @@ realpath article.md
 
 ```bash
 # 测试单张图片生成
-cd /home/hellotalk/.claude/skills/article-generator/scripts
+cd ${SKILL_DIR}/scripts
 python3 nanobanana.py \
   --prompt "test image" \
   --size 1024x1024 \
@@ -272,7 +272,7 @@ echo ""
 
 # 2. 检查依赖
 echo "2. 脚本依赖:"
-python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_upload_images.py --check
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py --check
 echo ""
 
 # 3. S3 检查 (可选)
@@ -285,7 +285,7 @@ echo ""
 
 # 4. 测试图片生成
 echo "4. 测试图片生成:"
-python3 /home/hellotalk/.claude/skills/article-generator/scripts/nanobanana.py \
+python3 ${SKILL_DIR}/scripts/nanobanana.py \
   --prompt "test" --size 1024x1024 --output /tmp/test_diagnosis.jpg
 echo ""
 

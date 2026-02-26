@@ -55,7 +55,7 @@
    ├─ 创建 images/ 目录：mkdir -p images
    ├─ 生成唯一的文件名前缀（如 article_slug_）
    ├─ 使用 Shell 工具调用 generate_and_upload_images.py（使用绝对路径）
-   ├─ 示例：python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_upload_images.py --process-file /absolute/path/to/article.md
+   ├─ 示例：python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py --process-file /absolute/path/to/article.md
    ├─ 生成封面（16:9: 1344x768）
    ├─ 生成节奏图（3:2: 1248x832）
    ├─ 上传所有图片到 PicGo/CDN
@@ -959,7 +959,7 @@ AskQuestion({
 #### 步骤 2: 执行批量生成
 
 ```bash
-python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_upload_images.py \
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
   --config images_config.json \
   --output-dir ./images \
   --resolution 2K
@@ -976,14 +976,14 @@ python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_up
 --process-file ./article.md  # ❌ 将失败
 
 # 正确方式（绝对路径）
-realpath article.md  # 返回: /home/hellotalk/onedrive/docs/article.md
+realpath article.md  # 返回: /path/to/your/article.md
 ```
 
 #### 步骤 2: 使用绝对路径执行
 
 ```bash
-python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_upload_images.py \
-  --process-file /home/hellotalk/onedrive/docs/article.md \
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+  --process-file /path/to/your/article.md \
   --resolution 2K
 ```
 

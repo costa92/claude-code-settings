@@ -1,7 +1,7 @@
 import sys
 import os
 
-file_path = "/Users/costalong/.claude/skills/article-generator/scripts/generate_and_upload_images.py"
+file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "generate_and_upload_images.py")
 
 with open(file_path, 'r') as f:
     lines = f.readlines()

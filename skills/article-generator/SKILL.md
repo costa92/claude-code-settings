@@ -25,7 +25,7 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 --process-file article.md
 
 # ✅ CORRECT - Use absolute path
---process-file /home/hellotalk/onedrive/docs/article.md
+--process-file /path/to/your/article.md
 ```
 
 **How to get absolute path:**
@@ -50,11 +50,11 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 
      ```bash
      # Step 1: Get absolute path
-     realpath article.md  # Returns: /home/hellotalk/onedrive/docs/article.md
+     realpath article.md  # Returns: /path/to/your/article.md
 
      # Step 2: Use absolute path in image generation
-     python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_upload_images.py \
-       --process-file /home/hellotalk/onedrive/docs/article.md \
+     python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+       --process-file /path/to/your/article.md \
        --resolution 2K
      ```
 
@@ -1002,7 +1002,7 @@ The script now supports **two configuration formats** - use whichever is more co
    ├─ Create images/ directory: mkdir -p images
    ├─ Generate unique filename prefix (e.g., article_slug_)
    ├─ Use Shell tool to call generate_and_upload_images.py with ABSOLUTE path
-   ├─ Example: python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_upload_images.py --process-file /absolute/path/to/article.md
+   ├─ Example: python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py --process-file /absolute/path/to/article.md
    ├─ Generate cover (16:9: 1344x768)
    ├─ Generate rhythm images (3:2: 1248x832)
    ├─ Upload all to PicGo/CDN
@@ -1273,8 +1273,8 @@ For users who want to **write first, add images later**:
 **Step 2: Execute Shell command**
 
 ```bash
-# Replace ${SKILL_DIR} with actual path: /home/hellotalk/.claude/skills/article-generator
-python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_upload_images.py \
+# Replace ${SKILL_DIR} with actual skill path
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
   --config images_config.json \
   --resolution 2K
 ```
@@ -1283,7 +1283,7 @@ python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_up
 
 ```
 Shell(
-  command="python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_upload_images.py --config images_config.json --resolution 2K",
+  command="python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py --config images_config.json --resolution 2K",
   description="Generate images from config and upload to CDN"
 )
 ```
@@ -1304,7 +1304,7 @@ Shell(
 ```bash
 # CRITICAL: Use ABSOLUTE path for --process-file, NOT relative path
 
-python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_upload_images.py \
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
   --process-file /absolute/path/to/article_name.md \
   --resolution 2K
 
@@ -1327,7 +1327,7 @@ python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_up
 **IMPORTANT:**
 
 - ❌ WRONG: `--process-file ./article.md` (relative path)
-- ✅ CORRECT: `--process-file /home/hellotalk/onedrive/docs/article.md` (absolute path)
+- ✅ CORRECT: `--process-file /path/to/your/article.md` (absolute path)
 
 
 ---
@@ -1337,7 +1337,7 @@ python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_up
 **For one-off images:**
 
 ```bash
-python3 /home/hellotalk/.claude/skills/article-generator/scripts/nanobanana.py \
+python3 ${SKILL_DIR}/scripts/nanobanana.py \
   --prompt "Detailed image description" \
   --size 1344x768 \
   --resolution 2K \
@@ -1629,7 +1629,7 @@ EOF
 echo $GEMINI_API_KEY
 
 # Test image generation
-python3 /home/hellotalk/.claude/skills/article-generator/scripts/nanobanana.py \
+python3 ${SKILL_DIR}/scripts/nanobanana.py \
   --prompt "Test" --size 1024x1024 --output test.jpg
 ```
 
@@ -1661,8 +1661,8 @@ python3 /home/hellotalk/.claude/skills/article-generator/scripts/nanobanana.py \
    realpath your_article.md
 
    # Method 2: pwd + filename
-   pwd  # e.g., /home/hellotalk/onedrive/docs
-   # Then use: /home/hellotalk/onedrive/docs/your_article.md
+   pwd  # e.g., ~/onedrive/docs
+   # Then use: ~/onedrive/docs/your_article.md
    ```
 
 3. **Use absolute path:**
@@ -1672,8 +1672,8 @@ python3 /home/hellotalk/.claude/skills/article-generator/scripts/nanobanana.py \
    python3 generate_and_upload_images.py --process-file ./article.md
 
    # ✅ CORRECT
-   python3 /home/hellotalk/.claude/skills/article-generator/scripts/generate_and_upload_images.py \
-     --process-file /home/hellotalk/onedrive/docs/article.md
+   python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+     --process-file /path/to/your/article.md
    ```
 
 ### Actual GEMINI_API_KEY Issues

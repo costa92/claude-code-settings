@@ -169,8 +169,11 @@ WARP.md
 .mcp.json
 telemetry
 settings.json
+settings.json.*.bak
+*.bak
 cache/
 plugins/cache/
+backups/
 
 # Transcripts
 transcripts/
