@@ -161,6 +161,7 @@ debug
 file-history/
 plugins/marketplaces/
 plugins/known_marketplaces.json
+plugins/blocklist.json
 .update.lock
 plans/*.md
 
