@@ -1,5 +1,7 @@
 # Claude Code Settings/Commands/Skills for Vibe Coding
 
+**English** | [中文](README.zh-CN.md)
+
 A curated collection of Claude Code settings, custom commands, skills and sub-agents designed for enhanced development workflows. This setup includes specialized commands, skills and subagents for feature development (spec-driven workflow), code analysis, GitHub integration, and knowledge management.
 
 > For OpenAI Codex settings, configurations and custom prompts, please refer [feiskyer/codex-settings](https://github.com/feiskyer/codex-settings).
@@ -75,6 +77,28 @@ Open the link, log in and authenticate your GitHub Copilot account.
 
    - ANTHROPIC_DEFAULT_HAIKU_MODEL: gpt-5-mini
 
+### Cross-Machine Setup (setup.sh)
+
+After cloning the repo on a new machine, run `setup.sh` to rebuild everything that `.gitignore` excludes (settings, marketplaces, plugin cache, permissions, dependencies):
+
+```sh
+cd ~/.claude
+bash setup.sh              # Interactive — prompts for API keys & optional deps
+bash setup.sh --skip-python # Skip Python dependency installation
+bash setup.sh --force       # Force rebuild plugin cache even if it exists
+```
+
+**What it does (8 steps):**
+
+1. **Environment check** — verifies `git`, `jq`, `python3`
+2. **settings.json** — copies from `settings.json.example` if missing (never overwrites)
+3. **Marketplace repos** — clones/updates marketplace git repos + generates `known_marketplaces.json`
+4. **Plugin cache** — rebuilds plugin cache via `claude plugin install` with manual fallback
+5. **Path normalization** — fixes `installed_plugins.json` absolute paths (`/home/user/...` → `~/...`) to prevent plugin load failures across machines
+6. **Permissions** — `chmod +x` on `status-line.sh` and all skill scripts
+7. **Python deps** — optional `pip install` for skill requirements + Playwright
+8. **System packages** — checks LibreOffice, Poppler, npm tools (defuddle-cli, pptxgenjs, decktape)
+
 ### Quick Start: MCP Configuration
 
 To enable MCP servers, create `~/.claude/.mcp.json`:
@@ -142,7 +166,9 @@ The `commands/` directory contains [custom slash commands](https://code.claude.c
 
 ## Skills
 
-Skills are now distributed as separate plugins for modular installation. Install only what you need:
+### Plugin Skills
+
+Installable via Claude Code Plugin system. Install only what you need:
 
 <details>
 <summary>codex-skill - Handoff tasks to OpenAI Codex/GPT</summary>
@@ -346,69 +372,6 @@ specify init . --ai claude
 You: "Let's create a constitution for this project"
 Claude: [Automatically uses spec-kit-skill, detects CLI, guides through phases]
 ```
-
-</details>
-
-<details>
-<summary>n8n-workflow-patterns - Proven n8n workflow patterns</summary>
-
-### [n8n-workflow-patterns](skills/n8n-workflow-patterns)
-
-Proven architectural patterns for building n8n workflows, covering the 5 most common workflow types.
-
-**Triggered by**: "workflow pattern", "n8n pattern", "webhook processing", "http api", "database sync", "ai agent", "scheduled task", "workflow architecture"
-
-**Installation:**
-
-This skill is located in the `skills/` directory and is automatically available when using this repository setup.
-
-**The 5 Core Patterns:**
-
-1. **Webhook Processing** (Most Common - 35% of workflows)
-   - Receive HTTP requests → Process → Respond
-   - Pattern: Webhook → Validate → Transform → Respond/Notify
-
-2. **HTTP API Integration** (892+ templates)
-   - Fetch from REST APIs → Transform → Store/Use
-   - Pattern: Trigger → HTTP Request → Transform → Action → Error Handler
-
-3. **Database Operations** (456+ templates)
-   - Read/Write/Sync database data
-   - Pattern: Schedule → Query → Transform → Write → Verify
-
-4. **AI Agent Workflow** (234+ templates, 270 AI nodes)
-   - AI agents with tools and memory
-   - Pattern: Trigger → AI Agent (Model + Tools + Memory) → Output
-
-5. **Scheduled Tasks** (28% of workflows)
-   - Recurring automation workflows
-   - Pattern: Schedule → Fetch → Process → Deliver → Log
-
-**Key Features:**
-
-- Complete workflow creation checklist
-- Common gotchas and solutions
-- Data flow patterns (linear, branching, parallel, loops)
-- Error handling strategies
-- Integration with n8n MCP tools
-
-**Files:**
-
-- `SKILL.md` - Pattern overview and selection guide
-- `webhook_processing.md` - Webhook patterns and data structure
-- `http_api_integration.md` - REST APIs, pagination, rate limiting
-- `database_operations.md` - DB operations, batch processing, security
-- `ai_agent_workflow.md` - AI agents, tools, memory, connections
-- `scheduled_tasks.md` - Cron schedules, timezone, monitoring
-
-**Usage:**
-
-```text
-You: "How do I build a webhook workflow that processes Stripe payments?"
-Claude: [Uses n8n-workflow-patterns to guide you through webhook processing pattern]
-```
-
-**Requirements:** n8n-mcp MCP server configured for n8n API access
 
 </details>
 
@@ -755,22 +718,114 @@ Repurpose a single article into multiple platform-specific formats.
 
 </details>
 
+### Local Skills
+
+The `skills/` directory also contains 28 built-in local skills (auto-loaded, no installation needed). The 6 content pipeline skills are documented [above](#content-creation-pipeline-wechat--blog).
+
+<details>
+<summary>Design & Visual (7 skills)</summary>
+
+#### Design & Visual
+
+| Skill | Description |
+|-------|-------------|
+| [canvas-design](skills/canvas-design) | Create visual art in .png/.pdf using design philosophy — posters, art, static designs |
+| [frontend-design](skills/frontend-design) | Distinctive, production-grade frontend interfaces with high design quality |
+| [ui-ux-pro-max](skills/ui-ux-pro-max) | UI/UX design intelligence — 50 styles, 21 palettes, 50 font pairings, 20 charts, 9 stacks |
+| [algorithmic-art](skills/algorithmic-art) | Generative art using p5.js with seeded randomness and interactive parameter exploration |
+| [brand-guidelines](skills/brand-guidelines) | Apply Anthropic's official brand colors and typography to artifacts |
+| [theme-factory](skills/theme-factory) | Toolkit for styling artifacts with 10 pre-set themes (slides, docs, landing pages) |
+| [slack-gif-creator](skills/slack-gif-creator) | Create animated GIFs optimized for Slack — constraints, validation, animation concepts |
+
+</details>
+
+<details>
+<summary>Web Development (4 skills)</summary>
+
+#### Web Development
+
+| Skill | Description |
+|-------|-------------|
+| [web-artifacts-builder](skills/web-artifacts-builder) | Create multi-component claude.ai HTML artifacts (React, Tailwind CSS, shadcn/ui) |
+| [react-best-practices](skills/react-best-practices) | React/Next.js performance optimization from Vercel Engineering |
+| [vue-best-practices](skills/vue-best-practices) | Vue 3 TypeScript best practices — vue-tsc, Volar, props extraction, wrapper components |
+| [webapp-testing](skills/webapp-testing) | Interact with and test local web apps using Playwright — screenshots, browser logs |
+
+</details>
+
+<details>
+<summary>Document Processing (5 skills)</summary>
+
+#### Document Processing
+
+| Skill | Description |
+|-------|-------------|
+| [docx](skills/docx) | Create, read, edit Word documents (.docx) — tables of contents, headers, formatting |
+| [pdf](skills/pdf) | Read, extract, merge, split, rotate, watermark, create PDF files |
+| [pptx](skills/pptx) | Create, read, parse PowerPoint files (.pptx) — slide decks, pitch decks |
+| [xlsx](skills/xlsx) | Open, read, edit, create spreadsheets (.xlsx, .xlsm, .csv, .tsv) — formulas, charts |
+| [revealjs](skills/revealjs) | Create polished reveal.js HTML presentations — themes, animations, speaker notes |
+
+</details>
+
+<details>
+<summary>Obsidian (4 skills)</summary>
+
+#### Obsidian
+
+| Skill | Description |
+|-------|-------------|
+| [obsidian-cli](skills/obsidian-cli) | Interact with Obsidian vaults — read, create, search notes, plugin/theme development |
+| [obsidian-bases](skills/obsidian-bases) | Create/edit .base files — database-like views with filters, formulas, summaries |
+| [obsidian-markdown](skills/obsidian-markdown) | Obsidian Flavored Markdown — wikilinks, embeds, callouts, properties, tags |
+| [json-canvas](skills/json-canvas) | Create/edit JSON Canvas files (.canvas) — visual canvases, mind maps, flowcharts |
+
+</details>
+
+<details>
+<summary>Content & Knowledge (5 skills)</summary>
+
+#### Content & Knowledge
+
+| Skill | Description |
+|-------|-------------|
+| [ai-daily](skills/ai-daily) | Fetch AI news from multiple sources and generate structured markdown summaries |
+| [defuddle](skills/defuddle) | Extract clean markdown from web pages — use instead of WebFetch for URLs |
+| [doc-coauthoring](skills/doc-coauthoring) | Structured workflow for co-authoring documentation, proposals, technical specs |
+| [internal-comms](skills/internal-comms) | Write internal communications — status reports, leadership updates, 3P updates |
+| [medical-imaging-review](skills/medical-imaging-review) | Write literature reviews for medical imaging AI research (CT, MRI, X-ray) |
+
+</details>
+
+<details>
+<summary>Development Tools (3 skills)</summary>
+
+#### Development Tools
+
+| Skill | Description |
+|-------|-------------|
+| [mcp-builder](skills/mcp-builder) | Guide for creating MCP servers — Python (FastMCP) or Node/TypeScript |
+| [skill-creator](skills/skill-creator) | Guide for creating effective skills that extend Claude's capabilities |
+| [vercel-deploy-claimable](skills/vercel-deploy-claimable) | Deploy applications to Vercel — preview and production deployments |
+
+</details>
+
 ## Agents
 
 The `agents/` directory contains specialized AI [subagents](https://docs.anthropic.com/en/docs/claude-code/sub-agents) that extend Claude Code's capabilities.
 
-<details>
-<summary>Available Agents</summary>
+- **ui-engineer** - Expert UI/frontend developer for creating, modifying, or reviewing frontend code, UI components, and user interfaces
 
-- **pr-reviewer** - Expert code reviewer for GitHub pull requests
-- **github-issue-fixer** - GitHub issue resolution specialist
-- **instruction-reflector** - Analyzes and improves Claude Code instructions
-- **deep-reflector** - Comprehensive session analysis and learning capture
-- **insight-documenter** - Technical breakthrough documentation specialist
-- **ui-engineer** - UI/UX development specialist
-- **command-creator** - Expert at creating new Claude Code custom commands
-
-</details>
+> **Note**: The following agents were removed as duplicates of existing commands:
+>
+> | Removed Agent | Replaced By Command | Functionality |
+> |---|---|---|
+> | `deep-reflector` | `/reflection-harder` | Session analysis & learning capture |
+> | `instruction-reflector` | `/reflection` | Analyze & improve CLAUDE.md |
+> | `insight-documenter` | `/eureka` | Technical breakthrough docs |
+> | `command-creator` | `/cc:create-command` | Create custom commands |
+> | `github-issue-fixer` | `/gh:fix-issue` | Fix GitHub issues |
+> | `pr-reviewer` | `/gh:review-pr` | Review GitHub PRs |
 
 ## Settings
 

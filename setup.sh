@@ -41,7 +41,7 @@ step()  { printf '\n\033[1;36m══ %s ══\033[0m\n' "$*"; }
 # =========================================================================
 # Step 1: 环境检测
 # =========================================================================
-step "Step 1/6: 环境检测"
+step "Step 1/8: 环境检测"
 
 OS="$(uname -s)"
 case "$OS" in
@@ -82,7 +82,7 @@ fi
 # =========================================================================
 # Step 2: settings.json 初始化
 # =========================================================================
-step "Step 2/6: settings.json"
+step "Step 2/8: settings.json"
 
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 SETTINGS_EXAMPLE="$CLAUDE_DIR/settings.json.example"
@@ -127,7 +127,7 @@ fi
 # =========================================================================
 # Step 3: Marketplace 仓库克隆 / 更新
 # =========================================================================
-step "Step 3/6: Marketplace 仓库"
+step "Step 3/8: Marketplace 仓库"
 
 mkdir -p "$MARKETPLACES_DIR"
 
@@ -136,7 +136,6 @@ mkdir -p "$MARKETPLACES_DIR"
 MARKETPLACES="
 n8n-mcp-skills|czlonkowski/n8n-skills
 claude-code-plugins|anthropics/claude-code
-md2wechat-tools|geekjourneyx/md2wechat-skill
 superpowers-marketplace|obra/superpowers-marketplace
 "
 
@@ -169,25 +168,21 @@ NOW="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
 
 jq -n \
   --arg now "$NOW" \
+  --arg mp_root "$MARKETPLACES_DIR" \
   '{
     "n8n-mcp-skills": {
       "source": { "source": "github", "repo": "czlonkowski/n8n-skills" },
-      "installLocation": "~/.claude/plugins/marketplaces/n8n-mcp-skills",
+      "installLocation": ($mp_root + "/n8n-mcp-skills"),
       "lastUpdated": $now
     },
     "claude-code-plugins": {
       "source": { "source": "github", "repo": "anthropics/claude-code" },
-      "installLocation": "~/.claude/plugins/marketplaces/claude-code-plugins",
-      "lastUpdated": $now
-    },
-    "md2wechat-tools": {
-      "source": { "source": "github", "repo": "geekjourneyx/md2wechat-skill" },
-      "installLocation": "~/.claude/plugins/marketplaces/md2wechat-tools",
+      "installLocation": ($mp_root + "/claude-code-plugins"),
       "lastUpdated": $now
     },
     "superpowers-marketplace": {
       "source": { "source": "github", "repo": "obra/superpowers-marketplace" },
-      "installLocation": "~/.claude/plugins/marketplaces/superpowers-marketplace",
+      "installLocation": ($mp_root + "/superpowers-marketplace"),
       "lastUpdated": $now
     }
   }' > "$KNOWN_MP_FILE"
@@ -197,7 +192,7 @@ ok "known_marketplaces.json 已生成"
 # =========================================================================
 # Step 4: Plugin Cache 重建
 # =========================================================================
-step "Step 4/6: Plugin Cache"
+step "Step 4/8: Plugin Cache"
 
 mkdir -p "$CACHE_DIR"
 
@@ -295,9 +290,25 @@ echo "$PLUGIN_DEFS" | while IFS='|' read -r plugin_id marketplace plugin version
 done
 
 # =========================================================================
+# Step 4.5: installed_plugins.json 路径修正
+# =========================================================================
+INSTALLED_PLUGINS="$PLUGINS_DIR/installed_plugins.json"
+if [[ -f "$INSTALLED_PLUGINS" ]]; then
+  # Replace absolute $HOME paths with ~/ in installPath fields
+  if grep -q "\"installPath\": \"$HOME" "$INSTALLED_PLUGINS" 2>/dev/null; then
+    sed -i "s|\"installPath\": \"$HOME/|\"installPath\": \"~/|g" "$INSTALLED_PLUGINS"
+    ok "installed_plugins.json 路径已修正（$HOME → ~）"
+  else
+    ok "installed_plugins.json 路径格式正常"
+  fi
+else
+  info "installed_plugins.json 不存在，跳过路径修正"
+fi
+
+# =========================================================================
 # Step 5: 权限修复
 # =========================================================================
-step "Step 5/6: 权限修复"
+step "Step 5/8: 权限修复"
 
 # status-line.sh
 if [[ -f "$CLAUDE_DIR/status-line.sh" ]]; then
@@ -326,7 +337,7 @@ fi
 # =========================================================================
 # Step 6: Python 依赖（可选）
 # =========================================================================
-step "Step 6/6: Python 依赖"
+step "Step 6/8: Python 依赖"
 
 if [[ "$SKIP_PYTHON" == true ]]; then
   info "跳过 Python 依赖安装 (--skip-python)"
@@ -373,6 +384,123 @@ $f"
       info "跳过"
     fi
   fi
+
+  # --- Playwright (webapp-testing skill, no requirements.txt) ---
+  if [[ -d "$CLAUDE_DIR/skills/webapp-testing" ]]; then
+    echo ""
+    info "检测到 webapp-testing skill，需要 Playwright"
+    if python3 -c "import playwright" &>/dev/null; then
+      ok "playwright 已安装"
+    else
+      read -rp "  是否安装 playwright？[y/N] " answer
+      if [[ "$answer" =~ ^[Yy]$ ]]; then
+        python3 -m pip install playwright --quiet && ok "playwright 安装完成" || { warn "playwright 安装失败"; }
+      else
+        info "跳过 playwright 安装"
+      fi
+    fi
+
+    # Install Chromium browser binaries (needed even if already pip-installed)
+    if python3 -c "import playwright" &>/dev/null; then
+      if python3 -m playwright install chromium --quiet 2>/dev/null; then
+        ok "Playwright Chromium 浏览器就绪"
+      else
+        warn "Playwright 浏览器安装失败，可稍后手动运行: playwright install chromium"
+      fi
+    fi
+  fi
+fi
+
+# =========================================================================
+# Step 7: 系统软件包（LibreOffice、Poppler）
+# =========================================================================
+step "Step 7/8: 系统软件包"
+
+# Skills that need these: pptx, docx, pdf, xlsx
+NEED_SOFFICE=false
+NEED_POPPLER=false
+for skill in pptx docx pdf xlsx; do
+  [[ -d "$CLAUDE_DIR/skills/$skill" ]] && NEED_SOFFICE=true && NEED_POPPLER=true
+done
+
+if [[ "$NEED_SOFFICE" == false ]] && [[ "$NEED_POPPLER" == false ]]; then
+  info "无需系统软件包（相关 skill 未安装）"
+else
+  # LibreOffice (soffice)
+  if command -v soffice &>/dev/null; then
+    ok "LibreOffice $(soffice --version 2>/dev/null | head -1)"
+  else
+    warn "LibreOffice 未安装 — pptx/docx/pdf/xlsx skill 需要"
+    if [[ "$OS" == "Darwin" ]]; then
+      echo "    brew install libreoffice"
+    else
+      echo "    sudo apt install libreoffice"
+    fi
+  fi
+
+  # Poppler (pdftoppm)
+  if command -v pdftoppm &>/dev/null; then
+    ok "Poppler pdftoppm $(pdftoppm -v 2>&1 | head -1)"
+  else
+    warn "Poppler 未安装 — pptx/docx/pdf skill 需要 pdftoppm"
+    if [[ "$OS" == "Darwin" ]]; then
+      echo "    brew install poppler"
+    else
+      echo "    sudo apt install poppler-utils"
+    fi
+  fi
+fi
+
+# =========================================================================
+# Step 8: npm 全局工具
+# =========================================================================
+step "Step 8/8: npm 全局工具"
+
+if ! command -v npm &>/dev/null; then
+  warn "npm 未安装，跳过 npm 全局工具安装"
+  if [[ "$OS" == "Darwin" ]]; then
+    echo "    brew install node"
+  else
+    echo "    sudo apt install nodejs npm"
+  fi
+else
+  ok "npm $(npm --version)"
+
+  # Format: "tool_name|npm_package|skill_dir|description|check_type"
+  # check_type: cli = command -v, lib = npm list -g
+  NPM_TOOLS="
+defuddle-cli|defuddle-cli|defuddle|网页内容提取（defuddle skill）|cli
+pptxgenjs|pptxgenjs|pptx|PowerPoint 生成（pptx skill）|lib
+decktape|decktape|revealjs|Reveal.js 导出 PDF（revealjs skill）|cli
+"
+
+  npm_tool_installed() {
+    local tool="$1" check_type="$2"
+    if [[ "$check_type" == "lib" ]]; then
+      npm list -g --depth=0 "$tool" 2>/dev/null | grep -q "$tool"
+    else
+      command -v "$tool" &>/dev/null
+    fi
+  }
+
+  echo "$NPM_TOOLS" | while IFS='|' read -r tool pkg skill desc check_type; do
+    [[ -z "$tool" ]] && continue
+    # Only check if the skill is installed
+    [[ ! -d "$CLAUDE_DIR/skills/$skill" ]] && continue
+
+    if npm_tool_installed "$tool" "$check_type"; then
+      ok "$tool 已安装 — $desc"
+    else
+      echo ""
+      info "$tool 未安装 — $desc"
+      read -rp "  是否安装 $pkg？[y/N] " answer
+      if [[ "$answer" =~ ^[Yy]$ ]]; then
+        npm install -g "$pkg" --quiet && ok "$tool 安装完成" || warn "$tool 安装失败，可手动运行: npm install -g $pkg"
+      else
+        info "跳过 — 可稍后运行: npm install -g $pkg"
+      fi
+    fi
+  done
 fi
 
 # =========================================================================
@@ -386,5 +514,10 @@ info "检查清单:"
 [[ -d "$MARKETPLACES_DIR" ]] && ok "plugins/marketplaces/ ($(ls "$MARKETPLACES_DIR" | wc -l | tr -d ' ') repos)" || fail "plugins/marketplaces/"
 [[ -f "$KNOWN_MP_FILE" ]] && ok "plugins/known_marketplaces.json" || fail "plugins/known_marketplaces.json"
 [[ -d "$CACHE_DIR" ]] && ok "plugins/cache/ ($(ls "$CACHE_DIR" | wc -l | tr -d ' ') plugins)" || fail "plugins/cache/"
+command -v soffice &>/dev/null && ok "LibreOffice" || warn "LibreOffice 未安装（pptx/docx/pdf/xlsx skill 需要）"
+command -v pdftoppm &>/dev/null && ok "Poppler (pdftoppm)" || warn "Poppler 未安装（pptx/docx/pdf skill 需要）"
+command -v defuddle-cli &>/dev/null && ok "defuddle-cli" || warn "defuddle-cli 未安装（defuddle skill 需要: npm install -g defuddle-cli）"
+npm list -g --depth=0 pptxgenjs 2>/dev/null | grep -q pptxgenjs && ok "pptxgenjs" || warn "pptxgenjs 未安装（pptx skill 需要: npm install -g pptxgenjs）"
+python3 -c "import playwright" &>/dev/null && ok "playwright (Python)" || warn "playwright 未安装（webapp-testing skill 需要）"
 echo ""
 info "如果插件仍无法加载，请运行: claude plugin list"
