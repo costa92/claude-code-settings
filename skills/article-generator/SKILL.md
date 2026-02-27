@@ -41,7 +41,7 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
    - ✅ CORRECT: Use `Write` tool to save content to `.md` file
    - Example: `Write(path="./kimi-k25-review.md", contents="...")`
 
-2. **[ ] Generate images (if user requested)**
+2. **[ ] Generate AI images (if user requested)**
    - ❌ WRONG: Use relative path like `--process-file ./article.md`
    - ❌ WRONG: Mention image generation without executing scripts
    - ✅ CORRECT: Get absolute path first with `realpath`, then use Shell tool
@@ -58,18 +58,42 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
        --resolution 2K
      ```
 
-3. **[ ] Update article with image URLs**
+3. **[ ] Generate screenshots for external content (MANDATORY, independent of image choice)**
+   - ✅ CORRECT: 当文章引用第三方工具、产品、文档时，必须为其生成 SCREENSHOT 占位符
+   - ✅ CORRECT: 即使用户说"不需要图片"，截图仍然必须生成——截图是事实性素材，不是装饰性插图
+   - ❌ WRONG: 引用外部产品/工具但只有文字描述，没有截图
+   - **判断规则**：
+     - 文章提到某个工具的 UI 界面 → 截图
+     - 文章引用某个官方文档页面 → 截图
+     - 文章介绍第三方产品的功能 → 截图其官网/文档/演示页面
+     - 文章中有"如下图所示"类表述 → 必须有对应截图
+   - **占位符格式**：
+     ```markdown
+     <!-- SCREENSHOT: tool-name-ui - 工具名称界面截图 -->
+     <!-- URL: https://example.com -->
+     <!-- SELECTOR: .main-content -->
+     ```
+
+4. **[ ] Update article with image URLs**
    - ❌ WRONG: Leave placeholder comments in saved file
    - ✅ CORRECT: Replace placeholders with actual CDN URLs after upload
 
-4. **[ ] Verify Content Depth**
+5. **[ ] Verify Content Depth**
    - ✅ CORRECT: "Includes Real-world Case Study section"
    - ✅ CORRECT: "Word count > 2000 words (unless 'quick start')"
    - ❌ WRONG: Superficial tutorial without performance analysis
 
-5. **[ ] Confirm completion to user**
+6. **[ ] Run content-reviewer skill**
+   - ✅ CORRECT: 文章保存后，自动调用 `/content-reviewer` 对文章进行 6 维评分审查
+   - ✅ CORRECT: 根据审查结果中的 🔴 必须修改项，直接修正文章并重新保存
+   - ❌ WRONG: 跳过审查直接交付
+   - **注意**：如果综合评分 ≥ 48 且无 🔴 项，可直接进入下一步；否则必须修改后重新审查
+
+7. **[ ] Confirm completion to user**
    - ✅ CORRECT: "✅ 文章已保存到: ./article-name.md"
    - ✅ CORRECT: "✅ 图片已生成并上传，CDN 链接已更新"
+   - ✅ CORRECT: "✅ 截图已生成（如涉及外部内容引用）"
+   - ✅ CORRECT: "✅ 内容审查通过，综合评分: X/60"
 
 ### ⚠️ Common Mistakes to Avoid
 
@@ -81,6 +105,9 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 
 - **Mistake 3:** Save article with placeholder comments but don't process them
   - **Impact:** Article has broken image placeholders - task incomplete
+
+- **Mistake 4:** Reference external tools/products/docs but provide no screenshots
+  - **Impact:** Reader can't verify what the article describes - credibility gap
 
 **IF ANY CHECKBOX ABOVE IS UNCHECKED, THE TASK IS INCOMPLETE.**
 
@@ -1009,6 +1036,12 @@ The script now supports **two configuration formats** - use whichever is more co
    ├─ Update article file with CDN URLs
    └─ **Automatically delete local files after successful upload**
 
+5a. 📸 Screenshots for External Content (MANDATORY, even if "no images")
+   ├─ Scan article for references to external tools/products/docs
+   ├─ Add SCREENSHOT placeholders for each external reference
+   ├─ Process via generate_and_upload_images.py --process-file
+   └─ If no external references found, skip this step
+
 6. Final Review
    ├─ Verify all links are working (HTTP 200)
    ├─ Confirm all code examples are complete
@@ -1021,6 +1054,7 @@ The script now supports **two configuration formats** - use whichever is more co
 
 - Step 4 (Save to file) is **NON-NEGOTIABLE** - you MUST call the Write tool
 - Step 5 (Image generation) requires **actual Shell command execution**
+- Step 5a (Screenshots) is **MANDATORY for articles referencing external content**, even if user said "no images"
 - If you only display content without saving files, the task is **INCOMPLETE**
 
 ### Article-Only Workflow (Fast Track)
@@ -1046,6 +1080,7 @@ For users who want to **write first, add images later**:
    ├─ Code examples (runnable, complete)
    ├─ Obsidian callouts
    ├─ Image placeholders (see below)
+   ├─ SCREENSHOT placeholders for external content references (MANDATORY)
    └─ Explicit reference links
 
 
@@ -1186,6 +1221,12 @@ Optional parameters (add as needed):
 - Default: `--width 1280 --retina --padding 10`
 - Output format: PNG (vs JPG for AI-generated images)
 - Best for: tool UI screenshots, code editor captures, web component demos
+
+5. **External content screenshots (MANDATORY):** When an article references external tools, products, or documentation, ALWAYS add SCREENSHOT placeholders — even if the user chose "no images". Screenshots are factual evidence, not decorative illustrations.
+   - Article mentions a tool's UI → SCREENSHOT of the tool interface
+   - Article references official docs → SCREENSHOT of the doc page
+   - Article introduces a third-party product → SCREENSHOT of its site/demo
+   - Article says "如下图所示" → corresponding SCREENSHOT must exist
 
 ### Image Generation Workflow (MANDATORY Sequence)
 

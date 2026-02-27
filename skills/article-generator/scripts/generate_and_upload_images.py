@@ -539,12 +539,19 @@ def take_screenshot(config: 'ScreenshotConfig', output_dir: str = None) -> bool:
             pass
 
     try:
+        # Use jpg directly for smaller file size without retina doubling
+        # If output_path is PNG, change the extension to JPG to significantly compress it
+        if output_path.suffix.lower() == '.png':
+            output_path = output_path.with_suffix('.jpg')
+            config.filename = output_path.name
+            
         cmd = [
             "shot-scraper",
             config.url,
             "-o", str(output_path),
-            "--width", "1280",
-            "--retina",
+            "--width", "800",
+            "--height", "600",  # limit height to avoid overly long images in articles
+            "--quality", "80",  # 80% JPEG quality
         ]
 
         if config.selector:
@@ -1277,8 +1284,12 @@ def parse_markdown_images(file_path: str) -> List[tuple]:
 
         # Construct filename: file_stem + "_" + slug + ".jpg"
         # Sanitize slug
+        import time
+        import random
         safe_slug = re.sub(r'[^a-zA-Z0-9-_]', '_', slug)
-        filename = f"{file_stem}_{safe_slug}.jpg"
+        # Add timestamp to prevent CDN caching issues
+        timestamp = str(int(time.time()))[-6:] + str(random.randint(10, 99))
+        filename = f"{file_stem}_{safe_slug}_{timestamp}.jpg"
 
         config = ImageConfig(
             name=desc,
@@ -1344,8 +1355,12 @@ def parse_markdown_screenshots(file_path: str) -> List[tuple]:
                 js = js_match.group(1).strip()
 
         # Construct filename
+        import time
+        import random
         safe_slug = re.sub(r'[^a-zA-Z0-9-_]', '_', slug)
-        filename = f"{file_stem}_{safe_slug}.png"
+        # Add timestamp to prevent CDN caching issues
+        timestamp = str(int(time.time()))[-6:] + str(random.randint(10, 99))
+        filename = f"{file_stem}_{safe_slug}_{timestamp}.png"
 
         config = ScreenshotConfig(
             slug=slug,
@@ -1365,12 +1380,16 @@ def update_markdown_file(file_path: str, results: Dict, matches: List[tuple],
                          screenshot_matches: List[tuple] = None):
     """
     Update Markdown file with uploaded image/screenshot URLs.
+        # Replace jsdelivr CDN with fastly for better domestic access
+
     """
     total_uploaded = results.get('uploaded', 0)
     screenshot_results = results.get('screenshot_results', {})
     screenshot_uploaded = screenshot_results.get('uploaded', 0)
+    screenshot_captured = screenshot_results.get('captured', 0)
 
-    if total_uploaded == 0 and screenshot_uploaded == 0:
+    # Skip only if nothing was uploaded AND no screenshots were captured locally
+    if total_uploaded == 0 and screenshot_uploaded == 0 and screenshot_captured == 0:
         return
 
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -1397,7 +1416,9 @@ def update_markdown_file(file_path: str, results: Dict, matches: List[tuple],
         screenshot_url_map = {}
         for s in screenshot_results.get('screenshots', []):
             if s.get('cdn_url'):
-                screenshot_url_map[s['filename']] = s['cdn_url']
+                # Replace standard CDN with fastly for better access in China
+                fastly_url = s['cdn_url'].replace('cdn.jsdelivr.net', 'fastly.jsdelivr.net')
+                screenshot_url_map[s['filename']] = fastly_url
             elif s.get('local_path'):
                 screenshot_url_map[s['filename']] = s['local_path']
 

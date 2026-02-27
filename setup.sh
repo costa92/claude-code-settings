@@ -139,7 +139,7 @@ claude-code-plugins|anthropics/claude-code
 superpowers-marketplace|obra/superpowers-marketplace
 "
 
-echo "$MARKETPLACES" | while IFS='|' read -r mp_name repo; do
+while IFS='|' read -r mp_name repo; do
   # Skip empty lines
   [[ -z "$mp_name" ]] && continue
 
@@ -147,20 +147,20 @@ echo "$MARKETPLACES" | while IFS='|' read -r mp_name repo; do
 
   if [[ -d "$target/.git" ]]; then
     info "$mp_name — git pull 更新中..."
-    if git -C "$target" pull --ff-only --quiet 2>/dev/null; then
+    if git -C "$target" pull --ff-only --quiet </dev/null 2>/dev/null; then
       ok "$mp_name 已更新"
     else
       warn "$mp_name git pull 失败，可能有本地修改，跳过"
     fi
   else
     info "$mp_name — 正在克隆 $repo..."
-    if git clone --quiet "https://github.com/$repo.git" "$target" 2>/dev/null; then
+    if git clone --quiet "https://github.com/$repo.git" "$target" </dev/null 2>/dev/null; then
       ok "$mp_name 克隆完成"
     else
       fail "$mp_name 克隆失败 — 请检查网络或仓库地址"
     fi
   fi
-done
+done <<< "$MARKETPLACES"
 
 # Generate known_marketplaces.json
 info "生成 $KNOWN_MP_FILE"
@@ -262,7 +262,7 @@ superpowers@superpowers-marketplace|superpowers-marketplace|superpowers|4.1.1|ex
 kiro-skill@claude-code-settings|claude-code-settings|kiro-skill|1.0.0|symlink|$PLUGINS_DIR/kiro-skill
 "
 
-echo "$PLUGIN_DEFS" | while IFS='|' read -r plugin_id marketplace plugin version source_type source_path; do
+while IFS='|' read -r plugin_id marketplace plugin version source_type source_path; do
   # Skip empty lines
   [[ -z "$plugin_id" ]] && continue
 
@@ -287,10 +287,7 @@ echo "$PLUGIN_DEFS" | while IFS='|' read -r plugin_id marketplace plugin version
 
   # Fallback: manual install
   install_plugin_manual "$marketplace" "$plugin" "$version" "$source_type" "$source_path"
-done
-
-# =========================================================================
-# Step 4.5: installed_plugins.json 路径修正
+done <<< "$PLUGIN_DEFS"
 # =========================================================================
 INSTALLED_PLUGINS="$PLUGINS_DIR/installed_plugins.json"
 if [[ -f "$INSTALLED_PLUGINS" ]]; then
@@ -469,7 +466,7 @@ else
   # Format: "tool_name|npm_package|skill_dir|description|check_type"
   # check_type: cli = command -v, lib = npm list -g
   NPM_TOOLS="
-defuddle-cli|defuddle-cli|defuddle|网页内容提取（defuddle skill）|cli
+defuddle|defuddle-cli|defuddle|网页内容提取（defuddle skill）|cli
 pptxgenjs|pptxgenjs|pptx|PowerPoint 生成（pptx skill）|lib
 decktape|decktape|revealjs|Reveal.js 导出 PDF（revealjs skill）|cli
 "
@@ -483,7 +480,7 @@ decktape|decktape|revealjs|Reveal.js 导出 PDF（revealjs skill）|cli
     fi
   }
 
-  echo "$NPM_TOOLS" | while IFS='|' read -r tool pkg skill desc check_type; do
+  while IFS='|' read -r tool pkg skill desc check_type; do
     [[ -z "$tool" ]] && continue
     # Only check if the skill is installed
     [[ ! -d "$CLAUDE_DIR/skills/$skill" ]] && continue
@@ -500,7 +497,7 @@ decktape|decktape|revealjs|Reveal.js 导出 PDF（revealjs skill）|cli
         info "跳过 — 可稍后运行: npm install -g $pkg"
       fi
     fi
-  done
+  done <<< "$NPM_TOOLS"
 fi
 
 # =========================================================================
@@ -516,7 +513,7 @@ info "检查清单:"
 [[ -d "$CACHE_DIR" ]] && ok "plugins/cache/ ($(ls "$CACHE_DIR" | wc -l | tr -d ' ') plugins)" || fail "plugins/cache/"
 command -v soffice &>/dev/null && ok "LibreOffice" || warn "LibreOffice 未安装（pptx/docx/pdf/xlsx skill 需要）"
 command -v pdftoppm &>/dev/null && ok "Poppler (pdftoppm)" || warn "Poppler 未安装（pptx/docx/pdf skill 需要）"
-command -v defuddle-cli &>/dev/null && ok "defuddle-cli" || warn "defuddle-cli 未安装（defuddle skill 需要: npm install -g defuddle-cli）"
+command -v defuddle &>/dev/null && ok "defuddle" || warn "defuddle 未安装（defuddle skill 需要: npm install -g defuddle-cli）"
 npm list -g --depth=0 pptxgenjs 2>/dev/null | grep -q pptxgenjs && ok "pptxgenjs" || warn "pptxgenjs 未安装（pptx skill 需要: npm install -g pptxgenjs）"
 python3 -c "import playwright" &>/dev/null && ok "playwright (Python)" || warn "playwright 未安装（webapp-testing skill 需要）"
 echo ""
