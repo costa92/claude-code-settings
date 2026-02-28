@@ -5,7 +5,11 @@ description: Convert Markdown articles to WeChat Official Account compatible HTM
 
 > **Trigger Behavior**: When user wants to convert a Markdown article to WeChat format, ALWAYS use AskUserQuestion with smart priority mode - (1) show 3 recommended themes (Coffee/Tech/Warm) + "view more" option; (2) if "view more" selected, show 3 MD2 themes + "back to recommended" option; (3) if "back" selected, show 3 recommended themes + Simple theme. After conversion completes successfully, AUTOMATICALLY start the preview server by running: python3 ${SKILL_DIR}/scripts/preview_server.py
 >
-> **Go Backend Trigger**: When user wants to upload to WeChat draft box, generate AI images, use writing assistant, remove AI traces (humanize), or use AI/API themed conversion, use the Go backend: `bash ${SKILL_DIR}/scripts/md2wechat_backend.sh`
+> **Go Backend Trigger**: When user wants to generate AI images, use writing assistant, remove AI traces (humanize), or use AI/API themed conversion, use the Go backend: `bash ${SKILL_DIR}/scripts/md2wechat_backend.sh`
+>
+> **Draft Upload Trigger**: When user wants to upload an article to WeChat draft box, ALWAYS prefer `upload_draft.py` over manual steps. It handles conversion, image upload, cover extraction, and draft creation in one command: `python3 ${SKILL_DIR}/scripts/upload_draft.py article.md --theme coffee`
+>
+> **Default Author**: When generating any draft JSON for WeChat (create_draft or convert --draft), ALWAYS set `"author": "月影"` unless the user explicitly specifies a different author.
 
 # WeChat Article Converter
 
@@ -39,6 +43,9 @@ python3 ${SKILL_DIR}/scripts/preview_server.py
 
 # 纯净模式（无预览框架）
 python3 ${SKILL_DIR}/scripts/convert_to_wechat.py article.md --theme tech --no-preview-mode
+
+# 一键上传到微信草稿箱（推荐）
+python3 ${SKILL_DIR}/scripts/upload_draft.py article.md --theme coffee
 ```
 
 ### Python CLI 完整参数
@@ -64,8 +71,40 @@ OPTIONS:
 
 Go 后端提供 Python 引擎不具备的高级功能。通过 `md2wechat_backend.sh` 调用，首次运行自动下载二进制文件。
 
-### 草稿箱上传
-将转换后的文章直接上传到微信公众号草稿箱。需要配置 `WECHAT_APPID` 和 `WECHAT_SECRET`。
+### 草稿箱上传（一键脚本，推荐）
+
+`upload_draft.py` 一条命令完成：Markdown 转换 → 图片上传到微信素材库 → URL 替换 → 封面提取 → 草稿创建。解决了外部 CDN 图片被微信过滤的问题。
+
+```bash
+# 一键上传（推荐）
+python3 ${SKILL_DIR}/scripts/upload_draft.py article.md --theme coffee
+
+# 指定作者和封面
+python3 ${SKILL_DIR}/scripts/upload_draft.py article.md --theme tech --author 月影 --cover cover.jpg
+```
+
+**upload_draft.py 参数：**
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `file` | (必填) | Markdown 文件路径 |
+| `--theme` | coffee | Python 引擎主题 |
+| `--author` | 月影 | 文章作者 |
+| `--cover` | (自动) | 封面图文件路径，默认使用文章中 alt 含"封面"或第一张图 |
+
+**自动化流程：**
+1. 解析 YAML frontmatter（title, description）
+2. 调用 `convert_to_wechat.py` 转换 HTML（纯净模式）
+3. 扫描 HTML 中所有 `<img>` 外部链接
+4. 逐个上传图片到微信素材库（串行，避免竞态）
+5. 替换 HTML 中的图片 URL（CDN → mmbiz.qpic.cn）
+6. 提取封面图 media_id，从正文中移除封面图
+7. 移除 h1 标题（避免与草稿标题重复）
+8. 构建 draft JSON，调用 Go 后端 `create_draft` 上传
+
+### 草稿箱上传（Go 后端方式）
+
+也可以使用 Go 后端直接上传（不处理外部图片替换）：
 
 ```bash
 bash ${SKILL_DIR}/scripts/md2wechat_backend.sh convert article.md --draft --cover cover.jpg
@@ -237,7 +276,14 @@ bash ${SKILL_DIR}/scripts/md2wechat_backend.sh convert article.md --mode ai --th
 3. 浏览器预览 → 微信编辑器 → 发布
 ```
 
-### 场景 2：写作 + 转换 + 上传（Go 后端全流程）
+### 场景 2：一键上传到微信草稿箱（推荐）
+
+```bash
+# 自动处理图片 + 封面 + 上传（解决外部图片被微信过滤的问题）
+python3 ${SKILL_DIR}/scripts/upload_draft.py article.md --theme coffee
+```
+
+### 场景 3：写作 + 去痕 + 上传（完整 AI 流水线）
 
 ```bash
 # 1. AI 写作
@@ -246,17 +292,17 @@ bash ${SKILL_DIR}/scripts/md2wechat_backend.sh write --style dan-koe
 # 2. 去 AI 痕迹
 bash ${SKILL_DIR}/scripts/md2wechat_backend.sh humanize article.md
 
-# 3. 转换 + 上传草稿箱
-bash ${SKILL_DIR}/scripts/md2wechat_backend.sh convert article.md --draft --cover cover.jpg
+# 3. 一键上传到草稿箱（含图片上传）
+python3 ${SKILL_DIR}/scripts/upload_draft.py article.md --theme coffee
 ```
 
-### 场景 3：批量转换
+### 场景 4：批量转换
 
 ```bash
 python3 ${SKILL_DIR}/scripts/batch_convert.py ./articles -r --theme tech --output ./wechat_output
 ```
 
-### 场景 4：本地预览服务器
+### 场景 5：本地预览服务器
 
 ```bash
 python3 ${SKILL_DIR}/scripts/preview_server.py --port 8080 --dir ./articles
@@ -407,9 +453,15 @@ wechat-article-converter  转换为微信格式（Python 或 Go）
 - **content-repurposer**: 多平台内容分发
 - **content-analytics**: 文章数据分析
 - **wechat-seo-optimizer**: 标题和摘要优化
-- **nanobanana**: 图片生成
+- **nanobanana-skill**: 图片生成
 
 ---
+
+**Version:** 2.1.0 (Updated 2026-02-28)
+**Changes:**
+- 新增 `upload_draft.py`：一键上传 Markdown 到微信草稿箱，自动处理外部图片上传替换
+- 修复外部 CDN 图片（如 cdn.jsdelivr.net）被微信过滤的问题
+- 更新触发行为：草稿上传优先使用 `upload_draft.py`
 
 **Version:** 2.0.0 (Updated 2026-02-26)
 **Changes:**
