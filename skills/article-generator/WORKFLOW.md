@@ -31,6 +31,21 @@
    ├─ 文章长度（~2000-3000 字推荐）
    └─ 图片需求（封面 + 节奏图）
 
+1a. 📁 确定保存目录（知识库项目强制）
+   ├─ 检测是否在知识库中工作（检查 02-技术/ 目录是否存在）
+   ├─ 分析文章主题 → 自动匹配 02-技术/ 下的子目录
+   │   ├─ AI 工具 → 02-技术/AI-生态/工具/
+   │   ├─ 模型评测 → 02-技术/AI-生态/模型评测/
+   │   ├─ Agent → 02-技术/AI-生态/Agent/
+   │   ├─ Claude Code → 02-技术/AI-生态/Claude-Code/
+   │   ├─ Go 语言 → 02-技术/基础设施/Go/
+   │   ├─ n8n → 02-技术/工作流/n8n/（按需创建）
+   │   ├─ Cloudflare → 02-技术/基础设施/Cloudflare/
+   │   └─ 新主题 → 02-技术/<新建目录>/
+   ├─ 目录不存在时 → mkdir -p 创建
+   ├─ 设置 ARTICLE_DIR = <知识库根目录>/02-技术/<匹配子目录>/
+   └─ 非知识库项目 → 使用当前工作目录
+
 2. 研究 & 验证（强制性）
    ├─ WebSearch 查找官方文档
    ├─ 验证所有工具/命令存在
@@ -46,8 +61,9 @@
 
 4. 💾 保存文章到文件（强制性 - 不可跳过）
    ├─ 从文章标题生成文件名（如 "kimi-k25-claude-code.md"）
+   ├─ 保存到 ARTICLE_DIR（匹配的知识库目录），不是当前目录
    ├─ 使用 Write 工具保存内容到文件
-   ├─ 向用户确认文件路径（如 "./kimi-k25-claude-code.md"）
+   ├─ 向用户确认文件路径（如 "02-技术/AI-生态/Claude-Code/kimi-k25-claude-code.md"）
    └─ 绝不只在聊天中显示内容而不保存文件
 
 5. 🎨 图片生成（如果请求）
@@ -90,6 +106,10 @@
    ├─ 文章长度
    └─ 确认："暂时跳过图片"
 
+1a. 📁 确定保存目录（与标准流程相同）
+   ├─ 检测知识库 → 自动匹配 02-技术/ 子目录
+   └─ 目录不存在时自动创建
+
 2. 研究 & 验证（强制性）
    ├─ 与标准流程相同
    └─ 报告已验证/未验证项目
@@ -104,8 +124,9 @@
 
 4. 💾 保存文章到文件（强制性）
    ├─ 从标题生成文件名
+   ├─ 保存到 ARTICLE_DIR（匹配的知识库目录）
    ├─ 使用 Write 工具保存到文件
-   ├─ 向用户确认文件路径
+   ├─ 向用户确认文件路径（如 "02-技术/AI-生态/工具/article.md"）
    └─ 在保存的文件中包含图片占位符
 
 5. 稍后添加图片（可选）
@@ -1096,14 +1117,16 @@ python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
 
 ### 输出
 
-22. **输出到当前目录**: 在用户的 pwd 中生成，而不是 skill 目录
-23. **响应中的文件路径**: 显示给用户时使用相对路径（如 `./article_name.md`），但调用图片生成脚本时使用绝对路径
+22. **输出到知识库对应目录**: 当在知识库项目中工作时（检测到 `02-技术/` 目录），文章保存到 `02-技术/` 下匹配的子目录，而非当前工作目录或 skill 目录。若未检测到知识库，则回退到用户的 pwd。
+23. **自动匹配目录**: 分析文章主题关键词确定最佳子目录，不存在时用 `mkdir -p` 创建。
+24. **响应中的文件路径**: 显示给用户时使用相对于知识库根目录的路径（如 `02-技术/AI-生态/Claude-Code/article.md`），但调用图片生成脚本时使用绝对路径。
+25. **绝不硬编码路径**: 动态使用知识库根目录，不在 skill 逻辑中写死绝对路径。
 
 ---
 
 ## 常见场景示例
 
-### 场景 1: 标准技术博客（带图片）
+### 场景 1: 标准技术博客（带图片，知识库项目）
 
 **用户请求**: "写一篇关于 Docker 容器化的实战教程"
 
@@ -1111,14 +1134,15 @@ python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
 1. ✅ 使用 AskQuestion 明确受众（开发者）
 2. ✅ 使用 AskQuestion 确认长度（2000-3000字）
 3. ✅ 使用 AskQuestion 确认图片（封面 + 节奏图）
-4. ✅ 验证：Docker 在白名单中，基本命令可信任
-5. ✅ 生成文章内容（YAML + 结构 + 代码 + callouts）
-6. ✅ 使用 Write 工具保存到 `docker-containerization-guide.md`
-7. ✅ 获取绝对路径：`realpath docker-containerization-guide.md`
-8. ✅ 生成图片：`python3 ... --process-file /absolute/path/docker-containerization-guide.md`
-9. ✅ 最终审查并向用户确认
+4. ✅ 确定保存目录：Docker → `02-技术/基础设施/Docker/`，`mkdir -p` 创建
+5. ✅ 验证：Docker 在白名单中，基本命令可信任
+6. ✅ 生成文章内容（YAML + 结构 + 代码 + callouts）
+7. ✅ 使用 Write 工具保存到 `02-技术/基础设施/Docker/docker-containerization-guide.md`
+8. ✅ 获取绝对路径：`realpath 02-技术/基础设施/Docker/docker-containerization-guide.md`
+9. ✅ 生成图片：`python3 ... --process-file /absolute/path/docker-containerization-guide.md`
+10. ✅ 最终审查并向用户确认
 
-### 场景 2: 快速草稿（无图片）
+### 场景 2: 快速草稿（无图片，知识库项目）
 
 **用户请求**: "快速写一篇 Kubernetes 入门，先不要图片"
 
@@ -1126,11 +1150,12 @@ python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
 1. ✅ 使用 AskQuestion 明确受众（初学者）
 2. ✅ 使用 AskQuestion 确认长度（500-1000字）
 3. ✅ 确认：跳过图片，使用占位符
-4. ✅ 验证：Kubernetes 在白名单中
-5. ✅ 生成文章内容（包含图片占位符）
-6. ✅ 使用 Write 工具保存到 `kubernetes-quickstart.md`
-7. ✅ 向用户确认文件路径
-8. ✅ 告知用户稍后可以运行图片生成
+4. ✅ 确定保存目录：Kubernetes → 新主题 → `02-技术/基础设施/Kubernetes/`，`mkdir -p` 创建
+5. ✅ 验证：Kubernetes 在白名单中
+6. ✅ 生成文章内容（包含图片占位符）
+7. ✅ 使用 Write 工具保存到 `02-技术/基础设施/Kubernetes/kubernetes-quickstart.md`
+8. ✅ 向用户确认文件路径
+9. ✅ 告知用户稍后可以运行图片生成
 
 ### 场景 3: 翻译和本地化
 

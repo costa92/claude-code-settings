@@ -266,21 +266,65 @@ bash ${SKILL_DIR}/scripts/md2wechat_backend.sh convert article.md --mode ai --th
 
 ---
 
+## 📁 Knowledge Base Integration (知识库目录规则)
+
+**当用户的工作目录是 Obsidian 知识库时，转换后的微信 HTML 文件必须保存到 `03-创作/已发布/<年月>/` 目录（按发布时间归档）。**
+
+### 目录规则
+
+| 文件类型 | 保存目录 | 说明 |
+|----------|---------|------|
+| Markdown 源文件 | `02-技术/<对应子目录>/` | 由 article-generator 生成 |
+| 微信 HTML 输出 | `03-创作/已发布/<年月>/` | 按年月归档（如 `2026-03/`） |
+
+### 执行规则
+
+1. **自动检测知识库**：检查当前项目是否存在 `03-创作/已发布/` 目录
+2. **HTML 输出路径**：转换后的 `_wechat.html` 文件保存到 `03-创作/已发布/<当前年月>/`，而非 Markdown 源文件同目录
+3. **在知识库根目录执行**：所有转换命令都在知识库根目录下执行，使用相对路径引用源文件
+4. **绝不硬编码路径**：动态获取知识库根目录，不写死绝对路径
+5. **upload_draft.py**：上传草稿时，从知识库目录内的 Markdown 文件路径读取
+
+### 示例
+
+```bash
+# 假设知识库根目录为 PROJECT_ROOT，cd 到该目录执行
+cd ${PROJECT_ROOT}
+
+# 转换 02-技术/ 下的文章，HTML 输出到 03-创作/已发布/<年月>/
+python3 ${SKILL_DIR}/scripts/convert_to_wechat.py \
+  02-技术/AI-生态/Claude-Code/claude-code-tips.md \
+  --theme coffee \
+  --output 03-创作/已发布/2026-03/claude-code-tips_wechat.html
+
+# 一键上传到微信草稿箱
+python3 ${SKILL_DIR}/scripts/upload_draft.py \
+  02-技术/AI-生态/Claude-Code/claude-code-tips.md \
+  --theme coffee
+```
+
+---
+
 ## 工作流示例
 
-### 场景 1：从头创建微信文章（完整流程）
+### 场景 1：从头创建微信文章（完整流程，知识库项目）
 
 ```
 1. /article-generator 写一篇关于 Docker 的技术文章
-2. /wechat-article-converter @docker_tutorial.md
+   → Markdown 保存到 02-技术/基础设施/Docker/docker_tutorial.md
+2. /wechat-article-converter @02-技术/基础设施/Docker/docker_tutorial.md
+   → HTML 输出到 03-创作/已发布/2026-03/docker_tutorial_wechat.html
 3. 浏览器预览 → 微信编辑器 → 发布
 ```
 
 ### 场景 2：一键上传到微信草稿箱（推荐）
 
 ```bash
-# 自动处理图片 + 封面 + 上传（解决外部图片被微信过滤的问题）
-python3 ${SKILL_DIR}/scripts/upload_draft.py article.md --theme coffee
+# 在知识库根目录执行，自动处理图片 + 封面 + 上传
+cd ${PROJECT_ROOT}
+python3 ${SKILL_DIR}/scripts/upload_draft.py \
+  02-技术/AI-生态/Claude-Code/claude-code-tips.md \
+  --theme coffee
 ```
 
 ### 场景 3：写作 + 去痕 + 上传（完整 AI 流水线）
