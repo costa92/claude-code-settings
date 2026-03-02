@@ -15,7 +15,7 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 
 ### Phase A: 写作前（尽量并行，减少 bash 调用次数）
 1. **[ ] Clarify requirements** — 用户明确指定时可跳过 AskUserQuestion
-2. **[ ] Feature discovery** — 写工具类文章时，必须先摸清工具的完整功能面：
+2. **[ ] Feature discovery** — 写工具类文章时，必须先摸清工具的完整功能面（**新文章和更新旧文章都必须执行**）：
    - **已安装**：运行 `tool --help` 查看所有子命令，逐个 `subcommand --help` 了解新功能
    - **未安装**：Docker 临时环境（`docker run --rm -it`，真实数据+可截图）→ GitHub README → 官方文档 CLI 参考页 → `gh api repos/.../releases` 查最近版本
    - **官方博客/Changelog**：用 curl 抓取最近博客标题，识别新功能
@@ -33,11 +33,19 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 7. **[ ] Update article with CDN URLs** — 截图和 AI 图分开处理，截图通常不受 Gemini 影响
 
 ### Phase C: 写作后（按场景裁剪）
-8. **[ ] Verify content depth** — 字数要求见下表
-9. **[ ] Quality gate** — 按场景选择审查模式：
+8. **[ ] Self-check** — 跑 reviewer 前快速自检常见扣分项：
+   - 有收尾行动指引段落？（不是"希望对你有帮助"）
+   - 有红旗词？（搜索"无缝""赋能""一站式""综上所述"等）
+   - 每个章节有足够深度？（≥2 条命令或代码 + 解释，不能只有 1 条命令 1 句话）
+   - 开头 Hook 在 100 字内？环境声明用 callout 包裹？
+9. **[ ] Verify content depth** — 字数要求见下表
+10. **[ ] Quality gate** — 按场景选择审查模式：
    - **发布模式**（默认）：运行 `/content-reviewer` ≥ 48/60，运行 `/wechat-seo-optimizer`
    - **草稿/测试模式**（用户说"测试""草稿""先看看"）：自行快速检查事实准确性和链接，跳过 reviewer 和 SEO
-10. **[ ] Confirm completion** — 用简洁表格汇总：文件路径、图片状态、审查结果
+11. **[ ] Confirm completion** — 用简洁表格汇总，必须包含以下信息：
+    - **文件绝对路径**（方便跨 session 接手）
+    - **图片状态**：已上传数 / 总数，如有未生成的占位符需列出具体数量和待执行命令
+    - **审查结果**：评分和状态
 
 **字数要求：**
 
@@ -150,9 +158,10 @@ Phase B: 写作（先文章后图片）
   7. 截图始终执行（不依赖 Gemini）
 
 Phase C: 写作后（按场景裁剪）
-  8. 发布模式：/content-reviewer ≥ 48 → /wechat-seo-optimizer
+  8. Self-check（收尾段落、红旗词、章节深度、Hook 长度）
+  9. 发布模式：/content-reviewer ≥ 48 → /wechat-seo-optimizer
      草稿模式：自行快速检查，跳过 reviewer 和 SEO
-  9. 简洁表格汇总结果
+ 10. 简洁表格汇总（绝对路径 + 图片状态含未解决占位符 + 评分）
 ```
 
 ### Article-Only Workflow (Fast Track)
