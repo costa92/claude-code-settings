@@ -100,13 +100,13 @@ python3 ${SKILL_DIR}/scripts/nanobanana.py \
   --prompt "test" --size 1024x1024 --output /tmp/gemini_probe.jpg
 # 成功 → 用默认模型
 
-# 2. 默认失败（503/429）→ 降级到 flash
+# 2. 默认失败（503/429/No data received）→ 降级到 flash
 python3 ${SKILL_DIR}/scripts/nanobanana.py \
   --prompt "test" --size 1024x1024 --output /tmp/gemini_probe.jpg \
   --model gemini-2.5-flash-image
 # 成功 → 所有后续命令加 --model gemini-2.5-flash-image
 
-# 3. flash 也失败 → 跳过 AI 图片，保留占位符
+# 3. flash 也失败（503/429/No data received）→ 跳过 AI 图片，保留占位符
 ```
 
 **降级链**：`gemini-3-pro-image-preview`（默认）→ `gemini-2.5-flash-image`（降级）→ 保留占位符
@@ -182,6 +182,23 @@ Optional parameters:
 - 外部第三方网站 → **禁止 SELECTOR**，DOM 结构随时变化会导致截图失败
 - 本地服务或可控系统 → 可以使用 SELECTOR
 - 外部网站统一使用 `WAIT: 3000` 等待加载
+
+## Screenshot Execution (Independent of Gemini)
+
+截图使用 `shot-scraper` 直接执行，**不依赖 Gemini API**，不经过 `generate_and_upload_images.py`。
+
+```bash
+# 单张截图
+shot-scraper https://example.com -o /tmp/screenshot.jpg --wait 3000
+
+# 截图后上传到 CDN
+picgo upload /tmp/screenshot.jpg
+
+# 注意：generate_and_upload_images.py 没有 --screenshots-only 标志
+# 截图必须用 shot-scraper 直接执行
+```
+
+**执行顺序**：先跑截图（始终可用）→ 再跑 AI 图（可能不可用）→ 分别上传 CDN
 
 **Placement Rules:**
 - SCREENSHOT 占位符**不能插入 Markdown 列表（`-` 项）之间**，必须放在整个列表块结束之后

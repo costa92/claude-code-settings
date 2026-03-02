@@ -27,17 +27,17 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
    - 详见 [verification-checklist.md](references/verification-checklist.md)
 
 ### Phase B: 写作（先文章后图片）
-3. **[ ] Save article to file** — Use `Write` tool，NEVER just display in chat
-4. **[ ] SCREENSHOT placeholders** — 引用外部内容时必须插入（截图是事实素材）
-5. **[ ] Image generation (if requested)** — 先执行 Gemini 探针测试（见下方），失败则保留占位符跳过
-6. **[ ] Update article with CDN URLs** — 截图和 AI 图分开处理，截图通常不受 Gemini 影响
+4. **[ ] Save article to file** — Use `Write` tool，NEVER just display in chat
+5. **[ ] SCREENSHOT placeholders** — 引用外部内容时必须插入（截图是事实素材）
+6. **[ ] Image generation (if requested)** — 先执行 Gemini 探针测试（见下方），失败则保留占位符跳过
+7. **[ ] Update article with CDN URLs** — 截图和 AI 图分开处理，截图通常不受 Gemini 影响
 
 ### Phase C: 写作后（按场景裁剪）
-7. **[ ] Verify content depth** — 字数要求见下表
-8. **[ ] Quality gate** — 按场景选择审查模式：
+8. **[ ] Verify content depth** — 字数要求见下表
+9. **[ ] Quality gate** — 按场景选择审查模式：
    - **发布模式**（默认）：运行 `/content-reviewer` ≥ 48/60，运行 `/wechat-seo-optimizer`
    - **草稿/测试模式**（用户说"测试""草稿""先看看"）：自行快速检查事实准确性和链接，跳过 reviewer 和 SEO
-9. **[ ] Confirm completion** — 用简洁表格汇总：文件路径、图片状态、审查结果
+10. **[ ] Confirm completion** — 用简洁表格汇总：文件路径、图片状态、审查结果
 
 **字数要求：**
 
@@ -51,9 +51,12 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 
 **1. 批量验证（减少 bash 调用）**
 ```bash
-# 链接验证：一次 bash 调用验证所有 URL
+# 链接验证：一次 bash 调用验证所有 URL（含 HEAD→GET 降级）
 for url in URL1 URL2 URL3; do
   code=$(curl -sI -o /dev/null -w "%{http_code}" --max-time 10 "$url")
+  if [ "$code" = "405" ] || [ "$code" = "000" ]; then
+    code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url")
+  fi
   [ "$code" != "200" ] && echo "FAIL $code $url"
 done
 
@@ -74,7 +77,7 @@ python3 ${SKILL_DIR}/scripts/nanobanana.py \
   --model gemini-2.5-flash-image
 # 成功 → 用 flash 模型继续 --process-file --model gemini-2.5-flash-image
 
-# 步骤 3：flash 也失败 → 跳过 AI 图片，保留占位符
+# 步骤 3：flash 也失败（503/429/No data received）→ 跳过 AI 图片，保留占位符
 ```
 
 **模型降级链**：`gemini-3-pro-image-preview`（默认，质量最高）→ `gemini-2.5-flash-image`（速度快，可用性高）→ 保留占位符
@@ -154,7 +157,7 @@ Phase C: 写作后（按场景裁剪）
 
 ### Article-Only Workflow (Fast Track)
 
-Same as standard but skip step 5 (images). Include placeholders for later:
+Same as standard but skip step 6-7 (images). Include placeholders for later:
 ```markdown
 <!-- IMAGE: cover - 封面图 (16:9) -->
 <!-- PROMPT: your image generation prompt here -->
