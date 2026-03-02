@@ -1,5 +1,5 @@
 ---
-name: ai-daily-news
+name: ai-daily
 description: Fetches AI news from multiple sources (smol.ai, Import AI, Last Week in AI, Ahead of AI, TLDR AI) and generates structured markdown with intelligent summarization and categorization. Optionally creates beautiful HTML webpages with Apple-style themes and shareable card images. Use when user asks about AI news, daily tech updates, or wants news organized by date or category.
 ---
 

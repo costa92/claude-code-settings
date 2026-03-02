@@ -495,9 +495,8 @@ class WeChatConverter:
             # decoration_h2 = '<span style="color: #d4875f; margin-right: 8px; font-size: 16px;">✦</span>'
             # html_body = re.sub(r'(<h2>)', f'\\1{decoration_h2}', html_body)
 
-            # Add HR decoration: ◈
-            # Replace <hr> with a custom div structure
-            decoration_hr = '<div style="text-align: center; margin: 40px 0;"><div style="border-top: 2px solid #f0e6d8;"></div><div style="text-align: center; margin-top: -10px; color: #d4875f; font-size: 12px; position: relative; top: -12px; background-color: #faf9f5; display: inline-block; padding: 0 10px;">◈</div></div>'
+            # Add HR decoration: ◈ (WeChat-compatible: hr + negative margin overlay)
+            decoration_hr = '<hr style="border: none; border-top: 1px solid #e8ddd0; margin: 35px 0 0 0;"><p style="text-align: center; margin-top: -10px; margin-bottom: 35px; font-size: 12px; line-height: 1;"><span style="background-color: #faf9f5; padding: 0 15px; color: #d4875f;">◈</span></p>'
             html_body = re.sub(r'<hr\s*/?>', decoration_hr, html_body)
 
         return html_body

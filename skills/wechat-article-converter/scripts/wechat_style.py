@@ -357,7 +357,7 @@ li {
 table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
 th { background-color: #fff3e0; color: #d9730d; padding: 10px; border: 1px solid #f2e3d5; }
 td { padding: 10px; border: 1px solid #f2e3d5; color: #595959; }
-hr { border: none; border-top: 1px dashed #d9730d; margin: 40px 0; opacity: 0.3; }
+hr { border: none; border-top: 1px dashed #f2d5b8; margin: 40px 0; }
 .references-section { margin-top: 40px; padding-top: 20px; border-top: 1px solid #f2e3d5; }
 .references-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #d9730d; }
 .reference-item { font-size: 13px; color: #a69080; margin-bottom: 5px; }
@@ -495,6 +495,7 @@ ul { list-style-type: square; }
 .references-section { margin-top: 50px; padding-top: 30px; border-top: 4px solid #000; }
 .references-title { font-weight: 900; font-size: 18px; margin-bottom: 20px; text-transform: uppercase; }
 .reference-item { font-family: monospace; font-size: 12px; margin-bottom: 8px; color: #444; }
+hr { border: none; border-top: 2px solid #000; margin: 40px 0; }
 """
 
 # ==============================================================================
@@ -637,6 +638,7 @@ img {
 }
 
 /* 底部引用 */
+hr { border: none; border-top: 1px solid #eaecef; margin: 40px 0; }
 .references-section {
     margin-top: 40px;
     padding-top: 20px;
@@ -780,6 +782,7 @@ img {
 }
 
 /* 引用区 */
+hr { border: none; border-top: 2px solid #2c3e50; margin: 40px 0; }
 .references-section {
     margin-top: 40px;
     border-top: 2px solid #2c3e50;
@@ -927,6 +930,7 @@ img {
 }
 
 /* 引用区 */
+hr { border: none; border-top: 1px dashed #c5a3ff; margin: 40px 0; }
 .references-section {
     margin-top: 40px;
     padding-top: 20px;
@@ -1180,7 +1184,6 @@ hr {
     border: none;
     border-top: 2px solid #f0e6d8;
     margin: 40px 0;
-    position: relative;
 }
 
 /* Pseudo-elements removed as they don't work with inline styles

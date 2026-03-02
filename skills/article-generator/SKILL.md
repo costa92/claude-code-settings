@@ -59,20 +59,40 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
      ```
 
 3. **[ ] Generate screenshots for external content (MANDATORY, independent of image choice)**
-   - ✅ CORRECT: 当文章引用第三方工具、产品、文档时，必须为其生成 SCREENSHOT 占位符
+   - ✅ CORRECT: 在**写文章内容时**，遇到外部引用就立即插入 SCREENSHOT 占位符——不要等到文章写完再补
    - ✅ CORRECT: 即使用户说"不需要图片"，截图仍然必须生成——截图是事实性素材，不是装饰性插图
    - ❌ WRONG: 引用外部产品/工具但只有文字描述，没有截图
+   - ❌ WRONG: 文章写完再统一"补"截图占位符（容易遗漏）
    - **判断规则**：
      - 文章提到某个工具的 UI 界面 → 截图
      - 文章引用某个官方文档页面 → 截图
      - 文章介绍第三方产品的功能 → 截图其官网/文档/演示页面
      - 文章中有"如下图所示"类表述 → 必须有对应截图
-   - **占位符格式**：
+     - 文章引用某条社交媒体帖子（X/Twitter）→ 截图对应页面（不要在文中放 X.com 链接）
+   - **占位符格式（外部网站默认不加 SELECTOR）**：
      ```markdown
      <!-- SCREENSHOT: tool-name-ui - 工具名称界面截图 -->
      <!-- URL: https://example.com -->
-     <!-- SELECTOR: .main-content -->
+     <!-- WAIT: 3000 -->
      ```
+   - ⚠️ **SELECTOR 使用警告**：外部第三方网站（GitHub、新闻网站、文档站、社交媒体）**禁止使用 SELECTOR**，因为 DOM 结构随时变化、动态加载会导致截图失败。只对本地服务或可控的内部系统使用 SELECTOR。
+   - ⚠️ **列表区放置规则**：SCREENSHOT 占位符**不能插入 Markdown 列表项之间**（即 `-` 项之间），必须放在整个列表块结束之后，否则会破坏列表格式。
+   - ⚠️ **参考资料区专项规则**：「参考资料 / 参考链接」章节是**纯文字列表区，禁止放置任何图片**。来源截图必须放在正文中引用该来源的上下文段落附近，不能堆在参考资料区。正确做法：
+     ```markdown
+     ## 正文某章节
+     ...提到了 PiunikaWeb 的报道...
+
+     ![PiunikaWeb 报道截图](cdn-url)
+
+     ...后续分析...
+
+     ## 参考资料
+     - **来源 A**: https://...
+     - **来源 B**: https://...
+     - **来源 C**: 纯文字引用（作者 + 平台 + 日期）
+     ```
+     ❌ 错误：截图放在参考资料列表之间或之后
+     ✅ 正确：截图放在正文中提及该来源的段落附近
 
 4. **[ ] Update article with image URLs**
    - ❌ WRONG: Leave placeholder comments in saved file
@@ -89,7 +109,13 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
    - ❌ WRONG: 跳过审查直接交付
    - **注意**：如果综合评分 ≥ 48 且无 🔴 项，可直接进入下一步；否则必须修改后重新审查
 
-7. **[ ] Confirm completion to user**
+7. **[ ] Run wechat-seo-optimizer skill**
+   - ✅ CORRECT: 调用 `/wechat-seo-optimizer` 生成 5 个标题方案 + 微信摘要 + 关键词策略
+   - ✅ CORRECT: 根据推荐标题决定是否更新文章标题（需告知用户并确认）
+   - ✅ CORRECT: 将推荐摘要写入 frontmatter 的 `description` 字段
+   - ❌ WRONG: 跳过 SEO 优化直接交付（标题和摘要对微信打开率影响极大）
+
+8. **[ ] Confirm completion to user**
    - ✅ CORRECT: "✅ 文章已保存到: ./article-name.md"
    - ✅ CORRECT: "✅ 图片已生成并上传，CDN 链接已更新"
    - ✅ CORRECT: "✅ 截图已生成（如涉及外部内容引用）"
@@ -477,6 +503,7 @@ docker run -d --name myapp nginx
    - ✅ 经验证的技术博客
    - ❌ 404 错误链接 → 移除或替换
    - ❌ 编造的 URL → 拒绝文章
+   - ❌ 社交媒体链接（X/Twitter、微博等）→ 无法通过 WebFetch 验证时，改为纯文字引用（作者 + 平台 + 日期），不放 URL；若需展示内容，改用 SCREENSHOT 占位符截图代替
 
 3. **链接格式**
    - 使用明确格式：`**名称**: https://url`
@@ -1037,8 +1064,10 @@ The script now supports **two configuration formats** - use whichever is more co
    └─ **Automatically delete local files after successful upload**
 
 5a. 📸 Screenshots for External Content (MANDATORY, even if "no images")
-   ├─ Scan article for references to external tools/products/docs
-   ├─ Add SCREENSHOT placeholders for each external reference
+   ├─ ⚠️ 在写文章内容时实时插入占位符，遇到外部引用立即添加，不要事后统一补
+   ├─ Scan article for references to external tools/products/docs/social posts
+   ├─ Add SCREENSHOT placeholders **after** any surrounding list block (not between `-` items)
+   ├─ Use WAIT: 3000–5000 for external sites; NEVER use SELECTOR on third-party sites
    ├─ Process via generate_and_upload_images.py --process-file
    └─ If no external references found, skip this step
 
@@ -1161,7 +1190,14 @@ For users who want to **write first, add images later**:
 
 5. **YAML frontmatter required:** Every article must start with metadata (title, date, tags, category, status, aliases)
 2. **Obsidian callouts:** Use `> [!type]` syntax (abstract, info, tip, warning, note, success, quote)
-3. **Single reference section:** One "参考链接" section at end, remove duplicates
+3. **Single reference section:** One "参考链接" or "参考资料" section at end, remove duplicates. **参考资料区是纯文字列表，禁止放置图片**：
+   ```markdown
+   ## 参考资料
+   - **来源名称 A**: https://url-a
+   - **来源名称 B**: https://url-b
+   - **来源名称 C**: 纯文字引用（作者 + 平台 + 日期）
+   ```
+   规则：来源截图必须放在正文引用该来源的段落附近，不能放在参考资料区（无论列表之间还是之后）。
 4. **No redundant sections:** Avoid "互动环节", "写在最后", "下期预告"
 2 **No metadata duplication:** Do NOT repeat tags/date at article end
 
@@ -1207,16 +1243,19 @@ For real webpage screenshots (tool interfaces, code editors, web components), us
 ```markdown
 <!-- SCREENSHOT: slug - 描述文字 -->
 <!-- URL: https://example.com -->
-<!-- SELECTOR: .css-selector -->
+<!-- WAIT: 3000 -->
 ```
 
 Optional parameters (add as needed):
 ```markdown
-<!-- WAIT: 3000 -->
+<!-- SELECTOR: .css-selector -->
 <!-- JS: document.querySelector('.cookie-banner')?.remove() -->
 ```
 
 - `SCREENSHOT` + `URL` are required; `SELECTOR`, `WAIT`, `JS` are optional
+- **⚠️ SELECTOR 使用规则**：对外部第三方网站（GitHub、新闻站、文档站、X/Twitter 等）**禁止使用 SELECTOR**，DOM 结构随时变化会导致截图失败。SELECTOR 仅适用于本地服务或结构稳定的内部系统。外部网站统一使用 `WAIT: 3000` 等待加载即可。
+- **⚠️ 列表区放置规则**：SCREENSHOT 占位符**不能插入 Markdown 列表（`-` 项）之间**，必须放在整个列表块结束之后，否则图片会打断列表格式。
+- **⚠️ 参考资料区专项规则**：「参考资料 / 参考链接」章节是**纯文字列表区，禁止放置任何图片**。来源截图必须放在正文中引用该来源的段落附近。禁止在参考资料列表之间或之后放置截图。
 - Screenshots are processed alongside AI images in `--process-file` mode
 - Default: `--width 1280 --retina --padding 10`
 - Output format: PNG (vs JPG for AI-generated images)

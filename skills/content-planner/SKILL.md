@@ -192,13 +192,13 @@ description: Plan content topics, manage editorial calendar, and build a content
    → 保存到文件（如 content-calendar-2026-02.md）
    → 每次更新时读取并修改状态
 
-5. 可选：配合其他 skill/agent
-   → article-outline-agent: 展开具体选题
-   → article-generator: 撰写文章
-   → content-reviewer: 审核质量
-   → wechat-seo-optimizer: 优化标题
-   → md2wechat: 转换格式
-   → content-repurposer: 多平台分发
+5. 可选：配合其他 skill
+   → article-generator: 展开选题并撰写文章
+   → content-reviewer: 审核文章质量（6 维评分）
+   → wechat-seo-optimizer: 优化标题和摘要
+   → wechat-article-converter: 转换为微信格式并上传草稿箱
+   → content-repurposer: 多平台分发（小红书、Twitter、知乎等）
+   → content-analytics: 发布后数据复盘，反馈到下一轮选题
 ```
 
 ## 关键原则

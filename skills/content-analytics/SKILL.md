@@ -252,7 +252,15 @@ def calculate_metrics(df):
 
 6. 给出可执行的策略建议
    → 结合 content-planner 调整后续选题
+   → 结合 content-reviewer 校准评分维度的权重（如某维度扣分多但阅读量高）
 ```
+
+## 相关 Skill
+
+- **content-planner**: 下游，用分析结果调整选题方向
+- **content-reviewer**: 下游，用数据校准审核标准
+- **article-generator**: 上游，产出待分析的文章
+- **wechat-article-converter**: 上游，发布到微信后产生数据
 
 ## 关键原则
 
