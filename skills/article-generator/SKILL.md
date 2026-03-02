@@ -13,19 +13,78 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 
 ## Execution Checklist (Read This FIRST)
 
-**Before you finish ANY article generation task, verify ALL items below:**
+### Phase A: 写作前（尽量并行，减少 bash 调用次数）
+1. **[ ] Clarify requirements** — 用户明确指定时可跳过 AskUserQuestion
+2. **[ ] Feature discovery** — 写工具类文章时，必须先摸清工具的完整功能面：
+   - **已安装**：运行 `tool --help` 查看所有子命令，逐个 `subcommand --help` 了解新功能
+   - **未安装**：Docker 临时环境（`docker run --rm -it`，真实数据+可截图）→ GitHub README → 官方文档 CLI 参考页 → `gh api repos/.../releases` 查最近版本
+   - **官方博客/Changelog**：用 curl 抓取最近博客标题，识别新功能
+   - **对比已知 vs 实际**：列出差异，新功能必须纳入章节规划
+3. **[ ] Batch verify** — 所有验证**合并为尽量少的 bash 调用**：
+   - **链接**：多个 URL 放在一条 bash 命令中并行验证（`curl ... & curl ... & wait`）
+   - **命令**：有依赖关系的命令用 `&&` 链式执行，无依赖的用多个并行 bash 调用
+   - **只报告失败项**，通过的不输出
+   - 详见 [verification-checklist.md](references/verification-checklist.md)
 
-1. **[ ] Save article to file** — Use `Write` tool to save `.md` file，NEVER just display in chat
-2. **[ ] Verify content** — Follow [verification-checklist.md](references/verification-checklist.md)
-3. **[ ] Generate AI images (if requested)** — See [image-generation-guide.md](references/image-generation-guide.md)
-4. **[ ] Generate screenshots for external content (MANDATORY)** — 即使用户说"不需要图片"，截图仍必须生成——截图是事实性素材，不是装饰性插图
-5. **[ ] Update article with image URLs** — Replace placeholders with CDN URLs
-6. **[ ] Verify content depth** — Word count > 2000 words (unless "quick start")
-7. **[ ] Run content-reviewer skill** — 综合评分 ≥ 48 且无必须修改项
-8. **[ ] Run wechat-seo-optimizer skill** — 生成标题方案 + 微信摘要 + 关键词策略
-9. **[ ] Confirm completion to user** — Report file path, image status, review score
+### Phase B: 写作（先文章后图片）
+3. **[ ] Save article to file** — Use `Write` tool，NEVER just display in chat
+4. **[ ] SCREENSHOT placeholders** — 引用外部内容时必须插入（截图是事实素材）
+5. **[ ] Image generation (if requested)** — 先执行 Gemini 探针测试（见下方），失败则保留占位符跳过
+6. **[ ] Update article with CDN URLs** — 截图和 AI 图分开处理，截图通常不受 Gemini 影响
 
-**IF ANY CHECKBOX IS UNCHECKED, THE TASK IS INCOMPLETE.**
+### Phase C: 写作后（按场景裁剪）
+7. **[ ] Verify content depth** — 字数要求见下表
+8. **[ ] Quality gate** — 按场景选择审查模式：
+   - **发布模式**（默认）：运行 `/content-reviewer` ≥ 48/60，运行 `/wechat-seo-optimizer`
+   - **草稿/测试模式**（用户说"测试""草稿""先看看"）：自行快速检查事实准确性和链接，跳过 reviewer 和 SEO
+9. **[ ] Confirm completion** — 用简洁表格汇总：文件路径、图片状态、审查结果
+
+**字数要求：**
+
+| 文章类型 | 字数范围 | 触发词 |
+|---------|---------|--------|
+| 快速入门 | 500-1000 字 | "快速入门""quick start""简短" |
+| 实战教程 | 2000-3000 字 | 默认 |
+| 深度解析 | 4000+ 字 | "深度""详细""全面" |
+
+### 速度优化规则
+
+**1. 批量验证（减少 bash 调用）**
+```bash
+# 链接验证：一次 bash 调用验证所有 URL
+for url in URL1 URL2 URL3; do
+  code=$(curl -sI -o /dev/null -w "%{http_code}" --max-time 10 "$url")
+  [ "$code" != "200" ] && echo "FAIL $code $url"
+done
+
+# 命令验证：有依赖的链式执行
+cd /tmp && uv init --name test && uv add requests && uv run python -c "import requests; print(requests.__version__)" && uv tree
+```
+
+**2. Gemini 探针测试 + 模型降级链**
+```bash
+# 步骤 1：用默认模型（pro）探针
+python3 ${SKILL_DIR}/scripts/nanobanana.py \
+  --prompt "test" --size 1024x1024 --output /tmp/gemini_probe.jpg
+# 成功 → 用默认模型继续 --process-file
+
+# 步骤 2：pro 失败（503/429）→ 降级到 flash
+python3 ${SKILL_DIR}/scripts/nanobanana.py \
+  --prompt "test" --size 1024x1024 --output /tmp/gemini_probe.jpg \
+  --model gemini-2.5-flash-image
+# 成功 → 用 flash 模型继续 --process-file --model gemini-2.5-flash-image
+
+# 步骤 3：flash 也失败 → 跳过 AI 图片，保留占位符
+```
+
+**模型降级链**：`gemini-3-pro-image-preview`（默认，质量最高）→ `gemini-2.5-flash-image`（速度快，可用性高）→ 保留占位符
+
+**3. 截图与 AI 图解耦**
+- 截图（shot-scraper）不依赖 Gemini API，始终可执行
+- AI 图依赖 Gemini，可能不可用
+- 图片生成时：先跑截图部分，再跑 AI 图。Gemini 不可用时截图照常完成
+
+**IF ANY REQUIRED CHECKBOX IS UNCHECKED, THE TASK IS INCOMPLETE.**
 
 ---
 
@@ -75,16 +134,22 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 ### Standard Flow
 
 ```
-1. Clarify Requirements (AskUserQuestion)
-1a. Determine Save Directory (knowledge base auto-match)
-2. Research & Verification (MANDATORY) — see references/verification-checklist.md
-3. Content Generation (frontmatter, headings, code, callouts, links)
-4. SAVE ARTICLE TO FILE (MANDATORY — Write tool)
-5. Image Generation (if requested) — see references/image-generation-guide.md
-5a. Screenshots for External Content (MANDATORY)
-6. Final Review (links, code, no AI clichés)
-7. Run /content-reviewer (≥ 48/60)
-8. Run /wechat-seo-optimizer
+Phase A: 写作前（并行优化）
+  1. Clarify Requirements（用户明确指定时跳过）
+  1a. Determine Save Directory（knowledge base auto-match）
+  2. Feature Discovery（工具类文章必须：--help 全量扫描 + 官方博客/Changelog）
+  3. Batch Verify（链接并行 curl + 命令链式验证，合并为最少 bash 调用）
+
+Phase B: 写作（先文章后图片）
+  4. Content Generation → Write tool 保存文件
+  5. SCREENSHOT placeholders（引用外部内容时必须）
+  6. Gemini 探针 → 可用则 --process-file，不可用则保留占位符
+  7. 截图始终执行（不依赖 Gemini）
+
+Phase C: 写作后（按场景裁剪）
+  8. 发布模式：/content-reviewer ≥ 48 → /wechat-seo-optimizer
+     草稿模式：自行快速检查，跳过 reviewer 和 SEO
+  9. 简洁表格汇总结果
 ```
 
 ### Article-Only Workflow (Fast Track)

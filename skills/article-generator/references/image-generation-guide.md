@@ -90,6 +90,35 @@ python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
 
 This will: parse placeholders → generate images → upload to CDN → update file with CDN URLs.
 
+### Model Fallback Chain (MANDATORY)
+
+图片生成前必须执行探针测试，按降级链尝试：
+
+```bash
+# 1. 默认模型探针（质量最高）
+python3 ${SKILL_DIR}/scripts/nanobanana.py \
+  --prompt "test" --size 1024x1024 --output /tmp/gemini_probe.jpg
+# 成功 → 用默认模型
+
+# 2. 默认失败（503/429）→ 降级到 flash
+python3 ${SKILL_DIR}/scripts/nanobanana.py \
+  --prompt "test" --size 1024x1024 --output /tmp/gemini_probe.jpg \
+  --model gemini-2.5-flash-image
+# 成功 → 所有后续命令加 --model gemini-2.5-flash-image
+
+# 3. flash 也失败 → 跳过 AI 图片，保留占位符
+```
+
+**降级链**：`gemini-3-pro-image-preview`（默认）→ `gemini-2.5-flash-image`（降级）→ 保留占位符
+
+**降级后的 --process-file 命令**：
+```bash
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+  --process-file /absolute/path/to/article.md \
+  --model gemini-2.5-flash-image \
+  --resolution 2K --continue-on-error
+```
+
 ### Method 3: Single Image Generation
 
 ```bash
