@@ -16,12 +16,13 @@
 ├── agents/                # Agent 定义（2 个）
 │   ├── ui-engineer.md     # 前端开发 agent
 │   └── content-pipeline.md # 内容流水线编排 agent
-├── skills/                # Skill 定义（43 个）
+├── skills/                # Skill 定义（44 个）
 │   ├── article-generator/ # 文章生成（核心）
 │   ├── content-planner/   # 选题规划
 │   ├── content-reviewer/  # 内容审核（6 维评分）
 │   ├── content-repurposer/# 多平台分发
 │   ├── content-analytics/ # 数据分析
+│   ├── content-remixer/  # 爆款拆解→创意积木→组装新内容
 │   ├── wechat-article-converter/ # 微信格式转换
 │   ├── wechat-seo-optimizer/    # SEO 优化
 │   ├── code-review/       # 代码审查中枢
