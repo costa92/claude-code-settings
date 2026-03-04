@@ -189,57 +189,58 @@ PYEOF
   fi
 fi
 
-# 检查 SessionStart hook 是否注册
-HOOK_CMD="$PLUGIN_ROOT/hooks/run-hook.cmd session-start"
+# 检查 SessionStart hook 是否注册（指向 wrapper 脚本）
+WRAPPER_SCRIPT="$CLAUDE_DIR/hooks/superpowers-session-start.sh"
+WRAPPER_REF="~/.claude/hooks/superpowers-session-start.sh"
+
 if python3 -c "
 import json, sys
 with open('$SETTINGS_FILE') as f: s = json.load(f)
 hooks = s.get('hooks', {}).get('SessionStart', [])
 cmds = [h.get('command','') for g in hooks for h in g.get('hooks',[])]
-sys.exit(0 if any('run-hook.cmd' in c for c in cmds) else 1)
+sys.exit(0 if any('superpowers-session-start' in c for c in cmds) else 1)
 " 2>/dev/null; then
-  # 检查 hook 路径是否指向最新版本目录
-  if python3 -c "
-import json, sys
-with open('$SETTINGS_FILE') as f: s = json.load(f)
-hooks = s.get('hooks', {}).get('SessionStart', [])
-cmds = [h.get('command','') for g in hooks for h in g.get('hooks',[])]
-sys.exit(0 if any('$ACTUAL_VERSION' in c for c in cmds) else 1)
-" 2>/dev/null; then
-    echo "  [OK]      SessionStart hook → $ACTUAL_VERSION"
-  else
-    echo "  [WARN]    SessionStart hook 指向旧版本目录（当前实际版本 $ACTUAL_VERSION）"
-    if [[ "$CHECK_ONLY" == false ]]; then
-      python3 - "$SETTINGS_FILE" "$PLUGIN_ROOT" <<'PYEOF'
-import json, sys, re
-path, new_root = sys.argv[1], sys.argv[2]
-with open(path) as f: s = json.load(f)
-for group in s.get("hooks", {}).get("SessionStart", []):
-    for h in group.get("hooks", []):
-        if "run-hook.cmd" in h.get("command", ""):
-            # 替换路径中的版本号部分
-            h["command"] = re.sub(r'(superpowers/)[^/]+(.*run-hook\.cmd)', rf'\g<1>{sys.argv[2].split("/")[-1]}\2', h["command"])
-with open(path, "w") as f: json.dump(s, f, indent=2, ensure_ascii=False)
-print(f"  [FIXED]   hook 路径已更新至新版本目录")
-PYEOF
-    fi
-  fi
+  echo "  [OK]      SessionStart hook → wrapper 脚本"
 else
   echo "  [WARN]    settings.json 未注册 SessionStart hook"
   if [[ "$CHECK_ONLY" == false ]]; then
-    python3 - "$SETTINGS_FILE" "$PLUGIN_ROOT" <<'PYEOF'
+    python3 - "$SETTINGS_FILE" "$WRAPPER_REF" <<'PYEOF'
 import json, sys
-path, root = sys.argv[1], sys.argv[2]
+path, wrapper = sys.argv[1], sys.argv[2]
 with open(path) as f: s = json.load(f)
-hook_entry = {"hooks": [{"type": "command", "command": f"{root}/hooks/run-hook.cmd session-start", "async": False}]}
+# 移除旧的硬编码 hook（如有）
+for group in s.get("hooks", {}).get("SessionStart", []):
+    group["hooks"] = [h for h in group.get("hooks", []) if "run-hook.cmd" not in h.get("command", "")]
+hook_entry = {"hooks": [{"type": "command", "command": wrapper, "async": False}]}
 s.setdefault("hooks", {}).setdefault("SessionStart", [])
-# 避免重复插入
 cmds = [h.get("command","") for g in s["hooks"]["SessionStart"] for h in g.get("hooks",[])]
-if not any("run-hook.cmd" in c for c in cmds):
+if not any("superpowers-session-start" in c for c in cmds):
     s["hooks"]["SessionStart"].append(hook_entry)
 with open(path, "w") as f: json.dump(s, f, indent=2, ensure_ascii=False)
-print(f"  [FIXED]   已向 settings.json 写入 SessionStart hook")
+print(f"  [FIXED]   已写入 SessionStart hook → {wrapper}")
 PYEOF
+  fi
+fi
+
+# 确保 wrapper 脚本存在且可执行
+if [[ -f "$WRAPPER_SCRIPT" ]]; then
+  echo "  [OK]      wrapper 脚本存在: $WRAPPER_SCRIPT"
+else
+  echo "  [WARN]    wrapper 脚本不存在，将创建"
+  if [[ "$CHECK_ONLY" == false ]]; then
+    mkdir -p "$(dirname "$WRAPPER_SCRIPT")"
+    cat > "$WRAPPER_SCRIPT" <<'WRAPPER'
+#!/usr/bin/env bash
+# 动态定位最新 superpowers 版本并转发 session-start hook
+CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+PLUGIN_DIR="$CLAUDE_DIR/plugins/cache/superpowers-marketplace/superpowers"
+LATEST=$(ls -d "$PLUGIN_DIR"/*/ 2>/dev/null | sort -V | tail -1)
+[[ -z "$LATEST" ]] && exit 0
+export CLAUDE_PLUGIN_ROOT="${LATEST%/}"
+exec bash "$CLAUDE_PLUGIN_ROOT/hooks/run-hook.cmd" session-start
+WRAPPER
+    chmod +x "$WRAPPER_SCRIPT"
+    echo "  [FIXED]   wrapper 脚本已创建"
   fi
 fi
 
