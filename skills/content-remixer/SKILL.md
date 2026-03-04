@@ -5,11 +5,55 @@ description: Deconstruct viral articles into reusable creative building blocks, 
 
 # Content Remixer
 
-**拆解爆款 → 提取创意积木 → 组装新内容**
+**发现爆款 → 拆解 → 提取创意积木 → 组装新内容**
 
 ---
 
 ## Execution Checklist
+
+### 输入路由
+
+根据用户输入自动选择入口：
+
+- **给了 URL** → 跳过 Phase 0，直接进入 Phase 1 拆解
+- **给了关键词**（如 "Rust""Agent""RAG"）→ 从 Phase 0 发现爆款开始
+
+### Phase 0: 发现爆款（关键词触发）
+
+0a. **[ ] Collect keyword** — 从用户输入提取主题关键词
+0b. **[ ] Parallel search** — 并行搜索 4 个渠道（用 WebSearch / mcp__web-search-prime）：
+
+| 渠道 | 搜索策略 |
+|------|---------|
+| 中文技术社区 | `关键词 site:juejin.cn OR site:infoq.cn OR site:sspai.com` |
+| 微信公众号 | `关键词 site:mp.weixin.qq.com` |
+| 海外技术社区 | `关键词 site:news.ycombinator.com OR site:reddit.com/r/programming OR site:dev.to` |
+| 补充热榜 | `关键词 掘金热榜 OR InfoQ 热门 OR 技术博客` |
+
+0c. **[ ] Deduplicate & present** — 去重，按渠道分组，输出候选列表：
+
+```
+## 爆款候选
+
+### 中文技术社区
+| # | 标题 | 来源 | URL |
+|---|------|------|-----|
+| 1 | xxx | 掘金 | https://... |
+| 2 | xxx | InfoQ | https://... |
+
+### 微信公众号
+| # | 标题 | 来源 | URL |
+|---|------|------|-----|
+| 3 | xxx | 某公众号 | https://... |
+
+### 海外技术社区
+| # | 标题 | 来源 | URL |
+|---|------|------|-----|
+| 4 | xxx | Hacker News | https://... |
+| 5 | xxx | dev.to | https://... |
+```
+
+0d. **[ ] User picks article** — AskUserQuestion 让用户选一篇，获得 URL → 进入 Phase 1
 
 ### Phase 1: 拆解爆款
 
@@ -78,7 +122,18 @@ description: Deconstruct viral articles into reusable creative building blocks, 
 
 ## 使用示例
 
-### 示例 1: 完整流程
+### 示例 1: 关键词发现 → 完整流程
+
+```
+用户: /content-remixer Rust
+
+→ Phase 0: 并行搜索 4 渠道，输出候选列表，用户选 #3
+→ Phase 1: 抓取选中文章，拆解输出积木清单
+→ Phase 2: 用户选择积木 #1 #2 #6 #7，指定新主题 "Go 错误处理"
+→ Phase 3: 调用 /article-generator 写文章，注入选中的写作约束
+```
+
+### 示例 2: 直接给 URL（跳过 Phase 0）
 
 ```
 用户: /content-remixer https://mp.weixin.qq.com/s/xxxxx
@@ -88,7 +143,7 @@ description: Deconstruct viral articles into reusable creative building blocks, 
 → Phase 3: 调用 /article-generator 写 Rust 入门文章，注入选中的写作约束
 ```
 
-### 示例 2: 只拆解不组装
+### 示例 3: 只拆解不组装
 
 ```
 用户: /content-remixer https://mp.weixin.qq.com/s/xxxxx
