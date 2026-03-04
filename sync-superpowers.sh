@@ -129,6 +129,66 @@ for lf in $LIB_FILES; do
   sync_file "lib/$lf" "$PLUGIN_ROOT/lib/$lf"
 done
 
+# ── 设置验证 ──────────────────────────────────────────────────────────────────
+echo ""
+echo "=== Settings 验证 ==="
+
+SETTINGS_FILE="$CLAUDE_DIR/settings.json"
+PLUGIN_KEY="superpowers@superpowers-marketplace"
+INSTALLED_JSON="$CLAUDE_DIR/plugins/installed_plugins.json"
+
+# 检查 enabledPlugins 是否包含 superpowers
+if python3 -c "
+import json, sys
+with open('$SETTINGS_FILE') as f: s = json.load(f)
+enabled = s.get('enabledPlugins', {})
+sys.exit(0 if enabled.get('$PLUGIN_KEY') else 1)
+" 2>/dev/null; then
+  echo "  [OK]      enabledPlugins.$PLUGIN_KEY = true"
+else
+  echo "  [WARN]    enabledPlugins 未包含 $PLUGIN_KEY"
+  if [[ "$CHECK_ONLY" == false ]]; then
+    python3 - "$SETTINGS_FILE" "$PLUGIN_KEY" <<'PYEOF'
+import json, sys
+path, key = sys.argv[1], sys.argv[2]
+with open(path) as f: s = json.load(f)
+s.setdefault("enabledPlugins", {})[key] = True
+with open(path, "w") as f: json.dump(s, f, indent=2, ensure_ascii=False)
+print(f"  [FIXED]   已将 {key} 写入 enabledPlugins")
+PYEOF
+  fi
+fi
+
+# 检查 installed_plugins.json 版本是否与实际目录一致
+ACTUAL_VERSION=$(ls -d "$PLUGIN_DIR"/*/ 2>/dev/null | sort -V | tail -1 | xargs basename)
+RECORDED_VERSION=$(python3 -c "
+import json
+with open('$INSTALLED_JSON') as f: p = json.load(f)
+entries = p.get('plugins', {}).get('$PLUGIN_KEY', [])
+print(entries[0]['version'] if entries else '')
+" 2>/dev/null)
+
+if [[ "$ACTUAL_VERSION" == "$RECORDED_VERSION" ]]; then
+  echo "  [OK]      installed_plugins.json 版本 = $ACTUAL_VERSION"
+else
+  echo "  [WARN]    版本不一致：installed_plugins.json=$RECORDED_VERSION，实际目录=$ACTUAL_VERSION"
+  if [[ "$CHECK_ONLY" == false ]]; then
+    python3 - "$INSTALLED_JSON" "$PLUGIN_KEY" "$ACTUAL_VERSION" <<'PYEOF'
+import json, sys
+path, key, ver = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(path) as f: p = json.load(f)
+entries = p.get("plugins", {}).get(key, [])
+if entries:
+    entries[0]["version"] = ver
+    entries[0]["installPath"] = entries[0]["installPath"].rsplit("/", 1)[0] + "/" + ver
+    from datetime import datetime, timezone
+    entries[0]["lastUpdated"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+with open(path, "w") as f: json.dump(p, f, indent=2, ensure_ascii=False)
+print(f"  [FIXED]   版本已更新为 {ver}")
+PYEOF
+  fi
+fi
+
 # ── 汇总 ─────────────────────────────────────────────────────────────────────
 echo ""
 echo "════════════════════════════════"
