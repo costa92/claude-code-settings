@@ -247,7 +247,7 @@ command --option
 5. **安装配置**（分步骤，可复现）
 6. **实战用法**（真实代码示例）
 7. **常见问题** (FAQ)
-8. **参考链接**（明链接）
+8. **参考资料**（>5 条用表格，≤5 条用列表）
 
 ### 可选章节
 
@@ -285,14 +285,25 @@ command --option
 
 ### 📌 参考链接章节
 
-**只保留一个资源章节**，统一使用明链接：
+**只保留一个资源章节**，链接数量 ≤5 条时用列表，>5 条时用表格（微信公众号中表格作为单个 HTML 元素渲染，不会被广告分割）：
 
+**≤5 条链接（列表格式）**：
 ```markdown
-## 参考链接
+## 参考资料
 
 - **资源名称1**: https://example.com
 - **资源名称2**: https://example.com/docs
-- **资源名称3**: https://github.com/example/repo
+```
+
+**>5 条链接（表格格式，推荐）**：
+```markdown
+## 参考资料
+
+| 项目 | 链接 |
+|------|------|
+| 资源名称1 | https://example.com |
+| 资源名称2 | https://example.com/docs |
+| 资源名称3 | https://github.com/example/repo |
 ```
 
 **删除这些冗余章节**：
@@ -427,11 +438,13 @@ solution command
 
 ---
 
-## 参考链接
+## 参考资料
 
-- **官网**: https://example.com
-- **文档**: https://docs.example.com
-- **GitHub**: https://github.com/example/repo
+| 项目 | 链接 |
+|------|------|
+| 官网 | https://example.com |
+| 文档 | https://docs.example.com |
+| GitHub | https://github.com/example/repo |
 
 ---
 

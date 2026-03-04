@@ -1188,6 +1188,44 @@ python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
    - 替换链接
 4. ✅ 向用户确认完成
 
+### 场景 5: ASCII 架构图替换为 AI 图片
+
+**用户请求**: "把文章里的 ASCII 代码图替换为 AI 生成的图片"
+
+**触发条件**：文章中存在以 box-drawing 字符（┌ ─ │ └ ┘ ▼ ▶ ├）绘制的架构图代码块
+
+**工作流**:
+1. ✅ 读取文章，Grep 定位所有 ASCII 架构图代码块
+2. ✅ 区分目标：只替换架构图代码块，保留 bash/shell/python 等可执行代码块
+3. ✅ 为每个架构图编写 Prompt：
+   - 描述架构层次（top → middle → bottom）
+   - 列出组件标签（原图中的文字）
+   - 指定连接方向和配色
+   - 固定风格：flat design, white background, sans-serif labels
+4. ✅ Gemini 探针测试（标准降级链）
+5. ✅ 并行生成多张图（nanobanana.py --size 1248x832 --resolution 2K）
+6. ✅ 并行上传到 CDN（picgo upload）
+7. ✅ 用 Edit 工具逐个替换：
+   - `old_string`: 整个 ` ``` ... ``` ` 代码块（如后方紧跟主题重复的旧节奏图，一并包含）
+   - `new_string`: `![架构描述](CDN_URL)`
+8. ✅ 汇总表格：替换数量、CDN URL、是否有剩余未替换的代码块
+
+**Prompt 模板**:
+```
+A clean, modern technical architecture diagram on white background.
+[层次描述]: Top layer shows [组件A]. Middle layer shows [组件B].
+Bottom layer shows [组件C].
+[连接]: arrows from [A] down to [B], from [B] down to [C].
+Color: [A] in soft blue, [B] in light green, [C] in warm orange.
+Flat design, no shadows, engineering blueprint aesthetic, subtle grid lines, sans-serif labels.
+```
+
+**注意事项**:
+- 生成的图使用 3:2 比例（1248x832），与节奏图规格一致
+- 文件名建议 `{article_slug}_{component}_arch.jpg`，如 `openclaw_gateway_arch.jpg`
+- 如果 ASCII 代码块后紧跟一张已有节奏图且主题重复，合并为一张替换
+- Alt 文本应描述架构关系，如 `![Gateway 架构：多渠道 → Gateway → Agent](url)`
+
 ---
 
 ## 相关文档

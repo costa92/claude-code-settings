@@ -130,6 +130,7 @@ python3 ${SKILL_DIR}/scripts/nanobanana.py \
 ### 2. Image Generation & Integration
 - Cover: 16:9 (1344x768), Rhythm: 3:2 (1248x832) every 400-600 words
 - Auto-upload to PicGo/GitHub CDN, embed CDN URLs
+- **ASCII Diagram → AI Image Replacement**: Replace ASCII art architecture diagrams (box-drawing characters ┌──┐│└──┘) with AI-generated architecture illustrations
 - Details: [image-generation-guide.md](references/image-generation-guide.md)
 
 ### 3. Content Optimization
@@ -172,6 +173,25 @@ Same as standard but skip step 6-7 (images). Include placeholders for later:
 <!-- PROMPT: your image generation prompt here -->
 ```
 
+### ASCII Diagram Replacement Workflow
+
+Replace existing ASCII art code blocks (box-drawing characters) with AI-generated architecture illustrations:
+
+```
+1. Grep 定位所有 ASCII 架构图代码块（含 ┌ ─ │ └ ▼ 等字符）
+2. 为每个图设计 prompt（描述架构层次、连接关系、配色）
+3. Gemini 探针测试（同标准降级链）
+4. 并行生成多张图（nanobanana.py --size 1248x832）
+5. 并行上传到 CDN（picgo upload）
+6. Edit 替换：整个 ``` 代码块 → ![描述](CDN_URL)
+```
+
+关键规则：
+- **保留 bash/shell 代码块**，只替换纯 ASCII 架构图
+- **Prompt 要点**：描述架构层次、组件标签、连接方向、配色方案、flat design 风格
+- **替换粒度**：一个 ASCII 代码块对应一张 AI 图，如原图后紧跟节奏图则合并为一张
+- 详见 [image-generation-guide.md](references/image-generation-guide.md) Method 4
+
 ---
 
 ## Best Practices
@@ -196,6 +216,7 @@ Same as standard but skip step 6-7 (images). Include placeholders for later:
 ### Images
 - 1 cover + 4-6 rhythm images per 3000-word article
 - Unique filenames per article (e.g., `ollama_cover.jpg`)
+- ASCII architecture diagrams → AI images: replace ```` ``` ```` code blocks containing box-drawing characters with generated illustrations
 - Screenshot rules: see [image-generation-guide.md](references/image-generation-guide.md)
 
 ### Project Disambiguation
@@ -251,5 +272,5 @@ For advanced config, see [INSTALL.md](./INSTALL.md)
 
 ---
 
-**Version:** 3.0 (Refactored 2026-03-02)
-**Changes:** Split large SKILL.md into core instructions + 4 reference files per Agent Skills spec (<5000 tokens body)
+**Version:** 3.1 (2026-03-03)
+**Changes:** Added ASCII Diagram → AI Image Replacement workflow (Method 4)

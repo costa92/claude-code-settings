@@ -132,6 +132,61 @@ python3 ${SKILL_DIR}/scripts/nanobanana.py \
 picgo upload images/cover.jpg
 ```
 
+### Method 4: ASCII Diagram Replacement (Manual)
+
+将文章中已有的 ASCII 架构图代码块替换为 AI 生成的架构插图。适用于已写好的文章需要升级视觉表现的场景。
+
+**识别目标**：包含 box-drawing 字符（`┌ ─ │ └ ┘ ▼ ▶ ├`）的 ` ``` ` 代码块，通常是架构图、流程图、层次图。**不替换** bash/shell/python 等可执行代码块。
+
+**工作流**：
+
+```bash
+# 步骤 1：定位所有 ASCII 架构图（Grep 搜索 box-drawing 字符）
+# 人工确认哪些是架构图、哪些是代码
+
+# 步骤 2：为每个架构图编写 prompt
+# Prompt 要点：
+#   - 描述层次关系（top → middle → bottom）
+#   - 列出组件标签（原图中的文字）
+#   - 指定连接方向（arrows, flow direction）
+#   - 配色方案（每层不同颜色，如 blue/green/orange）
+#   - 风格约束：flat design, no shadows, white background, sans-serif labels
+
+# 步骤 3：Gemini 探针（同标准降级链）
+python3 ${SKILL_DIR}/scripts/nanobanana.py \
+  --prompt "test" --size 1024x1024 --output /tmp/gemini_probe.jpg
+
+# 步骤 4：并行生成（多张图可并行调用）
+python3 ${SKILL_DIR}/scripts/nanobanana.py \
+  --prompt "A clean technical architecture diagram on white background. ..." \
+  --size 1248x832 --resolution 2K \
+  --output /tmp/article_arch_name.jpg
+
+# 步骤 5：上传到 CDN
+picgo upload /tmp/article_arch_name.jpg
+
+# 步骤 6：用 Edit 工具替换原 ASCII 代码块
+# old_string: 整个 ```...``` 代码块（含可能紧邻的旧节奏图）
+# new_string: ![架构描述](CDN_URL)
+```
+
+**Prompt 模板**（架构图）：
+
+```
+A clean, modern technical architecture diagram on white background.
+[层次描述]: Top layer shows [组件]. Middle layer shows [组件].
+Bottom layer shows [组件]. [连接关系]: arrows connecting [from] to [to].
+Color scheme: [组件A] in soft blue, [组件B] in light green, [组件C] in warm orange.
+Flat design, no shadows, engineering blueprint aesthetic with subtle grid lines.
+Clear sans-serif labels.
+```
+
+**关键规则**：
+- 一个 ASCII 代码块对应一张 AI 图
+- 如果 ASCII 代码块后紧跟一张已有节奏图（主题重复），合并替换为一张
+- 替换后的 `![alt](url)` 的 alt 文本应描述架构关系，如 `Gateway 架构：多渠道 → Gateway → Agent`
+- 推荐尺寸 3:2（1248x832），与节奏图一致
+
 ## Parallel Mode (Performance Optimization)
 
 ```bash
