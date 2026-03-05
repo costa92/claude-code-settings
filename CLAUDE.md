@@ -77,7 +77,7 @@ content-analytics ← content-repurposer ← wechat-article-converter
 - **图片 CDN**: jsDelivr + GitHub 后端（costa92/article-images），通过 PicGo 上传
 - **图片生成**: Gemini API（nanobanana.py），必须使用绝对路径
 - **微信 API**: WECHAT_APPID / WECHAT_SECRET 在 shell 环境变量中配置
-- **文章质量门槛**: content-reviewer 综合评分 ≥ 49/70 方可发布
+- **文章质量门槛**: content-reviewer 综合评分 ≥ 55/70 方可发布；未达标自动修改（最多 3 轮）
 - **API 代理**: 本地代理 `http://127.0.0.1:5000`，通过 ANTHROPIC_BASE_URL 配置
 
 ## MCP 工具降级链
