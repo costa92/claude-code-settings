@@ -40,6 +40,27 @@ Fetches AI industry news from multiple sources, intelligently summarizes and cat
 
 ## Quick Start
 
+### Step -1: 选择日报模式
+
+当前系统有两个日报 skill，Agent 必须先让用户选择：
+
+```
+请选择日报模式：
+
+1. 📰 **AI 行业新闻**（ai-daily）
+   来源：smol.ai、Import AI、TLDR AI、量子位、ArXiv、Hacker News 等
+   特点：AI 行业动态、产品发布、研究论文、融资并购
+
+2. 📝 **技术博客精选**（ai-daily-digest）
+   来源：Karpathy 推荐的 90 个顶级技术博客 RSS
+   特点：Gemini AI 多维评分筛选、中英双语、Mermaid 可视化图表
+```
+
+- 如果用户选择 **1（AI 行业新闻）**：继续下方正常流程
+- 如果用户选择 **2（技术博客精选）**：调用 `ai-daily-digest` skill 执行，不再继续本流程
+
+### 使用示例
+
 ```bash
 # Yesterday's news (default source: smol.ai)
 昨天AI资讯

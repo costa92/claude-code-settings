@@ -7,6 +7,8 @@
 ```
 ~/.claude/
 ├── settings.json          # 全局配置（权限、环境变量、插件）
+├── env.json               # 共享密钥与偏好配置（gitignore，勿提交）
+├── env.example.json       # env.json 模板（可提交，占位符值）
 ├── settings/              # 多 Provider 配置
 │   ├── azure-settings.json
 │   ├── openrouter-settings.json
@@ -73,6 +75,10 @@ content-analytics ← content-repurposer ← wechat-article-converter
 
 ## 关键约定
 
+- **统一配置中心**: `~/.claude/env.json`（gitignore），模板为 `env.example.json`（可提交）
+  - 所有 API Key（Gemini、OpenAI、WeChat、N8N 等）统一存放于此
+  - skill 偏好参数（digest_*）也存于此文件
+  - skill 读取配置时优先从 env.json 获取，避免重复询问用户
 - **默认作者**: 月影（在 wechat-article-converter/SKILL.md 中配置）
 - **图片 CDN**: jsDelivr + GitHub 后端（costa92/article-images），通过 PicGo 上传
 - **图片生成**: Gemini API（nanobanana.py），必须使用绝对路径

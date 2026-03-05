@@ -187,3 +187,7 @@ tasks/
 
 # Stats cache
 stats-cache.json
+
+# Shared env config (contains secrets)
+env.json
+!env.example.json

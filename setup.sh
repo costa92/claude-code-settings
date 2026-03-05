@@ -8,10 +8,11 @@
 
 set -eo pipefail
 
-CLAUDE_DIR="$HOME/.claude"
-PLUGINS_DIR="$CLAUDE_DIR/plugins"
+# ── Load common library ──
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+
 MARKETPLACES_DIR="$PLUGINS_DIR/marketplaces"
-CACHE_DIR="$PLUGINS_DIR/cache"
+CACHE_DIR="$PLUGINS_CACHE"
 KNOWN_MP_FILE="$PLUGINS_DIR/known_marketplaces.json"
 
 # --- Flags ---
@@ -31,17 +32,10 @@ for arg in "$@"; do
   esac
 done
 
-# --- Color helpers ---
-info()  { printf '\033[0;34m[INFO]\033[0m  %s\n' "$*"; }
-ok()    { printf '\033[0;32m  ✅  \033[0m %s\n' "$*"; }
-warn()  { printf '\033[0;33m  ⚠️  \033[0m %s\n' "$*"; }
-fail()  { printf '\033[0;31m  ❌  \033[0m %s\n' "$*"; }
-step()  { printf '\n\033[1;36m══ %s ══\033[0m\n' "$*"; }
-
 # =========================================================================
 # Step 1: 环境检测
 # =========================================================================
-step "Step 1/8: 环境检测"
+step "Step 1/9: 环境检测"
 
 OS="$(uname -s)"
 case "$OS" in
@@ -82,7 +76,7 @@ fi
 # =========================================================================
 # Step 2: settings.json 初始化
 # =========================================================================
-step "Step 2/8: settings.json"
+step "Step 2/9: settings.json"
 
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 SETTINGS_EXAMPLE="$CLAUDE_DIR/settings.json.example"
@@ -127,7 +121,7 @@ fi
 # =========================================================================
 # Step 3: Marketplace 仓库克隆 / 更新
 # =========================================================================
-step "Step 3/8: Marketplace 仓库"
+step "Step 3/9: Marketplace 仓库"
 
 mkdir -p "$MARKETPLACES_DIR"
 
@@ -192,7 +186,7 @@ ok "known_marketplaces.json 已生成"
 # =========================================================================
 # Step 4: Plugin Cache 重建
 # =========================================================================
-step "Step 4/8: Plugin Cache"
+step "Step 4/9: Plugin Cache"
 
 mkdir -p "$CACHE_DIR"
 
@@ -255,10 +249,32 @@ install_plugin_manual() {
 # --- Plugin definitions ---
 # Format: plugin_id|marketplace|plugin_name|version|source_type|source_path
 # source_type: marketplace (copy subdir), external (git clone), symlink (ln -s)
+# version: use "latest" to auto-detect from git tags, or a fixed version string
+
+_resolve_superpowers_version() {
+  local existing
+  existing=$(ls -d "$CACHE_DIR/superpowers-marketplace/superpowers"/*/ 2>/dev/null | sort -V | tail -1 | xargs basename 2>/dev/null)
+  if [[ -n "$existing" ]]; then
+    echo "$existing"
+    return
+  fi
+  local tag
+  tag=$(git ls-remote --tags --sort=-v:refname "https://github.com/obra/superpowers.git" 2>/dev/null \
+    | head -1 | sed 's|.*refs/tags/v\?||' | tr -d ' ')
+  if [[ -n "$tag" ]]; then
+    echo "$tag"
+  else
+    echo "latest"
+  fi
+}
+
+SUPERPOWERS_VERSION=$(_resolve_superpowers_version)
+info "superpowers version: $SUPERPOWERS_VERSION"
+
 PLUGIN_DEFS="
 n8n-mcp-skills@n8n-mcp-skills|n8n-mcp-skills|n8n-mcp-skills|1.0.0|marketplace|.
 ralph-wiggum@claude-code-plugins|claude-code-plugins|ralph-wiggum|1.0.0|marketplace|plugins/ralph-wiggum
-superpowers@superpowers-marketplace|superpowers-marketplace|superpowers|4.1.1|external|https://github.com/obra/superpowers.git
+superpowers@superpowers-marketplace|superpowers-marketplace|superpowers|${SUPERPOWERS_VERSION}|external|https://github.com/obra/superpowers.git
 kiro-skill@claude-code-settings|claude-code-settings|kiro-skill|1.0.0|symlink|$PLUGINS_DIR/kiro-skill
 "
 
@@ -293,7 +309,7 @@ INSTALLED_PLUGINS="$PLUGINS_DIR/installed_plugins.json"
 if [[ -f "$INSTALLED_PLUGINS" ]]; then
   # Replace absolute $HOME paths with ~/ in installPath fields
   if grep -q "\"installPath\": \"$HOME" "$INSTALLED_PLUGINS" 2>/dev/null; then
-    sed -i "s|\"installPath\": \"$HOME/|\"installPath\": \"~/|g" "$INSTALLED_PLUGINS"
+    _sed_i "s|\"installPath\": \"$HOME/|\"installPath\": \"~/|g" "$INSTALLED_PLUGINS"
     ok "installed_plugins.json 路径已修正（$HOME → ~）"
   else
     ok "installed_plugins.json 路径格式正常"
@@ -305,12 +321,18 @@ fi
 # =========================================================================
 # Step 5: 权限修复
 # =========================================================================
-step "Step 5/8: 权限修复"
+step "Step 5/9: 权限修复"
 
 # status-line.sh
 if [[ -f "$CLAUDE_DIR/status-line.sh" ]]; then
   chmod +x "$CLAUDE_DIR/status-line.sh"
   ok "status-line.sh +x"
+fi
+
+# bin/ scripts
+if [[ -d "$CLAUDE_DIR/bin" ]]; then
+  find "$CLAUDE_DIR/bin" -name "*.sh" -exec chmod +x {} +
+  ok "bin/*.sh +x"
 fi
 
 # All shell scripts under skills/ and plugins/ (excluding marketplaces/cache)
@@ -334,7 +356,7 @@ fi
 # =========================================================================
 # Step 6: Python 依赖（可选）
 # =========================================================================
-step "Step 6/8: Python 依赖"
+step "Step 6/9: Python 依赖"
 
 if [[ "$SKIP_PYTHON" == true ]]; then
   info "跳过 Python 依赖安装 (--skip-python)"
@@ -411,7 +433,7 @@ fi
 # =========================================================================
 # Step 7: 系统软件包（LibreOffice、Poppler）
 # =========================================================================
-step "Step 7/8: 系统软件包"
+step "Step 7/9: 系统软件包"
 
 # Skills that need these: pptx, docx, pdf, xlsx
 NEED_SOFFICE=false
@@ -451,7 +473,7 @@ fi
 # =========================================================================
 # Step 8: npm 全局工具
 # =========================================================================
-step "Step 8/8: npm 全局工具"
+step "Step 8/9: npm 全局工具"
 
 if ! command -v npm &>/dev/null; then
   warn "npm 未安装，跳过 npm 全局工具安装"
@@ -501,6 +523,24 @@ decktape|decktape|revealjs|Reveal.js 导出 PDF（revealjs skill）|cli
 fi
 
 # =========================================================================
+# Step 9: 同步插件 Skills/Agents 到 ~/.claude/skills/ (供 Cursor IDE 使用)
+# =========================================================================
+step "Step 9/9: 同步插件 Skills 到 Cursor"
+
+SYNC_SCRIPT="$CLAUDE_DIR/bin/sync-plugin-skills.sh"
+if [[ -x "$SYNC_SCRIPT" ]]; then
+  info "运行 sync-plugin-skills.sh --force ..."
+  if "$SYNC_SCRIPT" --force; then
+    ok "插件 skills/agents 已同步到 ~/.claude/skills/ 和 ~/.claude/agents/"
+  else
+    warn "sync-plugin-skills.sh 执行失败，可稍后手动运行"
+  fi
+else
+  warn "sync-plugin-skills.sh 不存在或不可执行，跳过"
+  info "如需在 Cursor 中使用插件 skills，请运行: chmod +x $SYNC_SCRIPT"
+fi
+
+# =========================================================================
 # Summary
 # =========================================================================
 echo ""
@@ -516,5 +556,6 @@ command -v pdftoppm &>/dev/null && ok "Poppler (pdftoppm)" || warn "Poppler 未�
 command -v defuddle &>/dev/null && ok "defuddle" || warn "defuddle 未安装（defuddle skill 需要: npm install -g defuddle-cli）"
 npm list -g --depth=0 pptxgenjs 2>/dev/null | grep -q pptxgenjs && ok "pptxgenjs" || warn "pptxgenjs 未安装（pptx skill 需要: npm install -g pptxgenjs）"
 python3 -c "import playwright" &>/dev/null && ok "playwright (Python)" || warn "playwright 未安装（webapp-testing skill 需要）"
+[[ -f "$CLAUDE_DIR/plugins/.sync-manifest.json" ]] && ok "plugin→skills 同步 ($(python3 -c "import json; d=json.load(open('$CLAUDE_DIR/plugins/.sync-manifest.json')); print(len(d.get('skills',{})))" 2>/dev/null || echo '?') skills)" || warn "plugin→skills 未同步"
 echo ""
 info "如果插件仍无法加载，请运行: claude plugin list"

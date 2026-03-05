@@ -88,7 +88,7 @@ bash setup.sh --skip-python # Skip Python dependency installation
 bash setup.sh --force       # Force rebuild plugin cache even if it exists
 ```
 
-**What it does (8 steps):**
+**What it does (9 steps):**
 
 1. **Environment check** — verifies `git`, `jq`, `python3`
 2. **settings.json** — copies from `settings.json.example` if missing (never overwrites)
@@ -98,6 +98,69 @@ bash setup.sh --force       # Force rebuild plugin cache even if it exists
 6. **Permissions** — `chmod +x` on `status-line.sh` and all skill scripts
 7. **Python deps** — optional `pip install` for skill requirements + Playwright
 8. **System packages** — checks LibreOffice, Poppler, npm tools (defuddle-cli, pptxgenjs, decktape)
+9. **Plugin skills sync** — copies plugin skills/agents to `~/.claude/skills/` for Cursor IDE access
+
+### Sync Plugin Skills to Cursor IDE
+
+Claude Code plugins (`~/.claude/plugins/`) contain skills and agents that are only available in the CLI. To use them in Cursor IDE, a sync script can copy them to `~/.claude/skills/` and `~/.claude/agents/` where Cursor can pick them up.
+
+**Setup (one-time):**
+
+```sh
+# 1. Make the sync script executable
+chmod +x ~/.claude/bin/sync-plugin-skills.sh
+
+# 2. Add shell hook for automatic sync (zsh)
+# If you use ~/.zsh.d/:
+echo '[[ -x "$HOME/.claude/bin/sync-plugin-skills.sh" ]] && "$HOME/.claude/bin/sync-plugin-skills.sh" --check' \
+  > ~/.zsh.d/claude-plugin-sync.zsh
+
+# Or append directly to ~/.zshrc:
+echo '[[ -x "$HOME/.claude/bin/sync-plugin-skills.sh" ]] && "$HOME/.claude/bin/sync-plugin-skills.sh" --check' \
+  >> ~/.zshrc
+```
+
+**How it works:**
+
+| Mode | Command | Description |
+|------|---------|-------------|
+| Auto | *(shell startup)* | Compares `installed_plugins.json` mtime with manifest; syncs in background if changed (~7ms when up-to-date) |
+| Force | `~/.claude/bin/sync-plugin-skills.sh --force` | Full re-sync regardless of timestamps |
+| Check | `~/.claude/bin/sync-plugin-skills.sh --check` | Trigger a check manually |
+
+**What gets synced:**
+
+| Source | Content | Target |
+|--------|---------|--------|
+| Plugin `skills/` dirs | SKILL.md + supporting files | `~/.claude/skills/<skill-name>/` |
+| Plugin `agents/` dirs | Agent .md files | `~/.claude/agents/<agent-name>.md` |
+
+**Safety:**
+
+- User-created skills (not from plugins) are never overwritten
+- A manifest at `~/.claude/plugins/.sync-manifest.json` tracks which skills came from which plugin
+- When a plugin removes a skill, the synced copy is automatically cleaned up
+- Sync log available at `~/.claude/plugins/.sync.log`
+
+**Cross-platform:** Works on both Linux (`stat -c`) and macOS (`stat -f`) without modification.
+
+### Sync Superpowers from Upstream
+
+`sync-superpowers.sh` fetches the latest skills, agents, commands, hooks, and lib files from the [obra/superpowers](https://github.com/obra/superpowers) upstream repository and updates the local plugin cache.
+
+```sh
+# Check for updates (dry run, no changes)
+./sync-superpowers.sh --check
+
+# Apply updates
+./sync-superpowers.sh
+```
+
+**What it syncs:** skills, agents, commands, hooks, lib files from GitHub → local plugin cache.
+
+**Integrated with Cursor sync:** When updates are found, `sync-superpowers.sh` automatically triggers `sync-plugin-skills.sh` to propagate changes to `~/.claude/skills/` so Cursor picks them up immediately.
+
+**Settings validation:** Also verifies `enabledPlugins`, `installed_plugins.json` version consistency, and `SessionStart` hook registration — auto-fixes issues when not in `--check` mode.
 
 ### Quick Start: MCP Configuration
 
@@ -1042,9 +1105,17 @@ Understanding the Claude Code configuration files:
 │   ├── ANTHROPIC_AUTH_TOKEN
 │   └── enabledPlugins
 │
+├── bin/
+│   └── sync-plugin-skills.sh           # Plugin → skills/agents sync script
+├── setup.sh                            # Cross-machine initialization (9 steps)
+├── sync-superpowers.sh                 # Sync superpowers from upstream GitHub
 ├── commands/                           # Custom commands
-├── skills/                             # Skills plugins
-├── agents/                             # Sub-agents
+├── skills/                             # Skills (local + synced from plugins)
+├── agents/                             # Sub-agents (local + synced from plugins)
+├── plugins/
+│   ├── installed_plugins.json          # Plugin registry
+│   ├── .sync-manifest.json             # Tracks plugin-sourced skills
+│   └── .sync.log                       # Sync history log
 └── debug/latest                        # Debug logs
 
 ~/.claude.json                          # Global config (in home dir)

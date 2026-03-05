@@ -99,7 +99,7 @@ bash setup.sh --skip-python # 跳过 Python 依赖安装
 bash setup.sh --force       # 强制重建插件缓存
 ```
 
-**8 步初始化流程：**
+**9 步初始化流程：**
 
 | 步骤 | 说明 |
 |------|------|
@@ -111,6 +111,69 @@ bash setup.sh --force       # 强制重建插件缓存
 | 6. 权限修复 | 对 `status-line.sh` 和所有 skill 脚本执行 `chmod +x` |
 | 7. Python 依赖 | 可选安装 `pip install` + Playwright |
 | 8. 系统软件包 | 检查 LibreOffice、Poppler、npm 工具 |
+| 9. 插件同步 | 将插件中的 skills/agents 复制到 `~/.claude/skills/`，供 Cursor IDE 使用 |
+
+### 同步插件技能到 Cursor IDE
+
+Claude Code 插件（`~/.claude/plugins/`）中包含的 skills 和 agents 仅在 CLI 中可用。通过同步脚本可以将它们复制到 `~/.claude/skills/` 和 `~/.claude/agents/`，使 Cursor IDE 也能使用。
+
+**一次性设置：**
+
+```sh
+# 1. 确保同步脚本可执行
+chmod +x ~/.claude/bin/sync-plugin-skills.sh
+
+# 2. 添加 shell 启动钩子实现自动同步（zsh）
+# 如果使用 ~/.zsh.d/ 目录：
+echo '[[ -x "$HOME/.claude/bin/sync-plugin-skills.sh" ]] && "$HOME/.claude/bin/sync-plugin-skills.sh" --check' \
+  > ~/.zsh.d/claude-plugin-sync.zsh
+
+# 或直接追加到 ~/.zshrc：
+echo '[[ -x "$HOME/.claude/bin/sync-plugin-skills.sh" ]] && "$HOME/.claude/bin/sync-plugin-skills.sh" --check' \
+  >> ~/.zshrc
+```
+
+**工作原理：**
+
+| 模式 | 命令 | 说明 |
+|------|------|------|
+| 自动 | *(开新终端时)* | 比较 `installed_plugins.json` 和 manifest 的修改时间，有变更则后台同步（无变更时约 7ms，无感知） |
+| 强制 | `~/.claude/bin/sync-plugin-skills.sh --force` | 忽略时间戳，全量重新同步 |
+| 手动 | `~/.claude/bin/sync-plugin-skills.sh --check` | 手动触发检查 |
+
+**同步范围：**
+
+| 来源 | 内容 | 目标 |
+|------|------|------|
+| 插件 `skills/` 目录 | SKILL.md + 辅助文件 | `~/.claude/skills/<技能名>/` |
+| 插件 `agents/` 目录 | Agent .md 文件 | `~/.claude/agents/<代理名>.md` |
+
+**安全机制：**
+
+- 用户自建的 skill（非插件来源）永远不会被覆盖
+- `~/.claude/plugins/.sync-manifest.json` 记录每个 skill 的来源插件
+- 插件删除某个 skill 后，同步时自动清理对应副本
+- 同步日志：`~/.claude/plugins/.sync.log`
+
+**跨平台兼容：** Linux（`stat -c`）和 macOS（`stat -f`）均可运行，无需修改。
+
+### 从上游同步 Superpowers
+
+`sync-superpowers.sh` 从 [obra/superpowers](https://github.com/obra/superpowers) 上游仓库拉取最新的 skills、agents、commands、hooks 和 lib 文件，更新本地插件缓存。
+
+```sh
+# 检查更新（仅查看差异，不修改文件）
+./sync-superpowers.sh --check
+
+# 应用更新
+./sync-superpowers.sh
+```
+
+**同步范围：** GitHub 上游的 skills、agents、commands、hooks、lib → 本地插件缓存目录。
+
+**自动联动 Cursor：** 检测到更新后，`sync-superpowers.sh` 会自动触发 `sync-plugin-skills.sh`，将变更传播到 `~/.claude/skills/`，Cursor 立即可用。
+
+**配置验证：** 同时检查 `enabledPlugins`、`installed_plugins.json` 版本一致性和 `SessionStart` hook 注册状态 — 非 `--check` 模式下自动修复问题。
 
 ### 快速开始：MCP 配置
 
@@ -633,9 +696,17 @@ Claude Code 支持 [Model Context Protocol (MCP)](https://modelcontextprotocol.i
 ├── config.json                         # 主配置（API 密钥）
 ├── settings.json                       # 环境变量 + 插件开关
 │
+├── bin/
+│   └── sync-plugin-skills.sh           # 插件 → skills/agents 同步脚本
+├── setup.sh                            # 跨机器一键初始化（9 步）
+├── sync-superpowers.sh                 # 从上游 GitHub 同步 superpowers
 ├── commands/                           # 自定义斜杠命令
-├── skills/                             # 技能插件
-├── agents/                             # 子代理
+├── skills/                             # 技能（本地 + 从插件同步）
+├── agents/                             # 子代理（本地 + 从插件同步）
+├── plugins/
+│   ├── installed_plugins.json          # 插件注册表
+│   ├── .sync-manifest.json             # 记录插件来源的 skills
+│   └── .sync.log                       # 同步历史日志
 └── debug/latest                        # 调试日志
 
 ~/.claude.json                          # 全局配置（Home 目录）
