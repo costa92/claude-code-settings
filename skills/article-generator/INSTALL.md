@@ -13,9 +13,17 @@ pip install -r requirements.txt
 ```
 
 ### 2. 配置环境变量
-创建 `~/.nanobanana.env` 文件：
+
+推荐使用统一配置文件 `~/.claude/env.json`（所有 skill 共享）：
 ```bash
-GEMINI_API_KEY=your_gemini_api_key_here
+# 从模板创建
+cp ~/.claude/env.example.json ~/.claude/env.json
+# 编辑 env.json，填入 gemini_api_key 的值
+```
+
+备选：环境变量（仍然有效）
+```bash
+export GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 获取 Gemini API Key：https://aistudio.google.com/app/apikey
@@ -43,7 +51,7 @@ python3 scripts/nanobanana.py \
 ## 故障排查
 
 ### 图片生成失败
-1. 检查 GEMINI_API_KEY 是否正确
+1. 检查 `~/.claude/env.json` 中 `gemini_api_key` 是否正确
 2. 检查网络连接
 3. 运行测试命令验证
 

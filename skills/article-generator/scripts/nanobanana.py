@@ -60,11 +60,24 @@ except ImportError:
         "retriable_errors": ["SSL", "ConnectionError", "TimeoutError", "NetworkError", "500", "502", "503", "504"]
     }
 
-# Priority: Environment variable > .nanobanana.env file
-# This prevents configuration inconsistency issues
+# Priority: Environment variable > ~/.claude/env.json > ~/.nanobanana.env
 api_key = os.getenv("GEMINI_API_KEY")
 
-# Fallback: Load from ~/.nanobanana.env if environment variable not set
+# Fallback 1: Load from ~/.claude/env.json (unified config)
+if not api_key:
+    env_json_path = os.path.expanduser("~/.claude/env.json")
+    if os.path.exists(env_json_path):
+        try:
+            import json
+            with open(env_json_path) as f:
+                env_data = json.load(f)
+            val = env_data.get("gemini_api_key", "")
+            if val and not val.startswith("your-"):
+                api_key = val
+        except Exception:
+            pass
+
+# Fallback 2: Load from ~/.nanobanana.env (legacy)
 if not api_key:
     dotenv_path = os.path.expanduser("~/.nanobanana.env")
     if os.path.exists(dotenv_path):
@@ -73,10 +86,10 @@ if not api_key:
 
 if not api_key:
     raise ValueError(
-        "Missing GEMINI_API_KEY. Please either:\n"
-        "  1. Set environment variable: export GEMINI_API_KEY=your_key_here\n"
-        "  2. Or create ~/.nanobanana.env with: GEMINI_API_KEY=your_key_here\n"
-        "Priority: Environment variable > .nanobanana.env file"
+        "Missing GEMINI_API_KEY. Please configure in one of:\n"
+        "  1. ~/.claude/env.json (recommended): set gemini_api_key field\n"
+        "  2. Environment variable: export GEMINI_API_KEY=your_key_here\n"
+        "  3. ~/.nanobanana.env: GEMINI_API_KEY=your_key_here (legacy)"
     )
 
 # CRITICAL FIX: Remove GOOGLE_API_KEY from environment to prevent conflicts

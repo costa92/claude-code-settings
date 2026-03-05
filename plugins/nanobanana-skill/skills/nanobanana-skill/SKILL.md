@@ -10,7 +10,7 @@ Generate or edit images using Google Gemini API through the nanobanana tool.
 
 ## Requirements
 
-1. **GEMINI_API_KEY**: Must be configured in `~/.nanobanana.env` or `export GEMINI_API_KEY=<your-api-key>`
+1. **GEMINI_API_KEY**: Configure in `~/.claude/env.json` (recommended, `gemini_api_key` field), or `export GEMINI_API_KEY=<your-api-key>`, or `~/.nanobanana.env` (legacy)
 2. **Python3 with depedent packages installed**: google-genai, Pillow, python-dotenv. They could be installed via `python3 -m pip install -r ${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/requirements.txt` if not installed yet.
 3. **Executable**: `${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/nanobanana.py`
 
@@ -121,7 +121,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/nanobanana.py \
 
 If the script fails:
 
-- Check that `GEMINI_API_KEY` is exported or set in ~/.nanobanana.env
+- Check that `GEMINI_API_KEY` is set in `~/.claude/env.json`, env var, or `~/.nanobanana.env`
 - Verify input image files exist and are readable
 - Ensure the output directory is writable
 - If no image is generated, try making the prompt more specific about wanting an image

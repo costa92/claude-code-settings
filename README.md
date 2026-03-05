@@ -322,7 +322,7 @@ Generate or edit images using Google Gemini API via nanobanana. Use when creatin
 
 **Requirements:**
 
-- GEMINI_API_KEY configured in `~/.nanobanana.env`
+- GEMINI_API_KEY configured in `~/.claude/env.json` (or `~/.nanobanana.env` legacy)
 - Python3 with google-genai, Pillow, python-dotenv (install via `pip install -r requirements.txt` in the plugin directory)
 
 </details>

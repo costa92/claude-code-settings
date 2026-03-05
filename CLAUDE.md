@@ -47,6 +47,9 @@
 │   ├── spec-kit-skill/
 │   ├── youtube-transcribe-skill/
 │   └── installed_plugins.json
+├── scripts/               # 共享工具脚本
+│   ├── load_env.sh        # Shell: source 后导出 env.json 为环境变量
+│   └── load_env.py        # Python: from load_env import load_env
 ├── guidances/             # 指导文件
 ├── plans/                 # 计划文件
 └── projects/              # 项目级配置与记忆
@@ -79,10 +82,13 @@ content-analytics ← content-repurposer ← wechat-article-converter
   - 所有 API Key（Gemini、OpenAI、WeChat、N8N 等）统一存放于此
   - skill 偏好参数（digest_*）也存于此文件
   - skill 读取配置时优先从 env.json 获取，避免重复询问用户
+  - **Shell 脚本**: `source ~/.claude/scripts/load_env.sh` 自动导出为环境变量
+  - **Python 脚本**: 直接读取 env.json，或 `sys.path.insert(0, os.path.expanduser("~/.claude/scripts")); from load_env import load_env`
+  - 配置优先级: 环境变量 > env.json > 旧的散落配置文件（~/.nanobanana.env 等，兼容但不推荐）
 - **默认作者**: 月影（在 wechat-article-converter/SKILL.md 中配置）
 - **图片 CDN**: jsDelivr + GitHub 后端（costa92/article-images），通过 PicGo 上传
 - **图片生成**: Gemini API（nanobanana.py），必须使用绝对路径
-- **微信 API**: WECHAT_APPID / WECHAT_SECRET 在 shell 环境变量中配置
+- **微信 API**: WECHAT_APPID / WECHAT_SECRET 统一在 env.json 中配置（wechat_appid / wechat_secret），Shell 使用 `source ~/.claude/scripts/load_env.sh` 导出
 - **文章质量门槛**: content-reviewer 综合评分 ≥ 55/70 方可发布；未达标自动修改（最多 3 轮）
 - **API 代理**: 本地代理 `http://127.0.0.1:5000`，通过 ANTHROPIC_BASE_URL 配置
 

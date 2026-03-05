@@ -239,8 +239,10 @@ Replace existing ASCII art code blocks (box-drawing characters) with AI-generate
 # 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. Set API Key (https://aistudio.google.com/apikey)
-export GEMINI_API_KEY="your_api_key_here"
+# 2. Set API Key (unified config)
+# All keys are stored in ~/.claude/env.json (see env.example.json for template)
+# The Python scripts auto-load from env.json via load_env.py
+# Or set shell env: export GEMINI_API_KEY="your_key" (legacy, still works)
 
 # 3. Start using
 @article-generator 写一篇关于 Docker 的技术文章

@@ -136,7 +136,13 @@ mediaID, err := draftManager.AddDraft(articles)
 
 ### 环境变量
 
+推荐在 `~/.claude/env.json` 中统一配置（`wechat_appid` / `wechat_secret` 字段），或手动设置：
+
 ```bash
+# 从统一配置加载
+source ~/.claude/scripts/load_env.sh
+
+# 或手动设置
 export WECHAT_APPID="your_appid"
 export WECHAT_SECRET="your_secret"
 ```

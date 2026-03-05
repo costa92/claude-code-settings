@@ -266,14 +266,17 @@ python3 generate_and_upload_images.py --config images_config.json --resolution 4
 确保设置了必要的环境变量：
 
 ```bash
-# Gemini API Key
+# 推荐: 统一配置（编辑 ~/.claude/env.json 的 gemini_api_key 字段）
+# 模板: cp ~/.claude/env.example.json ~/.claude/env.json
+
+# 或手动设置环境变量
 export GEMINI_API_KEY="your-gemini-api-key"
 
 # 可选：PicGo 配置路径
 export PICGO_CONFIG_PATH="~/.picgo/config.json"
 ```
 
-建议将这些环境变量添加到 `~/.zshrc` 或 `~/.bashrc`：
+建议将环境变量添加到 `~/.zshrc` 或 `~/.bashrc`（如果不使用 env.json）：
 
 ```bash
 # 编辑配置文件

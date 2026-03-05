@@ -317,8 +317,8 @@ rm -rf images/
 - **解决**: 等待 2-3 秒后重试，最多重试 3 次
 
 **错误 4**: `Missing GEMINI_API_KEY`
-- **原因**: 未配置环境变量
-- **解决**: 检查 `~/.nanobanana.env` 文件
+- **原因**: 未配置 API Key
+- **解决**: 在 `~/.claude/env.json` 中设置 `gemini_api_key`，或设置环境变量
 
 ### 重试策略
 

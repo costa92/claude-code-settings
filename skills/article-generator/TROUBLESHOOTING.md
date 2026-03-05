@@ -55,26 +55,30 @@ python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
 
 ---
 
-#### 方案 B: 配置环境变量（如果确实缺失）
+#### 方案 B: 配置 API Key（如果确实缺失）
 
 如果 `GEMINI_API_KEY` 确实未配置：
 
 **检查当前值：**
 
 ```bash
+# 检查 env.json（推荐）
+cat ~/.claude/env.json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('gemini_api_key','NOT SET'))"
+
+# 或检查环境变量
 env | grep GEMINI_API_KEY
 ```
 
-**如果为空，设置环境变量：**
+**如果为空，配置 API Key：**
 
 ```bash
-# 添加到 ~/.zshrc (Zsh 用户)
+# 推荐: 统一配置文件（所有 skill 共享）
+# 编辑 ~/.claude/env.json，设置 gemini_api_key 字段
+# 模板: cp ~/.claude/env.example.json ~/.claude/env.json
+
+# 备选: 添加到 shell 配置
 echo 'export GEMINI_API_KEY="your_api_key_here"' >> ~/.zshrc
 source ~/.zshrc
-
-# 或添加到 ~/.bashrc (Bash 用户)
-echo 'export GEMINI_API_KEY="your_api_key_here"' >> ~/.bashrc
-source ~/.bashrc
 ```
 
 **获取 API Key：**
@@ -139,9 +143,9 @@ Image saved to: /tmp/test.jpg
 **解决：**
 
 ```bash
-# 创建配置
-echo 'export GEMINI_API_KEY="your_key_here"' >> ~/.zshrc
-source ~/.zshrc
+# 创建配置（推荐统一配置）
+# 编辑 ~/.claude/env.json，设置 gemini_api_key
+# 或: echo 'export GEMINI_API_KEY="your_key_here"' >> ~/.zshrc
 ```
 
 ---
@@ -192,14 +196,16 @@ python3 generate_and_upload_images.py \
 脚本按以下顺序查找 API Key（优先级从高到低）：
 
 ```
-1. 环境变量 GEMINI_API_KEY (推荐) ⭐
+1. 环境变量 GEMINI_API_KEY
    ↓ (如果不存在)
-2. ~/.nanobanana.env 文件 (备用)
+2. ~/.claude/env.json 中的 gemini_api_key (推荐) ⭐
    ↓ (如果不存在)
-3. 报错: "Missing GEMINI_API_KEY"
+3. ~/.nanobanana.env 文件 (legacy，兼容旧配置)
+   ↓ (如果不存在)
+4. 报错: "Missing GEMINI_API_KEY"
 ```
 
-**推荐做法：** 使用环境变量方式（添加到 `~/.zshrc` 或 `~/.bashrc`），这是标准做法。
+**推荐做法：** 在 `~/.claude/env.json` 中配置（所有 skill 共享），模板为 `~/.claude/env.example.json`。
 
 ---
 
@@ -218,7 +224,10 @@ python3 generate_and_upload_images.py \
 2. **使用环境变量的最佳实践：**
 
    ```bash
-   # ✅ 推荐: 添加到 shell 配置文件
+   # ✅ 推荐: 统一配置文件
+   # 编辑 ~/.claude/env.json，设置 gemini_api_key
+
+   # ✅ 备选: 添加到 shell 配置文件
    echo 'export GEMINI_API_KEY="your_key"' >> ~/.zshrc
    source ~/.zshrc
 

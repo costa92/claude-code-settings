@@ -87,17 +87,20 @@ bash ~/.claude/skills/wechat-article-converter/scripts/md2wechat_backend.sh --he
 
 ### 环境变量配置
 
-以下环境变量用于 Go 后端的高级功能：
+所有配置统一存储在 `~/.claude/env.json`，Shell 使用前加载：
 
 ```bash
-# 微信草稿箱上传（需要公众号开发者权限）
+# 加载统一配置（自动导出环境变量）
+source ~/.claude/scripts/load_env.sh
+
+# 或手动设置（仍然有效）
 export WECHAT_APPID="your_appid"
 export WECHAT_SECRET="your_secret"
-
-# AI 图片生成（需要 OpenAI 兼容的图片 API）
 export IMAGE_API_KEY="your_api_key"
 export IMAGE_API_BASE="https://api.example.com/v1"
 ```
+
+对应 env.json 字段：`wechat_appid`、`wechat_secret`、`image_api_key`、`image_api_base`
 
 ### 验证 Go 后端
 

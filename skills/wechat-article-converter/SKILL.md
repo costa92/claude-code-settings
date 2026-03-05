@@ -366,12 +366,17 @@ pip install markdown premailer pygments beautifulsoup4 lxml cssutils
 
 ### Go 后端环境变量
 
-| 变量 | 说明 | 必需 |
-|------|------|------|
-| `WECHAT_APPID` | 微信公众号 AppID | 草稿上传 |
-| `WECHAT_SECRET` | 微信 API Secret | 草稿上传 |
-| `IMAGE_API_KEY` | 图片生成 API Key | AI 图片 |
-| `IMAGE_API_BASE` | 图片 API Base URL | AI 图片 |
+所有配置统一存储在 `~/.claude/env.json`，使用前加载：
+```bash
+source ~/.claude/scripts/load_env.sh
+```
+
+| env.json 字段 | 环境变量 | 说明 | 必需 |
+|---------------|----------|------|------|
+| `wechat_appid` | `WECHAT_APPID` | 微信公众号 AppID | 草稿上传 |
+| `wechat_secret` | `WECHAT_SECRET` | 微信 API Secret | 草稿上传 |
+| `image_api_key` | `IMAGE_API_KEY` | 图片生成 API Key | AI 图片 |
+| `image_api_base` | `IMAGE_API_BASE` | 图片 API Base URL | AI 图片 |
 
 Go 后端通过 `md2wechat_backend.sh` 自动下载二进制，需要 `curl` 或 `wget`。
 

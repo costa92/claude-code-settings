@@ -349,10 +349,23 @@ def check_dependencies():
     if not os.path.exists(NANOBANANA_PATH):
         errors.append(f"❌ nanobanana 脚本未找到: {NANOBANANA_PATH}")
 
-    # 检查 GEMINI_API_KEY（先检查环境变量，再检查 .env 文件）
+    # 检查 GEMINI_API_KEY: env var > ~/.claude/env.json > ~/.nanobanana.env
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        # Check in ~/.nanobanana.env file
+        # Check in ~/.claude/env.json (unified config)
+        env_json = os.path.expanduser("~/.claude/env.json")
+        if os.path.exists(env_json):
+            try:
+                import json as _json
+                with open(env_json) as f:
+                    env_data = _json.load(f)
+                val = env_data.get("gemini_api_key", "")
+                if val and not val.startswith("your-"):
+                    api_key = val
+            except Exception:
+                pass
+    if not api_key:
+        # Check in ~/.nanobanana.env file (legacy)
         env_file = os.path.expanduser("~/.nanobanana.env")
         if os.path.exists(env_file):
             try:
@@ -369,7 +382,7 @@ def check_dependencies():
         if not api_key:
             errors.append(
                 "❌ GEMINI_API_KEY 未设置\n"
-                "   请创建 ~/.nanobanana.env 文件并添加: GEMINI_API_KEY=your_key_here\n"
+                "   推荐在 ~/.claude/env.json 中配置 gemini_api_key\n"
                 "   或设置环境变量: export GEMINI_API_KEY=your_key_here"
             )
 

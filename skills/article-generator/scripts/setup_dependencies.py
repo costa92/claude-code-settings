@@ -181,26 +181,40 @@ def check_gemini_api_key():
 
     print("🔍 Checking Gemini API Key...")
 
-    env_file = os.path.expanduser("~/.nanobanana.env")
-
     # Check environment variable
     if os.getenv("GEMINI_API_KEY"):
         print("  ✅ GEMINI_API_KEY is set in environment\n")
         return True
 
-    # Check .env file
+    # Check ~/.claude/env.json (unified config)
+    env_json = os.path.expanduser("~/.claude/env.json")
+    if os.path.exists(env_json):
+        try:
+            import json
+            with open(env_json) as f:
+                data = json.load(f)
+            val = data.get("gemini_api_key", "")
+            if val and not str(val).startswith("your-"):
+                print(f"  ✅ GEMINI_API_KEY is configured in {env_json}\n")
+                return True
+        except Exception:
+            pass
+
+    # Check legacy .env file
+    env_file = os.path.expanduser("~/.nanobanana.env")
     if os.path.exists(env_file):
         with open(env_file, 'r') as f:
             content = f.read()
             if 'GEMINI_API_KEY=' in content and not content.split('GEMINI_API_KEY=')[1].split('\n')[0].strip() == '':
-                print(f"  ✅ GEMINI_API_KEY is configured in {env_file}\n")
+                print(f"  ✅ GEMINI_API_KEY is configured in {env_file} (legacy)\n")
                 return True
 
     print(f"  ❌ GEMINI_API_KEY is not configured")
     print(f"\n📝 Setup instructions:")
     print(f"   1. Get your API key from: https://aistudio.google.com/app/apikey")
-    print(f"   2. Create {env_file} with:")
-    print(f"      GEMINI_API_KEY=your_api_key_here\n")
+    print(f"   2. Edit ~/.claude/env.json and set gemini_api_key (recommended)")
+    print(f"      Template: cp ~/.claude/env.example.json ~/.claude/env.json")
+    print(f"   3. Or: export GEMINI_API_KEY=your_api_key_here\n")
     return False
 
 def main():

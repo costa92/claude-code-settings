@@ -12,8 +12,9 @@
 # 1. 安装依赖
 pip install -r requirements.txt
 
-# 2. 配置 API Key
-export GEMINI_API_KEY="your_key"
+# 2. 配置 API Key（统一配置，所有 skill 共享）
+# 编辑 ~/.claude/env.json，设置 gemini_api_key
+# 或: export GEMINI_API_KEY="your_key"
 
 # 3. 开始使用
 @article-generator 写一篇关于 Docker 的技术文章

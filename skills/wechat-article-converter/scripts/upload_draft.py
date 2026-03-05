@@ -535,10 +535,32 @@ def main():
         print(f"❌ Go 后端脚本不存在: {BACKEND_SCRIPT}")
         sys.exit(1)
 
-    # 检查环境变量
-    if not os.environ.get("WECHAT_APPID") or not os.environ.get("WECHAT_SECRET"):
+    # 检查环境变量（支持从 env.json 加载）
+    appid = os.environ.get("WECHAT_APPID")
+    secret = os.environ.get("WECHAT_SECRET")
+    if not appid or not secret:
+        env_json = os.path.expanduser("~/.claude/env.json")
+        if os.path.exists(env_json):
+            try:
+                import json as _json
+                with open(env_json) as f:
+                    data = _json.load(f)
+                if not appid:
+                    val = data.get("wechat_appid", "")
+                    if val and not str(val).startswith("your-"):
+                        os.environ["WECHAT_APPID"] = val
+                        appid = val
+                if not secret:
+                    val = data.get("wechat_secret", "")
+                    if val and not str(val).startswith("your-"):
+                        os.environ["WECHAT_SECRET"] = val
+                        secret = val
+            except Exception:
+                pass
+    if not appid or not secret:
         print("❌ 缺少微信 API 配置")
-        print("  请设置环境变量:")
+        print("  推荐在 ~/.claude/env.json 中设置 wechat_appid / wechat_secret")
+        print("  或设置环境变量:")
         print("    export WECHAT_APPID='your_appid'")
         print("    export WECHAT_SECRET='your_secret'")
         sys.exit(1)

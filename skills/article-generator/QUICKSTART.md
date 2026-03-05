@@ -26,15 +26,14 @@ pip install -r requirements.txt
 **获取 API Key**: https://aistudio.google.com/apikey
 
 ```bash
-# 方法 1: 环境变量 (推荐)
+# 推荐: 统一配置（所有 skill 共享）
+# 编辑 ~/.claude/env.json，设置 gemini_api_key 字段
+# 模板: cp ~/.claude/env.example.json ~/.claude/env.json
+
+# 备选: 环境变量
 export GEMINI_API_KEY="your_api_key_here"
 echo 'export GEMINI_API_KEY="your_key"' >> ~/.zshrc
 source ~/.zshrc
-
-# 方法 2: 配置文件
-cat > ~/.nanobanana.env << 'EOF'
-GEMINI_API_KEY=your_api_key_here
-EOF
 ```
 
 ### 3. 验证安装
@@ -215,13 +214,12 @@ ls -la
 **1. 图片生成失败 - "Missing GEMINI_API_KEY"**
 
 ```bash
-# 检查环境变量
-env | grep GEMINI_API_KEY
+# 检查是否已配置
+cat ~/.claude/env.json | python3 -c "import sys,json; print(json.load(sys.stdin).get('gemini_api_key','NOT SET'))"
 
-# 如果为空, 重新设置
+# 如果未配置，编辑 ~/.claude/env.json 设置 gemini_api_key
+# 或设置环境变量:
 export GEMINI_API_KEY="your_key"
-echo 'export GEMINI_API_KEY="your_key"' >> ~/.zshrc
-source ~/.zshrc
 ```
 
 **2. 图片生成失败 - "文件不存在"**

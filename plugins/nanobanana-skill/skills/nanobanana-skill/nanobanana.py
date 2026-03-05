@@ -9,15 +9,31 @@ from google.genai import types
 from PIL import Image
 from io import BytesIO
 
-# Load environment variables
-load_dotenv(os.path.expanduser("~") + "/.nanobanana.env")
-
-# Google API configuration from environment variables
+# Load environment variables: env var > ~/.claude/env.json > ~/.nanobanana.env (legacy)
 api_key = os.getenv("GEMINI_API_KEY") or ""
 
 if not api_key:
+    env_json_path = os.path.expanduser("~/.claude/env.json")
+    if os.path.exists(env_json_path):
+        try:
+            import json
+            with open(env_json_path) as f:
+                val = json.load(f).get("gemini_api_key", "")
+            if val and not str(val).startswith("your-"):
+                api_key = val
+        except Exception:
+            pass
+
+if not api_key:
+    load_dotenv(os.path.expanduser("~") + "/.nanobanana.env")
+    api_key = os.getenv("GEMINI_API_KEY") or ""
+
+if not api_key:
     raise ValueError(
-        "Missing GEMINI_API_KEY environment variable. Please check your .env file."
+        "Missing GEMINI_API_KEY. Configure in one of:\n"
+        "  1. ~/.claude/env.json (recommended): set gemini_api_key\n"
+        "  2. Environment variable: export GEMINI_API_KEY=your_key\n"
+        "  3. ~/.nanobanana.env: GEMINI_API_KEY=your_key (legacy)"
     )
 
 # Initialize Gemini client
