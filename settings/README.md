@@ -2,12 +2,15 @@
 
 This directory contains sample Claude Code settings configurations for different setups.
 
-All configurations include:
+## Authentication Modes
 
-- Custom base URLs or API endpoints for different providers
-- Authentication token placeholders
-- Model specifications for each provider
-- Disabled telemetry and non-essential traffic for development
+| Mode | Provider 名 | 说明 | 需要配置 |
+|------|-------------|------|----------|
+| **Pro 会员** | `pro` | Anthropic Pro/Max 订阅，OAuth 登录 | 无（`claude login` 即可） |
+| **API Key** | `anthropic` | 自有 API key，可配代理 | `anthropic_api_key`，可选 `anthropic_base_url` |
+| **第三方** | `deepseek` / `openrouter` / ... | 第三方 Provider | 对应 `xxx_api_key` |
+
+切换方式：`~/.claude/bin/config-sync.sh --provider pro`
 
 ## Available Settings
 

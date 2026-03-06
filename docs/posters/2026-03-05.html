@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #F5EED8;
+  width: 750px;
+  font-family: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+.poster { padding: 40px 32px 32px; }
+
+.header-tag {
+  background: #E8A838; color: #fff;
+  border-radius: 20px; padding: 6px 18px;
+  font-size: 14px; font-weight: 600;
+  display: inline-block; margin-bottom: 16px;
+}
+h1 { font-size: 38px; font-weight: 900; color: #1A1A2E; line-height: 1.2; }
+.subtitle { color: #888; font-size: 15px; margin-top: 8px; }
+
+.highlights {
+  background: #EBF4FF; border-radius: 14px;
+  padding: 20px 24px; margin: 24px 0;
+  border-left: 4px solid #2563EB;
+}
+.highlights h3 { color: #2563EB; font-size: 15px; margin-bottom: 12px; letter-spacing: .5px; }
+.highlights li {
+  color: #374151; font-size: 13.5px; line-height: 1.85;
+  margin-left: 16px; margin-bottom: 2px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 4px 0;
+}
+.card {
+  background: #fff; border-radius: 16px;
+  padding: 18px 18px 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+}
+.card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.card-icon {
+  background: #2D3A4A; color: #fff;
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.card-label { font-size: 12px; color: #9CA3AF; }
+.card-title { font-size: 14px; font-weight: 700; color: #1A1A2E; line-height: 1.5; margin-bottom: 6px; }
+.card-desc { font-size: 12px; color: #6B7280; line-height: 1.7; }
+.badge {
+  display: inline-block; background: #4CAF82; color: #fff;
+  font-size: 11px; border-radius: 6px; padding: 2px 8px; margin-top: 10px;
+}
+.badge.blue   { background: #3B82F6; }
+.badge.amber  { background: #F59E0B; }
+.badge.red    { background: #EF4444; }
+.badge.purple { background: #8B5CF6; }
+.badge.teal   { background: #14B8A6; }
+
+.section-title {
+  font-size: 13px; font-weight: 700; color: #9CA3AF;
+  letter-spacing: 1px; text-transform: uppercase;
+  margin: 20px 0 10px;
+}
+
+.footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid #E8DCC0; }
+.footer-inner { display: flex; align-items: center; gap: 16px; }
+.qr-code { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; }
+.footer-label { font-size: 12px; color: #AAAAAA; }
+.footer-name { font-size: 18px; font-weight: 700; color: #2D3A4A; }
+.footer-sub { font-size: 12px; color: #AAAAAA; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="poster">
+
+  <div class="header-tag">AI 日报 · 2026年3月5日</div>
+  <h1>今日 AI 速报</h1>
+  <div class="subtitle">6 条精选 · 来源：Hacker News 实时 + smol.ai</div>
+
+  <div class="highlights">
+    <h3>✦ 今日看点</h3>
+    <ul>
+      <li>🧠 OpenAI 推出 GPT-5.4 Thinking &amp; Pro，HN 当日 4 条讨论，近期最热发布</li>
+      <li>📄 MIT/哈佛量化 AI 对就业结构的冲击，提出首个系统性评估新指标</li>
+      <li>🔧 GitHub 推出 AI PR 标准协议，可批量识别并关闭低质量 AI 生成 PR</li>
+      <li>🚀 YC W26 项目 Vela 上线：AI 驱动的多约束复杂调度引擎</li>
+      <li>🔍 "AI 与忒修斯之船"：代码逐行被替换后，创作权归谁？</li>
+      <li>⚖️ 开发者用 AI 重写 GPL 代码探索重新授权，引发版权争议</li>
+    </ul>
+  </div>
+
+  <div class="section-title">模型 &amp; 产品</div>
+  <div class="grid">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🧠</div>
+        <div class="card-label">模型发布</div>
+      </div>
+      <div class="card-title">GPT-5.4 Thinking &amp; GPT-5.4 Pro 正式发布</div>
+      <div class="card-desc">OpenAI 同日推出三款：GPT-5.4 基础升级、Thinking 内置链式推理、Pro 面向高复杂度专业任务。HN 出现 4 条并发讨论，为近期最热发布。</div>
+      <span class="badge amber">OpenAI</span>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🚀</div>
+        <div class="card-label">产品动态</div>
+      </div>
+      <div class="card-title">Vela (YC W26) — AI 多约束调度引擎</div>
+      <div class="card-desc">YC 冬季孵化项目，解决员工排班、设施预约、物流分配等场景下的复杂约束调度，AI 实时优化排期，效率提升 60%+。</div>
+      <span class="badge teal">YC W26</span>
+    </div>
+  </div>
+
+  <div class="section-title">研究 &amp; 工具</div>
+  <div class="grid">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📄</div>
+        <div class="card-label">研究论文</div>
+      </div>
+      <div class="card-title">AI 劳动力影响：新指标与早期证据</div>
+      <div class="card-desc">MIT/哈佛联合研究构建可量化 AI 渗透率的新指标，发现白领知识工作与软件开发受冲击最早，政策干预窗口期有限。</div>
+      <span class="badge blue">MIT / Harvard</span>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🔧</div>
+        <div class="card-label">工具框架</div>
+      </div>
+      <div class="card-title">AI PR 标准协议 — 批量拦截低质量 AI PR</div>
+      <div class="card-desc">社区提出统一元数据标记方案，维护者可设仓库级过滤规则，区分"AI 辅助"与"AI 完全生成"，保护开源生态质量。</div>
+      <span class="badge">开源社区</span>
+    </div>
+  </div>
+
+  <div class="section-title">行业观点</div>
+  <div class="grid">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🔍</div>
+        <div class="card-label">深度观点</div>
+      </div>
+      <div class="card-title">AI 与忒修斯之船：替换还是重塑？</div>
+      <div class="card-desc">当代码逐行被 AI 替换，软件还算"你写的"吗？HN 社区围绕创作权、技术自主性、程序员身份认同展开深度讨论。</div>
+      <span class="badge purple">技术哲学</span>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">⚖️</div>
+        <div class="card-label">技术实践</div>
+      </div>
+      <div class="card-title">AI 辅助重写 GPL 代码以重新授权</div>
+      <div class="card-desc">开发者将 GPL 代码逐函数 AI 重写为 MIT 实现，探索重新授权可行性，讨论焦点：AI 重写是否构成"实质性相似"？</div>
+      <span class="badge red">法律 / 开源</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-inner">
+      <img class="qr-code" src="https://file.costalong.com/img/e56800444cefaab4ddee42b22fae8cfc.jpg" alt="扫码关注">
+      <div class="footer-text">
+        <div class="footer-label">扫码关注</div>
+        <div class="footer-name">CostaLong</div>
+        <div class="footer-sub">公众号 · 每日 AI 资讯</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

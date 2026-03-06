@@ -10,9 +10,16 @@ Generate or edit images using Google Gemini API through the nanobanana tool.
 
 ## Requirements
 
-1. **GEMINI_API_KEY**: Configure in `~/.claude/env.json` (recommended, `gemini_api_key` field), or `export GEMINI_API_KEY=<your-api-key>`, or `~/.nanobanana.env` (legacy)
-2. **Python3 with depedent packages installed**: google-genai, Pillow, python-dotenv. They could be installed via `python3 -m pip install -r ${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/requirements.txt` if not installed yet.
-3. **Executable**: `${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/nanobanana.py`
+1. **GEMINI_API_KEY**（必需）: 优先从 `~/.claude/env.json` 的 `gemini_api_key` 字段读取。
+   如未配置，尝试环境变量 `GEMINI_API_KEY`，或遗留路径 `~/.nanobanana.env`。
+   缺少时提示用户在 `env.json` 中填写。
+2. **Python3 及依赖**: `google-genai`、`Pillow`、`python-dotenv`
+   ```bash
+   python3 -m pip install -r ${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/requirements.txt
+   ```
+3. **脚本路径**: `${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/nanobanana.py`
+
+**注意**: 必须使用绝对路径调用脚本，相对路径会导致找不到文件。
 
 ## Instructions
 

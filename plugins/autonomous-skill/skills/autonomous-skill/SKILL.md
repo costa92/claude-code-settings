@@ -8,6 +8,17 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Task, Bash(cat:*), Bash(ls:*), Bas
 
 Execute complex, long-running tasks across multiple sessions using a dual-agent pattern (Initializer + Executor) with automatic session continuation.
 
+## Prerequisites
+
+Before starting, verify Claude Code CLI is available:
+
+```bash
+which claude || echo "ERROR: claude not found. Install Claude Code first."
+claude --version
+```
+
+If `claude` is not found, this skill cannot function — guide the user to install Claude Code.
+
 ## Directory Structure
 
 All task data is stored in `.autonomous/<task-name>/` under the project root:

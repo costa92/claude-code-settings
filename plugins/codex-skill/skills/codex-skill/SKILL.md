@@ -8,6 +8,14 @@ allowed-tools: Read, Write, Glob, Grep, Task, Bash(cat:*), Bash(ls:*), Bash(tree
 
 You are operating in **codex exec** - a non-interactive automation mode for hands-off task execution.
 
+## Quick Mode Decision
+
+| 任务类型 | 推荐模式 | 命令 |
+|---------|---------|------|
+| 分析/阅读代码 | read-only（默认） | `codex exec "..."` |
+| 实现功能/修 bug | workspace-write | `codex exec --full-auto "..."` |
+| 安装依赖/联网 | danger-full-access | `codex exec -s danger-full-access "..."` |
+
 ## Prerequisites
 
 Before using this skill, ensure Codex CLI is installed and configured:

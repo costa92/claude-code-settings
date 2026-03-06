@@ -23,3 +23,15 @@ cat ~/.claude/plugins/installed_plugins.json
 ```
 
 输出结果后，告知用户各 skill 是否正常加载。
+
+## 验证 Checklist
+
+执行后逐项确认：
+
+- [ ] `~/.claude/skills/` 目录存在且非空
+- [ ] `~/.claude/agents/` 目录存在且非空
+- [ ] `installed_plugins.json` 中的插件目录均存在（`~/.claude/plugins/<name>/`）
+- [ ] 每个 skill 目录下均有 `SKILL.md` 文件
+- [ ] 每个 `SKILL.md` 均有有效 frontmatter（`name` + `description` 字段）
+
+如有异常，报告具体缺失项并提供修复建议。

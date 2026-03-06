@@ -7,6 +7,8 @@ description: Deconstruct viral articles into reusable creative building blocks, 
 
 **发现爆款 → 拆解 → 提取创意积木 → 组装新内容**
 
+> 核心原则：**积木是模式不是内容** — 提取结构和手法的抽象模式，绝不复制原文文字。每个 Phase 切换都需要用户确认，不自动跳转。
+
 ---
 
 ## Execution Checklist

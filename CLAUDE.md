@@ -6,27 +6,34 @@
 
 ```
 ~/.claude/
-├── settings.json          # 全局配置（权限、环境变量、插件）
-├── env.json               # 共享密钥与偏好配置（gitignore，勿提交）
+├── settings.json          # 全局配置（由 config-sync.sh 生成，勿手动编辑）
+├── env.json               # 共享密钥与偏好配置（gitignore，唯一真相源）
 ├── env.example.json       # env.json 模板（可提交，占位符值）
-├── settings/              # 多 Provider 配置
+├── bin/
+│   └── config-sync.sh     # 配置同步工具（env.json → settings.json + .mcp.json）
+├── hooks/
+│   └── auto-config-sync.sh# SessionStart hook：自动检测 OAuth 并同步配置
+├── settings/              # 多 Provider 模板库（只读，由 config-sync.sh 引用）
 │   ├── azure-settings.json
 │   ├── openrouter-settings.json
 │   ├── deepseek-settings.json
 │   ├── vertex-settings.json
 │   └── ...                # 其他 Provider 配置
-├── agents/                # Agent 定义（2 个）
+├── agents/                # Agent 定义（3 个）
 │   ├── ui-engineer.md     # 前端开发 agent
-│   └── content-pipeline.md # 内容流水线编排 agent
-├── skills/                # Skill 定义（44 个）
+│   ├── content-pipeline.md # 内容流水线编排 agent
+│   └── code-reviewer.md   # 代码审查 agent
+├── skills/                # Skill 定义（45 个）
 │   ├── article-generator/ # 文章生成（核心）
 │   ├── content-planner/   # 选题规划
-│   ├── content-reviewer/  # 内容审核（6 维评分）
+│   ├── content-reviewer/  # 内容审核（7 维评分）
 │   ├── content-repurposer/# 多平台分发
 │   ├── content-analytics/ # 数据分析
 │   ├── content-remixer/  # 爆款拆解→创意积木→组装新内容
 │   ├── wechat-article-converter/ # 微信格式转换
 │   ├── wechat-seo-optimizer/    # SEO 优化
+│   ├── news-daily/        # AI 行业新闻（RSS 摘要）
+│   ├── blog-digest/       # 技术博客精选（Gemini 评分）
 │   ├── code-review/       # 代码审查中枢
 │   ├── vercel-deploy-claimable/ # Vercel 部署
 │   └── ...                # 其他 skill
@@ -80,11 +87,16 @@ content-analytics ← content-repurposer ← wechat-article-converter
 
 - **统一配置中心**: `~/.claude/env.json`（gitignore），模板为 `env.example.json`（可提交）
   - 所有 API Key（Gemini、OpenAI、WeChat、N8N 等）统一存放于此
-  - skill 偏好参数（digest_*）也存于此文件
+  - skill 偏好参数（digest_*、wechat_account_name 等）也存于此文件
   - skill 读取配置时优先从 env.json 获取，避免重复询问用户
   - **Shell 脚本**: `source ~/.claude/scripts/load_env.sh` 自动导出为环境变量
   - **Python 脚本**: 直接读取 env.json，或 `sys.path.insert(0, os.path.expanduser("~/.claude/scripts")); from load_env import load_env`
   - 配置优先级: 环境变量 > env.json > 旧的散落配置文件（~/.nanobanana.env 等，兼容但不推荐）
+- **配置同步**: `~/.claude/bin/config-sync.sh` — env.json 变更后自动生成 settings.json 和 .mcp.json
+  - `--provider <name>` 切换 provider（pro/anthropic/deepseek/openrouter/...）
+  - `--list` 查看所有可用 provider
+  - `--dry-run` 预览不写入
+  - SessionStart hook 自动检测 OAuth 状态并切换 pro/fallback 模式
 - **默认作者**: 月影（在 wechat-article-converter/SKILL.md 中配置）
 - **图片 CDN**: jsDelivr + GitHub 后端（costa92/article-images），通过 PicGo 上传
 - **图片生成**: Gemini API（nanobanana.py），必须使用绝对路径

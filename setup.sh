@@ -74,48 +74,56 @@ if [[ -n "$MISSING_TOOLS" ]]; then
 fi
 
 # =========================================================================
-# Step 2: settings.json 初始化
+# Step 2: 初始化 env.json + 生成 settings.json
 # =========================================================================
-step "Step 2/9: settings.json"
+step "Step 2/9: env.json + settings.json"
 
+ENV_JSON="$CLAUDE_DIR/env.json"
+ENV_EXAMPLE="$CLAUDE_DIR/env.example.json"
+CONFIG_SYNC="$CLAUDE_DIR/bin/config-sync.sh"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
-SETTINGS_EXAMPLE="$CLAUDE_DIR/settings.json.example"
 
-if [[ -f "$SETTINGS_FILE" ]]; then
-  ok "settings.json 已存在，跳过（不覆盖用户配置）"
+# 2a. 初始化 env.json（新机器首次）
+if [[ -f "$ENV_JSON" ]]; then
+  ok "env.json 已存在，跳过"
 else
-  if [[ ! -f "$SETTINGS_EXAMPLE" ]]; then
-    fail "settings.json.example 不存在，无法创建 settings.json"
+  if [[ ! -f "$ENV_EXAMPLE" ]]; then
+    fail "env.example.json 不存在"
     exit 1
   fi
+  cp "$ENV_EXAMPLE" "$ENV_JSON"
+  info "已从 env.example.json 复制模板"
 
-  # Copy template
-  cp "$SETTINGS_EXAMPLE" "$SETTINGS_FILE"
-  info "已从 settings.json.example 复制模板"
-
-  # Interactive: ask for env vars
+  # 交互式收集 provider 和 API key
   echo ""
-  read -rp "  ANTHROPIC_AUTH_TOKEN (留空跳过): " AUTH_TOKEN
-  read -rp "  ANTHROPIC_BASE_URL  (留空使用默认 https://api.anthropic.com): " BASE_URL
+  echo "  可用 provider: pro | anthropic | deepseek | openrouter | qwen | siliconflow | minimax | azure | vertex | litellm | copilot | azure-foundry"
+  read -rp "  选择 provider（留空默认 pro）: " PROVIDER
+  PROVIDER="${PROVIDER:-pro}"
+  jq --arg p "$PROVIDER" '.provider = $p' "$ENV_JSON" > "$ENV_JSON.tmp" && mv "$ENV_JSON.tmp" "$ENV_JSON"
 
-  if [[ -n "${AUTH_TOKEN:-}" ]]; then
-    jq --arg token "$AUTH_TOKEN" '.env.ANTHROPIC_AUTH_TOKEN = $token' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" \
-      && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+  if [[ "$PROVIDER" == "anthropic" ]]; then
+    read -rp "  ANTHROPIC_API_KEY（留空跳过）: " API_KEY
+    read -rp "  ANTHROPIC_BASE_URL（留空使用官方地址）: " BASE_URL
+    [[ -n "$API_KEY" ]] && jq --arg v "$API_KEY" '.anthropic_api_key = $v' "$ENV_JSON" > "$ENV_JSON.tmp" && mv "$ENV_JSON.tmp" "$ENV_JSON"
+    [[ -n "$BASE_URL" ]] && jq --arg v "$BASE_URL" '.anthropic_base_url = $v' "$ENV_JSON" > "$ENV_JSON.tmp" && mv "$ENV_JSON.tmp" "$ENV_JSON"
+  elif [[ "$PROVIDER" != "pro" && "$PROVIDER" != "litellm" && "$PROVIDER" != "copilot" && "$PROVIDER" != "vertex" ]]; then
+    read -rp "  ${PROVIDER}_api_key（留空跳过）: " API_KEY
+    [[ -n "$API_KEY" ]] && jq --arg v "$API_KEY" ".${PROVIDER}_api_key = \$v" "$ENV_JSON" > "$ENV_JSON.tmp" && mv "$ENV_JSON.tmp" "$ENV_JSON"
   fi
-  if [[ -n "${BASE_URL:-}" ]]; then
-    jq --arg url "$BASE_URL" '.env.ANTHROPIC_BASE_URL = $url' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" \
-      && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+
+  ok "env.json 初始化完成"
+fi
+
+# 2b. 生成 settings.json（通过 config-sync.sh）
+if [[ -f "$SETTINGS_FILE" ]]; then
+  ok "settings.json 已存在，跳过（如需重新生成：bin/config-sync.sh）"
+else
+  if [[ ! -x "$CONFIG_SYNC" ]]; then
+    fail "bin/config-sync.sh 不存在或不可执行"
+    exit 1
   fi
-
-  # Write enabledPlugins
-  jq '.enabledPlugins = {
-    "n8n-mcp-skills@n8n-mcp-skills": true,
-    "superpowers@superpowers-marketplace": true,
-    "ralph-wiggum@claude-code-plugins": true,
-    "kiro-skill@claude-code-settings": true
-  }' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-
-  ok "settings.json 创建完成"
+  "$CONFIG_SYNC"
+  ok "settings.json 生成完成"
 fi
 
 # =========================================================================
