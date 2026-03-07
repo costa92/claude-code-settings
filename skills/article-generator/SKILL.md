@@ -29,20 +29,29 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 ### Phase B: 写作（先文章后图片）
 4. **[ ] Save article to file** — Use `Write` tool，NEVER just display in chat
 5. **[ ] SCREENSHOT placeholders** — 引用外部内容时必须插入（截图是事实素材）
-6. **[ ] Image generation (if requested)** — 先执行 Gemini 探针测试（见下方），失败则保留占位符跳过
-7. **[ ] Update article with CDN URLs** — 截图和 AI 图分开处理，截图通常不受 Gemini 影响
+6. **[ ] Mermaid → image** — 文章中的流程图、架构图等 Mermaid 图表必须渲染为图片：
+   - 将 Mermaid 代码写入 `.mmd` 文件
+   - 用 `npx @mermaid-js/mermaid-cli mmdc -i input.mmd -o output.png -b transparent` 渲染
+   - 上传 CDN，替换文章中的 Mermaid 代码块为 `![描述](CDN_URL)`
+   - **禁止在最终文章中保留 Mermaid 代码块**（微信等平台不支持渲染）
+7. **[ ] Image generation (if requested)** — 先执行 Gemini 探针测试（见下方），失败则保留占位符跳过
+8. **[ ] Update article with CDN URLs** — 截图和 AI 图分开处理，截图通常不受 Gemini 影响
 
 ### Phase C: 写作后（按场景裁剪）
-8. **[ ] Self-check** — 跑 reviewer 前快速自检常见扣分项：
+9. **[ ] Self-check** — 跑 reviewer 前快速自检常见扣分项：
    - 有收尾行动指引段落？（不是"希望对你有帮助"）
-   - 有红旗词？（搜索"无缝""赋能""一站式""综上所述"等）
+   - 有红旗词？（用 Grep 搜索以下词：`无缝|赋能|一站式|综上所述|总而言之|值得注意的是|不难发现|深度解析|全面梳理|链路|闭环|抓手|底层逻辑|方法论|降本增效|实际上|事实上|显然|众所周知|不难看出`）
    - 每个章节有足够深度？（≥2 条命令或代码 + 解释，不能只有 1 条命令 1 句话）
    - 开头 Hook 在 100 字内？环境声明用 callout 包裹？
-9. **[ ] Verify content depth** — 字数要求见下表
-10. **[ ] Quality gate** — 按场景选择审查模式：
-   - **发布模式**（默认）：运行 `/content-reviewer` ≥ 48/60，运行 `/wechat-seo-optimizer`
+   - frontmatter `description` 字段已填写？（120 字以内摘要，微信必须）
+   - 同一章节内无重复图片？（同一 section 不应出现两张功能相同的配图）
+   - 微信平台：外部链接已转为搜索指引？（如 `搜索「关键词」`，微信不支持外链）
+   - 文章中无残留 Mermaid 代码块？（流程图/架构图必须已渲染为图片）
+10. **[ ] Verify content depth** — 字数要求见下表
+11. **[ ] Quality gate** — 按场景选择审查模式：
+   - **发布模式**（默认）：运行 `/content-reviewer` ≥ 55/70，运行 `/wechat-seo-optimizer`
    - **草稿/测试模式**（用户说"测试""草稿""先看看"）：自行快速检查事实准确性和链接，跳过 reviewer 和 SEO
-11. **[ ] Confirm completion** — 用简洁表格汇总，必须包含以下信息：
+12. **[ ] Confirm completion** — 用简洁表格汇总，必须包含以下信息：
     - **文件绝对路径**（方便跨 session 接手）
     - **图片状态**：已上传数 / 总数，如有未生成的占位符需列出具体数量和待执行命令
     - **审查结果**：评分和状态
@@ -54,6 +63,8 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
 | 快速入门 | 500-1000 字 | "快速入门""quick start""简短" |
 | 实战教程 | 2000-3000 字 | 默认 |
 | 深度解析 | 4000+ 字 | "深度""详细""全面" |
+
+> **字数由用户选择决定**，上表仅为参考范围。不要因平台限制自行截断内容，如果用户选择了深度解析，就按 4000+ 字写。
 
 ### 速度优化规则
 
@@ -155,19 +166,21 @@ Phase A: 写作前（并行优化）
 Phase B: 写作（先文章后图片）
   4. Content Generation → Write tool 保存文件
   5. SCREENSHOT placeholders（引用外部内容时必须）
-  6. Gemini 探针 → 可用则 --process-file，不可用则保留占位符
-  7. 截图始终执行（不依赖 Gemini）
+  6. Mermaid → image（流程图/架构图渲染为 PNG，禁止保留代码块）
+  7. Gemini 探针 → 可用则 --process-file，不可用则保留占位符
+  8. 截图始终执行（不依赖 Gemini）
 
 Phase C: 写作后（按场景裁剪）
-  8. Self-check（收尾段落、红旗词、章节深度、Hook 长度）
-  9. 发布模式：/content-reviewer ≥ 48 → /wechat-seo-optimizer
+  9. Self-check（收尾段落、红旗词、章节深度、Hook 长度、description、重复图片、外链、Mermaid 残留）
+ 10. Verify content depth（字数由用户选择决定）
+ 11. 发布模式：/content-reviewer ≥ 55/70 → /wechat-seo-optimizer
      草稿模式：自行快速检查，跳过 reviewer 和 SEO
- 10. 简洁表格汇总（绝对路径 + 图片状态含未解决占位符 + 评分）
+ 12. 简洁表格汇总（绝对路径 + 图片状态含未解决占位符 + 评分）
 ```
 
 ### Article-Only Workflow (Fast Track)
 
-Same as standard but skip step 6-7 (images). Include placeholders for later:
+Same as standard but skip step 6-8 (Mermaid/images). Include placeholders for later:
 ```markdown
 <!-- IMAGE: cover - 封面图 (16:9) -->
 <!-- PROMPT: your image generation prompt here -->
@@ -202,21 +215,25 @@ Replace existing ASCII art code blocks (box-drawing characters) with AI-generate
 - **Direct and technical:** Focus on accuracy over readability
 
 ### Structure
-- YAML frontmatter required on every article
+- YAML frontmatter required on every article, **必须包含 `description` 字段**（120 字以内摘要）
 - Obsidian callouts for key information
 - Single reference section at end, **参考资料区是纯文字列表，禁止放置图片**
 - No redundant sections: 避免"互动环节""写在最后""下期预告"
+- **同一章节内不放两张功能相同的配图**（如同一流程图的两个版本）
 
 ### Code & Links
 - Code must be runnable with type annotations and error handling
 - Explicit links: `**Name**: https://url` — NEVER `[[double brackets]]`
 - Verify all links return HTTP 200
 - Technical comparisons use parameter tables (cost, latency, memory)
+- **微信平台：外部链接改为搜索指引**（如「搜索 关键词」），微信公众号不支持外链跳转
 
 ### Images
 - 1 cover + 4-6 rhythm images per 3000-word article
 - Unique filenames per article (e.g., `ollama_cover.jpg`)
 - ASCII architecture diagrams → AI images: replace ```` ``` ```` code blocks containing box-drawing characters with generated illustrations
+- **Mermaid 图表（flowchart/sequence/gantt 等）必须渲染为 PNG 图片**，不得以代码块形式留在文章中。渲染命令：`npx mmdc -i file.mmd -o file.png -b transparent`。注意 Mermaid 节点标签中 `\n` 不会渲染换行，须改用 `<br/>`
+- **普通代码块（bash/json/yaml/python 等）保留原样**，不需要转图片
 - Screenshot rules: see [image-generation-guide.md](references/image-generation-guide.md)
 
 ### Project Disambiguation
@@ -274,5 +291,5 @@ For advanced config, see [INSTALL.md](./INSTALL.md)
 
 ---
 
-**Version:** 3.1 (2026-03-03)
-**Changes:** Added ASCII Diagram → AI Image Replacement workflow (Method 4)
+**Version:** 3.2 (2026-03-07)
+**Changes:** Added Mermaid→image rendering (Phase B Step 6), expanded self-check to 8 items, unified quality gate to 55/70, word count user-driven

@@ -110,12 +110,20 @@ description: Deconstruct viral articles into reusable creative building blocks, 
 ```
 /article-generator 写一篇关于 [用户指定的新主题] 的文章，目标受众：[受众]
 
+目标平台：[微信公众号/小红书/知乎/通用]（默认微信公众号）
+文章深度：[快速入门/实战教程/深度解析]
+
 写作约束（来自爆款拆解）：
 - Hook: [约束]
 - 大纲骨架: [约束]
 - 段落节奏: [约束]
 - 手法: [约束列表]
 - 收尾: [约束]
+
+平台注意事项：
+- 微信：外部链接改为搜索指引（如「搜索 关键词」），必须填写 description
+- 小红书：需要话题标签和表情
+- 知乎：开头直接给结论，需要参考文献
 ```
 
 **IF ANY REQUIRED CHECKBOX IS UNCHECKED, THE TASK IS INCOMPLETE.**
