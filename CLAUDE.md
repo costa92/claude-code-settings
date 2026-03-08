@@ -63,7 +63,6 @@
 │   ├── load_env.sh        # Shell: source 后导出 env.json 为环境变量
 │   └── load_env.py        # Python: from load_env import load_env
 ├── guidances/             # 指导文件
-├── plans/                 # 计划文件
 └── projects/              # 项目级配置与记忆
 ```
 

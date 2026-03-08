@@ -166,7 +166,6 @@ plugins/.sync-manifest.json
 plugins/.sync.lock
 plugins/.sync.log
 .update.lock
-plans/*.md
 
 # Project specific
 WARP.md
