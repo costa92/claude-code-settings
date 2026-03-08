@@ -8,6 +8,7 @@ set -euo pipefail
 
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 HOOKS_DIR="$CLAUDE_DIR/hooks"
+COMMANDS_DIR="$CLAUDE_DIR/commands"
 SETTINGS="$CLAUDE_DIR/settings.json"
 INSTALLED="$CLAUDE_DIR/plugins/installed_plugins.json"
 CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
@@ -15,13 +16,13 @@ CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
 [[ ! -f "$INSTALLED" ]] && exit 0
 [[ ! -f "$SETTINGS" ]]  && exit 0
 
-mkdir -p "$HOOKS_DIR"
+mkdir -p "$HOOKS_DIR" "$COMMANDS_DIR"
 
-python3 - "$CLAUDE_DIR" "$HOOKS_DIR" "$SETTINGS" "$INSTALLED" "$CLAUDE_MD" <<'PYEOF'
+python3 - "$CLAUDE_DIR" "$HOOKS_DIR" "$COMMANDS_DIR" "$SETTINGS" "$INSTALLED" "$CLAUDE_MD" <<'PYEOF'
 import json, os, re, sys
 from pathlib import Path
 
-claude_dir, hooks_dir, settings_path, installed_path, claude_md_path = sys.argv[1:]
+claude_dir, hooks_dir, commands_dir, settings_path, installed_path, claude_md_path = sys.argv[1:]
 home = str(Path.home())
 
 def expand(p):
@@ -96,6 +97,46 @@ for plugin_key, entries in installed.get("plugins", {}).items():
     desc = get_plugin_description(install_path, plugin_key)
     if update_claude_md(claude_md_path, plugin_name, marketplace, desc):
         newly_installed.append((plugin_name, marketplace, desc))
+
+    # ── 命令注册（sync 插件 commands → ~/.claude/commands/）─────────────
+    plugin_cmds_dir = os.path.join(install_path, "commands")
+    if os.path.isdir(plugin_cmds_dir):
+        # 内置命令名，跳过避免冲突
+        builtin_cmds = {"help", "clear", "compact", "config", "init", "login", "logout", "status", "doctor", "mcp"}
+        # 标记注释，用于识别插件管理的命令文件
+        PLUGIN_MARKER = "<!-- managed-by-plugin: {} -->"
+        for cmd_file in os.listdir(plugin_cmds_dir):
+            if not cmd_file.endswith(".md"):
+                continue
+            cmd_name = cmd_file[:-3]  # 去掉 .md
+            if cmd_name in builtin_cmds:
+                continue
+            target = os.path.join(commands_dir, cmd_file)
+            source = os.path.join(plugin_cmds_dir, cmd_file)
+            marker = PLUGIN_MARKER.format(plugin_key)
+            # 读取源文件内容
+            with open(source) as sf:
+                src_content = sf.read()
+            # 处理内容：去掉 disable-model-invocation，加上插件标记
+            import re as _re
+            processed = _re.sub(r'\ndisable-model-invocation:\s*true\n', '\n', src_content)
+            if marker not in processed:
+                processed = processed.rstrip('\n') + '\n' + marker + '\n'
+            # 如果目标已存在，判断是否由插件管理
+            if os.path.exists(target) and not os.path.islink(target):
+                with open(target) as tf:
+                    existing = tf.read()
+                # 非插件管理的同名文件，跳过（用户自己的命令优先）
+                if "<!-- managed-by-plugin:" not in existing:
+                    continue
+                # 内容相同则跳过
+                if existing == processed:
+                    continue
+            # 移除旧 symlink（兼容之前版本）
+            if os.path.islink(target):
+                os.remove(target)
+            with open(target, 'w') as tf:
+                tf.write(processed)
 
     # ── Hook 注册 ──────────────────────────────────────────────────────────
     hooks_json_path = os.path.join(install_path, "hooks", "hooks.json")
