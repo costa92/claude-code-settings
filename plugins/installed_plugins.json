@@ -4,7 +4,7 @@
     "n8n-mcp-skills@n8n-mcp-skills": [
       {
         "scope": "user",
-        "installPath": "~/.claude/plugins/cache/n8n-mcp-skills/n8n-mcp-skills/1.1.0",
+        "installPath": "~/.claude/plugins/n8n-mcp-skills",
         "version": "1.1.0",
         "installedAt": "2026-02-27T03:59:57.091Z",
         "lastUpdated": "2026-02-27T03:59:57.091Z",
@@ -14,7 +14,7 @@
     "kiro-skill@claude-code-settings": [
       {
         "scope": "user",
-        "installPath": "~/.claude/plugins/cache/claude-code-settings/kiro-skill/1.0.0",
+        "installPath": "~/.claude/plugins/kiro-skill",
         "version": "1.0.0",
         "installedAt": "2026-01-08T07:14:19.573Z",
         "lastUpdated": "2026-01-08T07:14:19.573Z",
@@ -24,7 +24,7 @@
     "ralph-wiggum@claude-code-plugins": [
       {
         "scope": "user",
-        "installPath": "~/.claude/plugins/cache/claude-code-plugins/ralph-wiggum/1.0.0",
+        "installPath": "~/.claude/plugins/ralph-wiggum",
         "version": "1.0.0",
         "installedAt": "2026-02-26T01:40:00.000Z",
         "lastUpdated": "2026-02-26T01:40:00.000Z",
@@ -34,11 +34,56 @@
     "superpowers@superpowers-marketplace": [
       {
         "scope": "user",
-        "installPath": "~/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1",
+        "installPath": "~/.claude/plugins/superpowers",
         "version": "4.3.1",
         "installedAt": "2026-02-26T01:40:00.000Z",
         "lastUpdated": "2026-03-04T00:00:00.000Z",
         "gitCommitSha": "469a6d81ebb8b827e284d4afb090c6c622d97747"
+      }
+    ],
+    "autonomous-skill@claude-code-settings": [
+      {
+        "scope": "user",
+        "installPath": "~/.claude/plugins/autonomous-skill",
+        "version": "1.0.0",
+        "installedAt": "2026-03-08T00:00:00.000Z",
+        "lastUpdated": "2026-03-08T00:00:00.000Z"
+      }
+    ],
+    "codex-skill@claude-code-settings": [
+      {
+        "scope": "user",
+        "installPath": "~/.claude/plugins/codex-skill",
+        "version": "1.0.0",
+        "installedAt": "2026-03-08T00:00:00.000Z",
+        "lastUpdated": "2026-03-08T00:00:00.000Z"
+      }
+    ],
+    "nanobanana-skill@claude-code-settings": [
+      {
+        "scope": "user",
+        "installPath": "~/.claude/plugins/nanobanana-skill",
+        "version": "1.0.0",
+        "installedAt": "2026-03-08T00:00:00.000Z",
+        "lastUpdated": "2026-03-08T00:00:00.000Z"
+      }
+    ],
+    "spec-kit-skill@claude-code-settings": [
+      {
+        "scope": "user",
+        "installPath": "~/.claude/plugins/spec-kit-skill",
+        "version": "1.0.0",
+        "installedAt": "2026-03-08T00:00:00.000Z",
+        "lastUpdated": "2026-03-08T00:00:00.000Z"
+      }
+    ],
+    "youtube-transcribe-skill@claude-code-settings": [
+      {
+        "scope": "user",
+        "installPath": "~/.claude/plugins/youtube-transcribe-skill",
+        "version": "1.0.0",
+        "installedAt": "2026-03-08T00:00:00.000Z",
+        "lastUpdated": "2026-03-08T00:00:00.000Z"
       }
     ]
   }

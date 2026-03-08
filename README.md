@@ -11,8 +11,6 @@ A curated collection of Claude Code settings, custom commands, skills and sub-ag
 ### Using Claude Code Plugin
 
 ```sh
-/plugin marketplace add feiskyer/claude-code-settings
-
 # Install main plugin (commands, agents and skills)
 /plugin install claude-code-settings
 
@@ -25,14 +23,6 @@ A curated collection of Claude Code settings, custom commands, skills and sub-ag
 /plugin install youtube-transcribe-skill  # YouTube transcript extraction
 ```
 
-Alternatively, run a one-command installation via the [Claude Plugins CLI](https://claude-plugins.dev) to skip the marketplace setup:
-
-```bash
-npx claude-plugins install @feiskyer/claude-code-settings/claude-code-settings
-```
-
-This automatically adds the marketplace and installs the plugin in a single step.
-
 **Note:**
 
 - [~/.claude/settings.json](settings.json) is not configured via Claude Code Plugin, you'd need to configure it manually.
@@ -44,7 +34,7 @@ This automatically adds the marketplace and installs the plugin in a single step
 mv ~/.claude ~/.claude.bak
 
 # Clone the claude-code-settings
-git clone https://github.com/feiskyer/claude-code-settings.git ~/.claude
+git clone https://github.com/costa92/claude-code-settings.git ~/.claude
 
 # Install LiteLLM proxy
 pip install -U 'litellm[proxy]'
@@ -245,7 +235,6 @@ Non-interactive automation mode for hands-off task execution using OpenAI Codex/
 **Installation:**
 
 ```sh
-/plugin marketplace add feiskyer/claude-code-settings
 /plugin install codex-skill
 ```
 
@@ -273,7 +262,6 @@ Execute complex, long-running tasks across multiple sessions using a dual-agent 
 **Installation:**
 
 ```sh
-/plugin marketplace add feiskyer/claude-code-settings
 /plugin install autonomous-skill
 ```
 
@@ -308,7 +296,6 @@ Generate or edit images using Google Gemini API via nanobanana. Use when creatin
 **Installation:**
 
 ```sh
-/plugin marketplace add feiskyer/claude-code-settings
 /plugin install nanobanana-skill
 ```
 
@@ -339,7 +326,6 @@ Extract subtitles/transcripts from a YouTube video link.
 **Installation:**
 
 ```sh
-/plugin marketplace add feiskyer/claude-code-settings
 /plugin install youtube-transcribe-skill
 ```
 
@@ -369,7 +355,6 @@ Interactive feature development workflow from idea to implementation with EARS r
 **Installation:**
 
 ```sh
-/plugin marketplace add feiskyer/claude-code-settings
 /plugin install kiro-skill
 ```
 
@@ -403,7 +388,6 @@ GitHub Spec-Kit integration for constitution-based spec-driven development with 
 **Installation:**
 
 ```sh
-/plugin marketplace add feiskyer/claude-code-settings
 /plugin install spec-kit-skill
 ```
 

@@ -60,22 +60,25 @@ except ImportError:
         "retriable_errors": ["SSL", "ConnectionError", "TimeoutError", "NetworkError", "500", "502", "503", "504"]
     }
 
+# Load env.json for configuration (model name, etc.)
+_env_json_config = {}
+_env_json_path = os.path.expanduser("~/.claude/env.json")
+if os.path.exists(_env_json_path):
+    try:
+        import json
+        with open(_env_json_path) as f:
+            _env_json_config = json.load(f)
+    except Exception:
+        pass
+
 # Priority: Environment variable > ~/.claude/env.json > ~/.nanobanana.env
 api_key = os.getenv("GEMINI_API_KEY")
 
 # Fallback 1: Load from ~/.claude/env.json (unified config)
 if not api_key:
-    env_json_path = os.path.expanduser("~/.claude/env.json")
-    if os.path.exists(env_json_path):
-        try:
-            import json
-            with open(env_json_path) as f:
-                env_data = json.load(f)
-            val = env_data.get("gemini_api_key", "")
-            if val and not val.startswith("your-"):
-                api_key = val
-        except Exception:
-            pass
+    val = _env_json_config.get("gemini_api_key", "")
+    if val and not val.startswith("your-"):
+        api_key = val
 
 # Fallback 2: Load from ~/.nanobanana.env (legacy)
 if not api_key:
@@ -173,12 +176,13 @@ def main():
         choices=list(ASPECT_RATIO_MAP.keys()),
         help="Size/aspect ratio of the generated image (default: 1344x768 / 16:9 - landscape cover)",
     )
+    _default_model = _env_json_config.get("gemini_image_model", "gemini-3-pro-image-preview")
     parser.add_argument(
         "--model",
         type=str,
-        default="gemini-3-pro-image-preview",
+        default=_default_model,
         choices=["gemini-3-pro-image-preview", "gemini-2.5-flash-image"],
-        help="Model to use for image generation (default: gemini-3-pro-image-preview)",
+        help=f"Model to use for image generation (default: {_default_model})",
     )
     parser.add_argument(
         "--resolution",

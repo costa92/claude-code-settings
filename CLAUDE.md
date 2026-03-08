@@ -11,6 +11,8 @@
 ├── env.example.json       # env.json 模板（可提交，占位符值）
 ├── bin/
 │   └── config-sync.sh     # 配置同步工具（env.json → settings.json + .mcp.json）
+├── lib/
+│   └── common.sh          # 共享工具函数（锁、颜色输出、路径变量）
 ├── hooks/
 │   └── auto-config-sync.sh# SessionStart hook：自动检测 OAuth 并同步配置
 ├── settings/              # 多 Provider 模板库（只读，由 config-sync.sh 引用）
@@ -23,7 +25,7 @@
 │   ├── ui-engineer.md     # 前端开发 agent
 │   ├── content-pipeline.md # 内容流水线编排 agent
 │   └── code-reviewer.md   # 代码审查 agent
-├── skills/                # Skill 定义（45 个）
+├── skills/                # Skill 定义（66 个）
 │   ├── article-generator/ # 文章生成（核心）
 │   ├── content-planner/   # 选题规划
 │   ├── content-reviewer/  # 内容审核（7 维评分）
@@ -47,10 +49,13 @@
 │   ├── reflection-harder.md # 综合会话分析
 │   └── translate.md       # 翻译
 ├── plugins/               # 已安装插件
+│   ├── superpowers/       # 开发工作流增强（14 skills）
+│   ├── n8n-mcp-skills/    # n8n 技能集（7 skills）
 │   ├── autonomous-skill/
 │   ├── codex-skill/
 │   ├── kiro-skill/
 │   ├── nanobanana-skill/
+│   ├── ralph-wiggum/
 │   ├── spec-kit-skill/
 │   ├── youtube-transcribe-skill/
 │   └── installed_plugins.json
@@ -70,12 +75,17 @@
 | n8n-mcp-skills | n8n-mcp-skills | n8n 自动化工作流技能集 |
 | kiro-skill | claude-code-settings | 交互式需求驱动开发 |
 | ralph-wiggum | claude-code-plugins | Ralph Wiggum 循环技术 |
+| autonomous-skill | claude-code-settings | 长时任务自主执行（多 session、进度跟踪） |
+| codex-skill | claude-code-settings | OpenAI Codex/GPT 非交互自动化模式 |
+| nanobanana-skill | claude-code-settings | Gemini API 图片生成/编辑 |
+| spec-kit-skill | claude-code-settings | GitHub Spec-Kit 规格驱动开发（7 阶段工作流） |
+| youtube-transcribe-skill | claude-code-settings | YouTube 视频字幕提取 |
 
 ## 内容流水线（核心工作流）
 
 ```
 content-planner → article-generator → content-reviewer → wechat-seo-optimizer
-       选题              写作              审核（≥49 分）        标题/摘要优化
+       选题              写作              审核（≥55 分）        标题/摘要优化
                                                                       ↓
 content-analytics ← content-repurposer ← wechat-article-converter
      数据复盘            多平台分发           微信格式转换/上传草稿箱
@@ -113,6 +123,17 @@ content-analytics ← content-repurposer ← wechat-article-converter
 | 文档查询 | mcp__context7 | WebFetch |
 | GitHub 仓库 | mcp__zread | gh CLI |
 | 思维链 | mcp__sequential-thinking-server | think-harder/think-ultra 命令 |
+
+## Hook 系统
+
+settings.json 中注册的 hooks，在 session 生命周期中自动执行：
+
+| Hook | 事件 | 异步 | 说明 |
+|------|------|------|------|
+| auto-config-sync.sh | SessionStart | async | 检测 OAuth 有效性，自动切换 pro/fallback provider |
+| register-plugin-hooks.sh | SessionStart | async | 扫描 installed_plugins.json，注册各插件自带 hooks |
+| superpowers-session-start.sh | SessionStart | sync | 加载 superpowers 插件（必须同步，提供 skills/agents） |
+| ralph-wiggum-stop.sh | Stop | — | 会话结束时执行 Ralph Wiggum 清理逻辑 |
 
 ## Skill 命名规范
 

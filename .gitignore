@@ -162,6 +162,9 @@ file-history/
 plugins/marketplaces/
 plugins/known_marketplaces.json
 plugins/blocklist.json
+plugins/.sync-manifest.json
+plugins/.sync.lock
+plugins/.sync.log
 .update.lock
 plans/*.md
 
@@ -193,3 +196,12 @@ env.json
 !env.example.json
 
 .credentials.json
+
+# Session environment
+session-env/
+
+# Config sync lock
+.config-sync.lock/
+
+# Orphan config (unused, Claude Code internal)
+config.json

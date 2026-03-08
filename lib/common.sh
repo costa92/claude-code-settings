@@ -49,13 +49,13 @@ warn()  { printf "${_C_WARN}  ⚠️  ${_C_RESET} %s\n" "$*"; }
 fail()  { printf "${_C_FAIL}  ❌  ${_C_RESET} %s\n" "$*"; }
 step()  { printf "\n${_C_STEP}══ %s ══${_C_RESET}\n" "$*"; }
 
-# ── File locking (portable: flock on Linux, shlock-style on macOS) ──
+# ── File locking (portable: mkdir-based for atomicity) ──
 
 _lock_acquire() {
-    local lockfile="$1" timeout="${2:-10}" waited=0
-    while [[ -f "$lockfile" ]]; do
-        local lock_pid
-        lock_pid=$(<"$lockfile" 2>/dev/null) || true
+    local lockdir="$1" timeout="${2:-10}" waited=0
+    while ! mkdir "$lockdir" 2>/dev/null; do
+        local lock_pid=""
+        [[ -f "$lockdir/pid" ]] && lock_pid=$(<"$lockdir/pid" 2>/dev/null)
         if [[ -n "$lock_pid" ]] && kill -0 "$lock_pid" 2>/dev/null; then
             if (( waited >= timeout )); then
                 echo "ERROR: lock held by PID $lock_pid for >${timeout}s" >&2
@@ -64,18 +64,18 @@ _lock_acquire() {
             sleep 1
             ((waited++))
         else
-            rm -f "$lockfile"
-            break
+            # Stale lock — remove and retry
+            rm -rf "$lockdir"
         fi
     done
-    echo $$ > "$lockfile"
+    echo $$ > "$lockdir/pid"
 }
 
 _lock_release() {
-    local lockfile="$1"
-    [[ -f "$lockfile" ]] || return 0
-    local lock_pid
-    lock_pid=$(<"$lockfile" 2>/dev/null) || true
-    [[ "$lock_pid" == "$$" ]] && rm -f "$lockfile"
+    local lockdir="$1"
+    [[ -d "$lockdir" ]] || return 0
+    local lock_pid=""
+    [[ -f "$lockdir/pid" ]] && lock_pid=$(<"$lockdir/pid" 2>/dev/null)
+    [[ "$lock_pid" == "$$" ]] && rm -rf "$lockdir"
     return 0
 }

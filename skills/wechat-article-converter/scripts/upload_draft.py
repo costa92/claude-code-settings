@@ -28,6 +28,19 @@ import tempfile
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKEND_SCRIPT = os.path.join(SCRIPT_DIR, "md2wechat_backend.sh")
 
+# Load defaults from env.json
+_env_json_defaults = {}
+_env_json_path = os.path.expanduser("~/.claude/env.json")
+if os.path.exists(_env_json_path):
+    try:
+        with open(_env_json_path) as f:
+            _env_json_defaults = json.load(f)
+    except Exception:
+        pass
+
+_DEFAULT_AUTHOR = _env_json_defaults.get("wechat_author_name", "月影")
+_DEFAULT_THEME = _env_json_defaults.get("wechat_default_theme", "coffee")
+
 
 class FatalUploadError(Exception):
     """不可恢复的上传错误（如 IP 白名单），应立即终止"""
@@ -399,7 +412,7 @@ def extract_wechat_content(html_content):
 # Step 9: 构建并上传草稿
 # =============================================================================
 
-def build_and_upload_draft(html_content, metadata, cover_media_id, author="月影"):
+def build_and_upload_draft(html_content, metadata, cover_media_id, author=_DEFAULT_AUTHOR):
     """构建 draft JSON 并调用 Go 后端 create_draft 上传"""
     print(f"\n{'='*60}")
     print(f"📤 Step 3: 上传到微信公众号草稿箱")
@@ -514,13 +527,13 @@ def main():
         epilog="""
 示例:
   python3 upload_draft.py article.md --theme coffee
-  python3 upload_draft.py article.md --theme tech --author 月影
+  python3 upload_draft.py article.md --theme tech --author 作者名
   python3 upload_draft.py article.md --theme coffee --cover cover.jpg
         """
     )
     parser.add_argument("file", help="Markdown 文件路径")
-    parser.add_argument("--theme", default="coffee", help="转换主题 (默认: coffee)")
-    parser.add_argument("--author", default="月影", help="文章作者 (默认: 月影)")
+    parser.add_argument("--theme", default=_DEFAULT_THEME, help=f"转换主题 (默认: {_DEFAULT_THEME})")
+    parser.add_argument("--author", default=_DEFAULT_AUTHOR, help=f"文章作者 (默认: {_DEFAULT_AUTHOR})")
     parser.add_argument("--cover", default=None, help="封面图文件路径（可选，默认使用文章第一张图）")
 
     args = parser.parse_args()

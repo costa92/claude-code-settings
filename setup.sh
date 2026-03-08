@@ -62,15 +62,93 @@ else
   SKIP_PYTHON=true
 fi
 
+# Auto-install missing required tools
 if [[ -n "$MISSING_TOOLS" ]]; then
   echo ""
-  fail "缺少必要工具:$MISSING_TOOLS"
+  info "缺少必要工具:$MISSING_TOOLS，尝试自动安装..."
+
   if [[ "$OS" == "Darwin" ]]; then
-    echo "    brew install$MISSING_TOOLS"
+    if command -v brew &>/dev/null; then
+      info "brew install$MISSING_TOOLS"
+      if brew install $MISSING_TOOLS; then
+        ok "工具安装完成"
+      else
+        fail "brew install 失败"
+        echo "    请手动运行: brew install$MISSING_TOOLS"
+        exit 1
+      fi
+    else
+      fail "Homebrew 未安装，无法自动安装依赖"
+      echo "    请先安装 Homebrew: https://brew.sh"
+      echo "    然后运行: brew install$MISSING_TOOLS"
+      exit 1
+    fi
+  elif [[ "$OS" == "Linux" ]]; then
+    # Detect package manager
+    if command -v apt-get &>/dev/null; then
+      info "sudo apt-get install -y$MISSING_TOOLS"
+      if sudo apt-get update -qq && sudo apt-get install -y $MISSING_TOOLS; then
+        ok "工具安装完成"
+      else
+        fail "apt-get install 失败"
+        echo "    请手动运行: sudo apt-get install$MISSING_TOOLS"
+        exit 1
+      fi
+    elif command -v yum &>/dev/null; then
+      info "sudo yum install -y$MISSING_TOOLS"
+      if sudo yum install -y $MISSING_TOOLS; then
+        ok "工具安装完成"
+      else
+        fail "yum install 失败"
+        echo "    请手动运行: sudo yum install$MISSING_TOOLS"
+        exit 1
+      fi
+    elif command -v dnf &>/dev/null; then
+      info "sudo dnf install -y$MISSING_TOOLS"
+      if sudo dnf install -y $MISSING_TOOLS; then
+        ok "工具安装完成"
+      else
+        fail "dnf install 失败"
+        echo "    请手动运行: sudo dnf install$MISSING_TOOLS"
+        exit 1
+      fi
+    elif command -v pacman &>/dev/null; then
+      info "sudo pacman -S --noconfirm$MISSING_TOOLS"
+      if sudo pacman -S --noconfirm $MISSING_TOOLS; then
+        ok "工具安装完成"
+      else
+        fail "pacman install 失败"
+        echo "    请手动运行: sudo pacman -S$MISSING_TOOLS"
+        exit 1
+      fi
+    elif command -v apk &>/dev/null; then
+      info "apk add$MISSING_TOOLS"
+      if apk add $MISSING_TOOLS; then
+        ok "工具安装完成"
+      else
+        fail "apk add 失败"
+        echo "    请手动运行: apk add$MISSING_TOOLS"
+        exit 1
+      fi
+    else
+      fail "未识别的包管理器，无法自动安装"
+      echo "    请手动安装:$MISSING_TOOLS"
+      exit 1
+    fi
   else
-    echo "    sudo apt install$MISSING_TOOLS"
+    fail "不支持的操作系统: $OS"
+    echo "    请手动安装:$MISSING_TOOLS"
+    exit 1
   fi
-  exit 1
+
+  # Verify installation succeeded
+  for tool in $MISSING_TOOLS; do
+    if ! command -v "$tool" &>/dev/null; then
+      fail "$tool 安装后仍不可用"
+      exit 1
+    fi
+    ok "$tool 已安装"
+  done
 fi
 
 # =========================================================================
@@ -284,6 +362,11 @@ n8n-mcp-skills@n8n-mcp-skills|n8n-mcp-skills|n8n-mcp-skills|1.0.0|marketplace|.
 ralph-wiggum@claude-code-plugins|claude-code-plugins|ralph-wiggum|1.0.0|marketplace|plugins/ralph-wiggum
 superpowers@superpowers-marketplace|superpowers-marketplace|superpowers|${SUPERPOWERS_VERSION}|external|https://github.com/obra/superpowers.git
 kiro-skill@claude-code-settings|claude-code-settings|kiro-skill|1.0.0|symlink|$PLUGINS_DIR/kiro-skill
+autonomous-skill@claude-code-settings|claude-code-settings|autonomous-skill|1.0.0|symlink|$PLUGINS_DIR/autonomous-skill
+codex-skill@claude-code-settings|claude-code-settings|codex-skill|1.0.0|symlink|$PLUGINS_DIR/codex-skill
+nanobanana-skill@claude-code-settings|claude-code-settings|nanobanana-skill|1.0.0|symlink|$PLUGINS_DIR/nanobanana-skill
+spec-kit-skill@claude-code-settings|claude-code-settings|spec-kit-skill|1.0.0|symlink|$PLUGINS_DIR/spec-kit-skill
+youtube-transcribe-skill@claude-code-settings|claude-code-settings|youtube-transcribe-skill|1.0.0|symlink|$PLUGINS_DIR/youtube-transcribe-skill
 "
 
 while IFS='|' read -r plugin_id marketplace plugin version source_type source_path; do
@@ -312,6 +395,33 @@ while IFS='|' read -r plugin_id marketplace plugin version source_type source_pa
   # Fallback: manual install
   install_plugin_manual "$marketplace" "$plugin" "$version" "$source_type" "$source_path"
 done <<< "$PLUGIN_DEFS"
+
+# ── Create direct symlinks from $PLUGINS_DIR/<name> → cache target ──
+# installed_plugins.json references plugins/<name>, but cache installs to plugins/cache/<marketplace>/<plugin>/<version>
+# Symlinks bridge this gap so both paths work
+info "确保插件直接路径可用..."
+while IFS='|' read -r plugin_id marketplace plugin version source_type source_path; do
+  [[ -z "$plugin_id" ]] && continue
+  [[ "$source_type" == "symlink" ]] && continue  # local plugins already at direct path
+
+  direct_path="$PLUGINS_DIR/$plugin"
+  cache_target="$CACHE_DIR/$marketplace/$plugin/$version"
+
+  # Skip if direct path already exists (real dir or working symlink)
+  if [[ -d "$direct_path" ]]; then
+    continue
+  fi
+
+  # Remove broken symlink if present
+  [[ -L "$direct_path" ]] && rm -f "$direct_path"
+
+  # Create symlink if cache target exists
+  if [[ -d "$cache_target" ]]; then
+    ln -sfn "$cache_target" "$direct_path"
+    ok "$plugin → symlink 创建 ($direct_path → $cache_target)"
+  fi
+done <<< "$PLUGIN_DEFS"
+
 # =========================================================================
 INSTALLED_PLUGINS="$PLUGINS_DIR/installed_plugins.json"
 if [[ -f "$INSTALLED_PLUGINS" ]]; then
@@ -321,6 +431,52 @@ if [[ -f "$INSTALLED_PLUGINS" ]]; then
     ok "installed_plugins.json 路径已修正（$HOME → ~）"
   else
     ok "installed_plugins.json 路径格式正常"
+  fi
+
+  # Verify and fix cache paths: update installPath to point to actual cache location
+  info "验证 installed_plugins.json 中的路径..."
+  PATHS_FIXED=0
+  python3 - "$INSTALLED_PLUGINS" "$PLUGINS_DIR" "$CACHE_DIR" <<'PYEOF' && PATHS_FIXED=1 || warn "installed_plugins.json 路径验证脚本执行失败（python3 错误）"
+import json, os, sys
+from pathlib import Path
+
+installed_path, plugins_dir, cache_dir = sys.argv[1:]
+home = str(Path.home())
+
+with open(installed_path) as f:
+    data = json.load(f)
+
+changed = False
+for plugin_key, entries in data.get("plugins", {}).items():
+    for entry in entries:
+        ip = entry["installPath"].replace("~", home)
+        if os.path.isdir(ip):
+            continue
+        # Try to find the plugin in cache or direct plugin dir
+        plugin_name = plugin_key.split("@")[0]
+        # Check cache (rebuilt by setup.sh)
+        cache_path = os.path.join(cache_dir, *ip.split("/cache/", 1)[1:]) if "/cache/" in ip else ""
+        if cache_path and os.path.isdir(cache_path):
+            entry["installPath"] = cache_path.replace(home, "~")
+            changed = True
+            print(f"  fixed: {plugin_key} → cache")
+            continue
+        # Check direct plugin dir
+        direct_path = os.path.join(plugins_dir, plugin_name)
+        if os.path.isdir(direct_path):
+            entry["installPath"] = direct_path.replace(home, "~")
+            changed = True
+            print(f"  fixed: {plugin_key} → direct")
+            continue
+        print(f"  warn: {plugin_key} — 路径不存在，无法自动修复")
+
+if changed:
+    with open(installed_path, "w") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    print("  installed_plugins.json 路径已更新")
+PYEOF
+  if [[ "$PATHS_FIXED" == "1" ]]; then
+    ok "installed_plugins.json 路径已验证/修复"
   fi
 else
   info "installed_plugins.json 不存在，跳过路径修正"
@@ -453,15 +609,42 @@ done
 if [[ "$NEED_SOFFICE" == false ]] && [[ "$NEED_POPPLER" == false ]]; then
   info "无需系统软件包（相关 skill 未安装）"
 else
+  # Helper: install a system package if missing
+  _install_sys_pkg() {
+    local pkg_name="$1" brew_pkg="${2:-$1}" apt_pkg="${3:-$1}"
+    if [[ "$OS" == "Darwin" ]]; then
+      command -v brew &>/dev/null && brew install "$brew_pkg" && return 0
+    elif [[ "$OS" == "Linux" ]]; then
+      if command -v apt-get &>/dev/null; then
+        sudo apt-get install -y "$apt_pkg" && return 0
+      elif command -v yum &>/dev/null; then
+        sudo yum install -y "$apt_pkg" && return 0
+      elif command -v dnf &>/dev/null; then
+        sudo dnf install -y "$apt_pkg" && return 0
+      elif command -v pacman &>/dev/null; then
+        sudo pacman -S --noconfirm "$apt_pkg" && return 0
+      elif command -v apk &>/dev/null; then
+        apk add "$apt_pkg" && return 0
+      fi
+    fi
+    return 1
+  }
+
   # LibreOffice (soffice)
   if command -v soffice &>/dev/null; then
     ok "LibreOffice $(soffice --version 2>/dev/null | head -1)"
   else
     warn "LibreOffice 未安装 — pptx/docx/pdf/xlsx skill 需要"
-    if [[ "$OS" == "Darwin" ]]; then
-      echo "    brew install libreoffice"
+    info "尝试自动安装 LibreOffice..."
+    if _install_sys_pkg libreoffice libreoffice libreoffice; then
+      ok "LibreOffice 安装完成"
     else
-      echo "    sudo apt install libreoffice"
+      warn "LibreOffice 自动安装失败"
+      if [[ "$OS" == "Darwin" ]]; then
+        echo "    brew install libreoffice"
+      else
+        echo "    sudo apt install libreoffice"
+      fi
     fi
   fi
 
@@ -470,10 +653,16 @@ else
     ok "Poppler pdftoppm $(pdftoppm -v 2>&1 | head -1)"
   else
     warn "Poppler 未安装 — pptx/docx/pdf skill 需要 pdftoppm"
-    if [[ "$OS" == "Darwin" ]]; then
-      echo "    brew install poppler"
+    info "尝试自动安装 Poppler..."
+    if _install_sys_pkg poppler poppler poppler-utils; then
+      ok "Poppler 安装完成"
     else
-      echo "    sudo apt install poppler-utils"
+      warn "Poppler 自动安装失败"
+      if [[ "$OS" == "Darwin" ]]; then
+        echo "    brew install poppler"
+      else
+        echo "    sudo apt install poppler-utils"
+      fi
     fi
   fi
 fi

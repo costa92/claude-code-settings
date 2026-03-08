@@ -30,9 +30,6 @@
 ### 通过 Claude Code 插件安装
 
 ```sh
-# 添加 marketplace
-/plugin marketplace add feiskyer/claude-code-settings
-
 # 安装主插件（包含命令、代理和技能）
 /plugin install claude-code-settings
 
@@ -45,12 +42,6 @@
 /plugin install youtube-transcribe-skill  # YouTube 字幕提取
 ```
 
-也可以通过 [Claude Plugins CLI](https://claude-plugins.dev) 一键安装（跳过 marketplace 设置）：
-
-```bash
-npx claude-plugins install @feiskyer/claude-code-settings/claude-code-settings
-```
-
 **注意：** [~/.claude/settings.json](settings.json) 不会通过插件自动配置，需要手动设置。
 
 ### 手动安装
@@ -60,7 +51,7 @@ npx claude-plugins install @feiskyer/claude-code-settings/claude-code-settings
 mv ~/.claude ~/.claude.bak
 
 # 克隆仓库
-git clone https://github.com/feiskyer/claude-code-settings.git ~/.claude
+git clone https://github.com/costa92/claude-code-settings.git ~/.claude
 
 # 安装 LiteLLM 代理
 pip install -U 'litellm[proxy]'

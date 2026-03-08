@@ -9,26 +9,31 @@ from pathlib import Path
 from typing import Dict, Any
 
 
-def load_user_config(config_path: str = "~/.article-generator.conf") -> Dict[str, Any]:
+def load_user_config() -> Dict[str, Any]:
     """
-    Load user configuration from file
-
-    Args:
-        config_path: Path to user config file
+    Load user configuration from ~/.claude/env.json (unified config)
 
     Returns:
         dict: User configuration or empty dict if not found
     """
-    config_file = Path(config_path).expanduser()
+    env_json = Path("~/.claude/env.json").expanduser()
+    if env_json.exists():
+        try:
+            with open(env_json, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
 
-    if not config_file.exists():
-        return {}
+    # Legacy fallback
+    legacy = Path("~/.article-generator.conf").expanduser()
+    if legacy.exists():
+        try:
+            with open(legacy, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
 
-    try:
-        with open(config_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return {}
+    return {}
 
 
 # Load user configuration
@@ -92,10 +97,10 @@ RETRY_CONFIG = {
     ]
 }
 
-# Image generation defaults
+# Image generation defaults (read model from env.json)
 IMAGE_DEFAULTS = {
     "resolution": "2K",  # 1K, 2K, or 4K
-    "model": "gemini-3-pro-image-preview",
+    "model": _user_config.get("gemini_image_model", "gemini-3-pro-image-preview"),
     "cover_aspect_ratio": "16:9",  # 1344x768, crop to 900x383 for WeChat
     "rhythm_aspect_ratio": "3:2",  # 1248x832 for article body images
 }

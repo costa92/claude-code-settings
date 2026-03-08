@@ -34,8 +34,14 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
    - 用 `npx @mermaid-js/mermaid-cli mmdc -i input.mmd -o output.png -b transparent` 渲染
    - 上传 CDN，替换文章中的 Mermaid 代码块为 `![描述](CDN_URL)`
    - **禁止在最终文章中保留 Mermaid 代码块**（微信等平台不支持渲染）
-7. **[ ] Image generation (if requested)** — 先执行 Gemini 探针测试（见下方），失败则保留占位符跳过
-8. **[ ] Update article with CDN URLs** — 截图和 AI 图分开处理，截图通常不受 Gemini 影响
+7. **[ ] Image auto-process** — 文章保存后**立即自动执行**图片生成流程（不得留给用户手动处理）：
+   - **截图**（shot-scraper）：不依赖 Gemini，始终执行，`--process-file` 会自动处理 `<!-- SCREENSHOT -->` 标签
+   - **AI 图**：Gemini 探针测试（见下方降级链），探针成功则立即执行 `--process-file` 替换所有 `<!-- IMAGE -->` 占位符
+   - **降级链**：默认模型 → flash 模型 → 两者都失败时才保留占位符
+   - **关键**：探针成功后必须在同一 session 内执行 `--process-file`，不得只记录命令让用户后续手动执行
+8. **[ ] Verify image replacement** — 检查文章中是否还有残留的 `<!-- IMAGE:` 占位符：
+   - 无残留 → 完成
+   - 有残留（Gemini 完全不可用）→ 在完成汇总中列出数量和可执行命令
 
 ### Phase C: 写作后（按场景裁剪）
 9. **[ ] Self-check** — 跑 reviewer 前快速自检常见扣分项：
@@ -47,6 +53,7 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
    - 同一章节内无重复图片？（同一 section 不应出现两张功能相同的配图）
    - 微信平台：外部链接已转为搜索指引？（如 `搜索「关键词」`，微信不支持外链）
    - 文章中无残留 Mermaid 代码块？（流程图/架构图必须已渲染为图片）
+   - 参考资料每条都包含完整 URL？（格式：`**名称**: https://url`，禁止只写名称不写链接）
 10. **[ ] Verify content depth** — 字数要求见下表
 11. **[ ] Quality gate** — 按场景选择审查模式：
    - **发布模式**（默认）：运行 `/content-reviewer` ≥ 55/70，运行 `/wechat-seo-optimizer`
@@ -99,7 +106,7 @@ python3 ${SKILL_DIR}/scripts/nanobanana.py \
 # 步骤 3：flash 也失败（503/429/No data received）→ 跳过 AI 图片，保留占位符
 ```
 
-**模型降级链**：`gemini-3-pro-image-preview`（默认，质量最高）→ `gemini-2.5-flash-image`（速度快，可用性高）→ 保留占位符
+**模型降级链**：`env.json:gemini_image_model`（默认，质量最高）→ `gemini-2.5-flash-image`（速度快，可用性高）→ 保留占位符
 
 **3. 截图与 AI 图解耦**
 - 截图（shot-scraper）不依赖 Gemini API，始终可执行
@@ -167,8 +174,8 @@ Phase B: 写作（先文章后图片）
   4. Content Generation → Write tool 保存文件
   5. SCREENSHOT placeholders（引用外部内容时必须）
   6. Mermaid → image（流程图/架构图渲染为 PNG，禁止保留代码块）
-  7. Gemini 探针 → 可用则 --process-file，不可用则保留占位符
-  8. 截图始终执行（不依赖 Gemini）
+  7. Image auto-process（探针成功 → 立即 --process-file，截图始终执行）
+  8. Verify image replacement（检查残留占位符，仅 Gemini 完全不可用时才保留）
 
 Phase C: 写作后（按场景裁剪）
   9. Self-check（收尾段落、红旗词、章节深度、Hook 长度、description、重复图片、外链、Mermaid 残留）
@@ -218,6 +225,7 @@ Replace existing ASCII art code blocks (box-drawing characters) with AI-generate
 - YAML frontmatter required on every article, **必须包含 `description` 字段**（120 字以内摘要）
 - Obsidian callouts for key information
 - Single reference section at end, **参考资料区是纯文字列表，禁止放置图片**
+- **参考资料每条必须包含可访问的完整 URL**（格式 `**名称**: https://url`），无 URL 的条目必须删除或补全
 - No redundant sections: 避免"互动环节""写在最后""下期预告"
 - **同一章节内不放两张功能相同的配图**（如同一流程图的两个版本）
 

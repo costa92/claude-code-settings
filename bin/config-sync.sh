@@ -9,45 +9,76 @@
 #   --dry-run           预览生成结果，不写入文件
 #
 # 依赖：jq
+# 兼容：bash 3.2+（macOS 默认）、bash 4/5、zsh
 # =============================================================================
 
 set -eo pipefail
 
 CLAUDE_DIR="$HOME/.claude"
+source "$CLAUDE_DIR/lib/common.sh"
+_require_jq
+
 ENV_JSON="$CLAUDE_DIR/env.json"
 SETTINGS_JSON="$CLAUDE_DIR/settings.json"
 MCP_JSON="$CLAUDE_DIR/.mcp.json"
 SETTINGS_TEMPLATE_DIR="$CLAUDE_DIR/settings"
+LOCKDIR="$CLAUDE_DIR/.config-sync.lock"
 
 DRY_RUN=false
 
-# ── Provider 配置映射表 ──
-# "pro" 和 "anthropic" 不需要模板文件，在代码中特殊处理
-declare -A PROVIDER_TEMPLATES=(
-  [deepseek]="$SETTINGS_TEMPLATE_DIR/deepseek-settings.json"
-  [azure]="$SETTINGS_TEMPLATE_DIR/azure-settings.json"
-  [openrouter]="$SETTINGS_TEMPLATE_DIR/openrouter-settings.json"
-  [vertex]="$SETTINGS_TEMPLATE_DIR/vertex-settings.json"
-  [litellm]="$SETTINGS_TEMPLATE_DIR/litellm-settings.json"
-  [copilot]="$SETTINGS_TEMPLATE_DIR/copilot-settings.json"
-  [qwen]="$SETTINGS_TEMPLATE_DIR/qwen-settings.json"
-  [siliconflow]="$SETTINGS_TEMPLATE_DIR/siliconflow-settings.json"
-  [minimax]="$SETTINGS_TEMPLATE_DIR/minimax.json"
-  [azure-foundry]="$SETTINGS_TEMPLATE_DIR/azure-foundry-settings.json"
-)
+# ── File locking (reuse common.sh _lock_acquire/_lock_release) ──
+acquire_lock() {
+  _lock_acquire "$LOCKDIR" 10 || error "Could not acquire lock"
+  trap release_lock EXIT INT TERM
+}
 
-declare -A PROVIDER_ENV_KEYS=(
-  [deepseek]="deepseek_api_key:ANTHROPIC_AUTH_TOKEN"
-  [azure]="azure_api_key:ANTHROPIC_API_KEY"
-  [openrouter]="openrouter_api_key:ANTHROPIC_AUTH_TOKEN"
-  [vertex]="vertex_project:CLOUDSDK_CORE_PROJECT"
-  [litellm]=""
-  [copilot]=""
-  [qwen]="qwen_api_key:ANTHROPIC_AUTH_TOKEN"
-  [siliconflow]="siliconflow_api_key:ANTHROPIC_AUTH_TOKEN"
-  [minimax]="minimax_api_key:ANTHROPIC_AUTH_TOKEN"
-  [azure-foundry]="azure_api_key:ANTHROPIC_API_KEY"
-)
+release_lock() {
+  _lock_release "$LOCKDIR"
+}
+
+# ── Provider 配置映射表 ──
+# 使用函数代替 declare -A，兼容 bash 3.2
+# "pro" 和 "anthropic" 不需要模板文件，在代码中特殊处理
+get_provider_template() {
+  case "$1" in
+    deepseek)      echo "$SETTINGS_TEMPLATE_DIR/deepseek-settings.json" ;;
+    azure)         echo "$SETTINGS_TEMPLATE_DIR/azure-settings.json" ;;
+    openrouter)    echo "$SETTINGS_TEMPLATE_DIR/openrouter-settings.json" ;;
+    vertex)        echo "$SETTINGS_TEMPLATE_DIR/vertex-settings.json" ;;
+    litellm)       echo "$SETTINGS_TEMPLATE_DIR/litellm-settings.json" ;;
+    copilot)       echo "$SETTINGS_TEMPLATE_DIR/copilot-settings.json" ;;
+    qwen)          echo "$SETTINGS_TEMPLATE_DIR/qwen-settings.json" ;;
+    siliconflow)   echo "$SETTINGS_TEMPLATE_DIR/siliconflow-settings.json" ;;
+    minimax)       echo "$SETTINGS_TEMPLATE_DIR/minimax.json" ;;
+    azure-foundry) echo "$SETTINGS_TEMPLATE_DIR/azure-foundry-settings.json" ;;
+    *)             echo "" ;;
+  esac
+}
+
+get_provider_env_keys() {
+  case "$1" in
+    deepseek)      echo "deepseek_api_key:ANTHROPIC_AUTH_TOKEN" ;;
+    azure)         echo "azure_api_key:ANTHROPIC_API_KEY" ;;
+    openrouter)    echo "openrouter_api_key:ANTHROPIC_AUTH_TOKEN" ;;
+    vertex)        echo "vertex_project:CLOUDSDK_CORE_PROJECT" ;;
+    litellm)       echo "" ;;
+    copilot)       echo "" ;;
+    qwen)          echo "qwen_api_key:ANTHROPIC_AUTH_TOKEN" ;;
+    siliconflow)   echo "siliconflow_api_key:ANTHROPIC_AUTH_TOKEN" ;;
+    minimax)       echo "minimax_api_key:ANTHROPIC_AUTH_TOKEN" ;;
+    azure-foundry) echo "azure_api_key:ANTHROPIC_API_KEY" ;;
+    *)             echo "" ;;
+  esac
+}
+
+is_known_provider() {
+  case "$1" in
+    pro|anthropic|deepseek|azure|openrouter|vertex|litellm|copilot|qwen|siliconflow|minimax|azure-foundry) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+ALL_TEMPLATE_PROVIDERS="azure azure-foundry copilot deepseek litellm minimax openrouter qwen siliconflow vertex"
 
 # ── Helper functions ──
 error() {
@@ -79,34 +110,46 @@ set_env() {
 # Generate settings.json
 generate_settings() {
   local provider="$1"
-  local template_file="${PROVIDER_TEMPLATES[$provider]}"
+  local template_file
+  template_file=$(get_provider_template "$provider")
 
   # Load base settings from current settings.json if it exists and has stable configs
   local base_settings=""
   if [[ -f "$SETTINGS_JSON" ]]; then
-    # Preserve existing permissions, statusLine, enabledPlugins, etc.
+    # Preserve existing fields, only remove .env (will be regenerated)
     base_settings=$(jq 'del(.env)' "$SETTINGS_JSON")
   else
-    # Start with empty base with required fields
-    base_settings=$(jq -n '{
-      "env": {},
-      "includeCoAuthoredBy": false,
-      "permissions": {
-        "allow": [],
-        "deny": [],
-        "ask": []
-      },
-      "model": "haiku",
-      "statusLine": {
-        "type": "command",
-        "command": "~/.claude/status-line.sh"
-      },
-      "enabledPlugins": {
-        "n8n-mcp-skills@n8n-mcp-skills": true
-      },
-      "alwaysThinkingEnabled": true,
-      "skipDangerousModePermissionPrompt": true
-    }')
+    base_settings=$(jq -n '{}')
+  fi
+
+  # Ensure required fields exist (use //= to fill only if missing, never overwrite)
+  base_settings=$(jq '
+    .includeCoAuthoredBy //= false |
+    .permissions //= {"allow": [], "deny": [], "ask": []} |
+    .statusLine //= {"type": "command", "command": "~/.claude/status-line.sh"} |
+    .enabledPlugins //= {} |
+    .alwaysThinkingEnabled //= true |
+    .skipDangerousModePermissionPrompt //= true
+  ' <<< "$base_settings")
+
+  # Auto-populate enabledPlugins from installed_plugins.json if empty
+  local installed_json="$CLAUDE_DIR/plugins/installed_plugins.json"
+  if [[ -f "$installed_json" ]]; then
+    local current_enabled
+    current_enabled=$(jq '.enabledPlugins | length' <<< "$base_settings")
+    if [[ "$current_enabled" == "0" ]]; then
+      # Extract all plugin keys and enable them
+      local plugin_keys
+      plugin_keys=$(jq -r '.plugins | keys[]' "$installed_json" 2>/dev/null)
+      if [[ -n "$plugin_keys" ]]; then
+        local enable_obj="{}"
+        while IFS= read -r key; do
+          enable_obj=$(jq --arg k "$key" '.[$k] = true' <<< "$enable_obj")
+        done <<< "$plugin_keys"
+        base_settings=$(jq --argjson ep "$enable_obj" '.enabledPlugins = $ep' <<< "$base_settings")
+        info "Auto-enabled plugins: $(echo "$plugin_keys" | tr '\n' ' ')"
+      fi
+    fi
   fi
 
   # Load and merge provider template
@@ -159,7 +202,8 @@ generate_settings() {
     [[ -n "$model_default" ]] && env_config=$(jq --arg m "$model_default" '.ANTHROPIC_MODEL = $m' <<< "$env_config")
   else
     # For other providers, inject API keys
-    local env_key_mapping="${PROVIDER_ENV_KEYS[$provider]}"
+    local env_key_mapping
+    env_key_mapping=$(get_provider_env_keys "$provider")
     if [[ -n "$env_key_mapping" ]]; then
       IFS=':' read -r env_field env_var <<< "$env_key_mapping"
       local env_value=$(get_env "$env_field")
@@ -169,16 +213,10 @@ generate_settings() {
     fi
   fi
 
-  # Inject n8n keys if present
-  local n8n_api_key=$(get_env "n8n_api_key")
-  if [[ -n "$n8n_api_key" && "$n8n_api_key" != "your-n8n-api-key" ]]; then
-    env_config=$(jq --arg key "$n8n_api_key" '.N8N_API_KEY = $key' <<< "$env_config")
-  fi
-
-  local n8n_api_url=$(get_env "n8n_api_url")
-  if [[ -n "$n8n_api_url" && "$n8n_api_url" != "your-n8n-api-url" ]]; then
-    env_config=$(jq --arg url "$n8n_api_url" '.N8N_API_URL = $url' <<< "$env_config")
-  fi
+  # NOTE: N8N_* 不再注入 settings.json.env
+  # - MCP server 从 .mcp.json 的 env 字段获取
+  # - Skills 通过 load_env.sh/load_env.py 直接读取 env.json
+  # - 避免 env.json ↔ settings.json 重复存储
 
   # Merge env config back
   local result=$(jq --argjson env "$env_config" '.env = $env' <<< "$base_settings")
@@ -241,9 +279,9 @@ list_providers() {
   echo "Available providers:"
   echo "  pro             Pro/Max subscription (OAuth login, no API key needed)"
   echo "  anthropic       API key mode (uses anthropic_base_url + anthropic_api_key)"
-  for provider in "${!PROVIDER_TEMPLATES[@]}"; do
+  for provider in $ALL_TEMPLATE_PROVIDERS; do
     echo "  $provider"
-  done | sort
+  done
 }
 
 # Update provider in env.json
@@ -251,7 +289,7 @@ update_provider() {
   local new_provider="$1"
 
   # Validate provider exists
-  if [[ "$new_provider" != "anthropic" ]] && [[ "$new_provider" != "pro" ]] && [[ -z "${PROVIDER_TEMPLATES[$new_provider]}" ]]; then
+  if ! is_known_provider "$new_provider"; then
     error "Unknown provider: $new_provider. Use --list to see available providers"
   fi
 
@@ -264,6 +302,11 @@ update_provider() {
 sync_all() {
   if [[ ! -f "$ENV_JSON" ]]; then
     error "env.json not found at $ENV_JSON"
+  fi
+
+  # Acquire lock to prevent concurrent writes
+  if [[ "$DRY_RUN" == false ]]; then
+    acquire_lock
   fi
 
   # Read current provider

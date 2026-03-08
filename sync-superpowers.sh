@@ -13,16 +13,19 @@ GITHUB_API="https://api.github.com/repos/obra/superpowers/contents"
 CHECK_ONLY=false
 [[ "${1:-}" == "--check" ]] && CHECK_ONLY=true
 
-PLUGIN_DIR="$PLUGINS_CACHE/superpowers-marketplace/superpowers"
+# Resolve superpowers plugin directory (direct path or cache path)
+if [[ -d "$PLUGINS_DIR/superpowers" ]]; then
+    PLUGIN_ROOT="$PLUGINS_DIR/superpowers"
+elif [[ -d "$PLUGINS_CACHE/superpowers-marketplace/superpowers" ]]; then
+    # Fallback: find latest version in cache
+    PLUGIN_ROOT=$(ls -d "$PLUGINS_CACHE/superpowers-marketplace/superpowers"/*/ 2>/dev/null | sort -V | tail -1)
+    PLUGIN_ROOT="${PLUGIN_ROOT%/}"
+fi
 
-# Auto-detect installed version directory
-VERSION_DIR=$(ls -d "$PLUGIN_DIR"/*/ 2>/dev/null | sort -V | tail -1)
-if [[ -z "$VERSION_DIR" ]]; then
+if [[ -z "${PLUGIN_ROOT:-}" || ! -d "${PLUGIN_ROOT:-}" ]]; then
     fail "找不到 superpowers 插件目录"
     exit 1
 fi
-
-PLUGIN_ROOT="${VERSION_DIR%/}"
 TMPFILE=$(mktemp)
 trap "rm -f '$TMPFILE'" EXIT
 
@@ -266,10 +269,9 @@ else
         cat > "$WRAPPER_SCRIPT" <<'WRAPPER'
 #!/usr/bin/env bash
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
-PLUGIN_DIR="$CLAUDE_DIR/plugins/cache/superpowers-marketplace/superpowers"
-LATEST=$(ls -d "$PLUGIN_DIR"/*/ 2>/dev/null | sort -V | tail -1)
-[[ -z "$LATEST" ]] && exit 0
-export CLAUDE_PLUGIN_ROOT="${LATEST%/}"
+PLUGIN_DIR="$CLAUDE_DIR/plugins/superpowers"
+[[ ! -d "$PLUGIN_DIR" ]] && exit 0
+export CLAUDE_PLUGIN_ROOT="$PLUGIN_DIR"
 exec bash "$CLAUDE_PLUGIN_ROOT/hooks/run-hook.cmd" session-start
 WRAPPER
         chmod +x "$WRAPPER_SCRIPT"

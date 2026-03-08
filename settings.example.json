@@ -1,0 +1,67 @@
+{
+  "_comment": "此文件由 bin/config-sync.sh 自动生成，请勿手动编辑。修改 env.json 后运行 config-sync.sh 即可同步。",
+  "model": "haiku",
+  "skipDangerousModePermissionPrompt": true,
+  "alwaysThinkingEnabled": true,
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [],
+    "deny": [],
+    "ask": []
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/status-line.sh"
+  },
+  "enabledPlugins": {
+    "n8n-mcp-skills@n8n-mcp-skills": true,
+    "kiro-skill@claude-code-settings": true,
+    "ralph-wiggum@claude-code-plugins": true,
+    "superpowers@superpowers-marketplace": true
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/auto-config-sync.sh",
+            "async": true
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/register-plugin-hooks.sh",
+            "async": true
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/superpowers-session-start.sh",
+            "async": false
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/ralph-wiggum-stop.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://your-api-proxy.example.com",
+    "ANTHROPIC_AUTH_TOKEN": "sk-your-auth-token-here"
+  }
+}

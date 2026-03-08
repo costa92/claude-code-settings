@@ -70,6 +70,7 @@ jq --argjson hours <hours> --argjson topn <topn> --arg lang "<lang>" \
 SKILL_DIR="$HOME/.claude/skills/blog-digest"
 
 export GEMINI_API_KEY="$(jq -r '.gemini_api_key // empty' ~/.claude/env.json)"
+export GEMINI_TEXT_MODEL="$(jq -r '.gemini_text_model // empty' ~/.claude/env.json)"
 export OPENAI_API_KEY="$(jq -r '.openai_api_key // empty' ~/.claude/env.json)"
 export OPENAI_API_BASE="$(jq -r '.openai_api_base // empty' ~/.claude/env.json)"
 export OPENAI_MODEL="$(jq -r '.openai_model // empty' ~/.claude/env.json)"

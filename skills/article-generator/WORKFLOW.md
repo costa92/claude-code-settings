@@ -66,29 +66,28 @@
    ├─ 向用户确认文件路径（如 "02-技术/AI-生态/Claude-Code/kimi-k25-claude-code.md"）
    └─ 绝不只在聊天中显示内容而不保存文件
 
-5. 🎨 图片生成（如果请求）
+5. 🎨 图片自动处理（文章保存后立即执行）
    ├─ 重要：使用 Shell(command="realpath filename.md") 获取绝对路径
    ├─ 创建 images/ 目录：mkdir -p images
-   ├─ 生成唯一的文件名前缀（如 article_slug_）
-   ├─ 使用 Shell 工具调用 generate_and_upload_images.py（使用绝对路径）
+   ├─ Gemini 探针测试（降级链：默认模型 → flash → 跳过）
+   ├─ 探针成功 → 立即执行 --process-file（同一 session 内完成，不得留给用户手动处理）
    ├─ 示例：python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py --process-file /absolute/path/to/article.md
-   ├─ 生成封面（16:9: 1344x768）
-   ├─ 生成节奏图（3:2: 1248x832）
+   ├─ 截图（shot-scraper）始终执行，不依赖 Gemini
    ├─ 上传所有图片到 PicGo/CDN
    ├─ 使用 CDN URLs 更新文章文件
    └─ 成功上传后自动删除本地文件
 
-6. 最终审查
-   ├─ 验证所有链接正常（HTTP 200）
-   ├─ 确认所有代码示例完整
-   ├─ 检查没有 AI 陈词滥调或营销废话
-   └─ 确保 YAML frontmatter 完整
+6. 🔍 图片验证（检查残留占位符）
+   ├─ Grep 搜索文章中 `<!-- IMAGE:` 残留标签
+   ├─ 无残留 → 完成
+   ├─ 有残留（仅 Gemini 完全不可用时）→ 在完成汇总中列出数量和可执行命令
+   └─ 确认所有代码示例完整
 ```
 
 ### 执行要求
 
 - **步骤 4（保存到文件）是不可协商的** - 你必须调用 Write 工具
-- **步骤 5（图片生成）需要实际的 Shell 命令执行**
+- **步骤 5（图片自动处理）必须在同一 session 内执行** — 探针成功后立即 --process-file，不得只记录命令
 - **如果你只显示内容而不保存文件，任务就是不完整的**
 
 ---
@@ -638,6 +637,7 @@ WebFetch(url="https://new-tool.com/docs")  # 新工具的文档
 - 使用明确格式：`**名称**: https://url`
 - 不使用 `[[Obsidian links]]`（除非用户明确要求）
 - 链接标题清晰描述内容
+- **参考资料区零容忍**：每条必须包含完整 URL，禁止只写名称不写链接（如 `**官方文档**: 某某文档` ❌）
 
 **平衡效率与质量：**
 - 不要为每个链接都运行 WebFetch（太耗时）

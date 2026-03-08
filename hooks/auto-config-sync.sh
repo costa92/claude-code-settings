@@ -13,6 +13,15 @@ CREDS="$CLAUDE_DIR/.credentials.json"
 ENV_JSON="$CLAUDE_DIR/env.json"
 CONFIG_SYNC="$CLAUDE_DIR/bin/config-sync.sh"
 
+# Require jq for JSON parsing
+if ! command -v jq &>/dev/null; then
+  echo "[config] jq not found, skipping auto-config-sync" >&2
+  exit 0
+fi
+
+# OAuth token expiry buffer (1 hour in milliseconds)
+OAUTH_BUFFER_MS=$((3600 * 1000))
+
 get_env() {
   jq -r ".${1} // empty" "$ENV_JSON" 2>/dev/null || echo ""
 }
@@ -24,10 +33,9 @@ is_oauth_valid() {
   local expires_at sub_type now_ms buffer_ms
   expires_at=$(jq -r '.claudeAiOauth.expiresAt // 0' "$CREDS" 2>/dev/null)
   sub_type=$(jq -r '.claudeAiOauth.subscriptionType // ""' "$CREDS" 2>/dev/null)
-  now_ms=$(date +%s%3N)
-  buffer_ms=$((3600 * 1000))  # 1 小时缓冲
+  now_ms=$(python3 -c 'import time; print(int(time.time()*1000))' 2>/dev/null || echo "$(date +%s)000")
 
-  [[ -n "$sub_type" ]] && [[ "$expires_at" -gt "$((now_ms + buffer_ms))" ]]
+  [[ -n "$sub_type" ]] && [[ "$expires_at" -gt "$((now_ms + OAUTH_BUFFER_MS))" ]]
 }
 
 # ── 判断 token 是否存在但已过期 ──

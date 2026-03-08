@@ -1,15 +1,10 @@
 #!/usr/bin/env bash
-# superpowers-session-start.sh
-# 动态定位最新 superpowers 版本，转发执行 session-start hook
-# 路径通过 CLAUDE_CONFIG_DIR 环境变量或 ~/.claude 自动推断，无硬编码
-
+# Auto-generated wrapper for superpowers SessionStart hook
+# Plugin: superpowers@superpowers-marketplace
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
-PLUGIN_DIR="$CLAUDE_DIR/plugins/cache/superpowers-marketplace/superpowers"
+PLUGIN_DIR="$CLAUDE_DIR/plugins/superpowers"
 
-LATEST=$(ls -d "$PLUGIN_DIR"/*/ 2>/dev/null | sort -V | tail -1)
-if [[ -z "$LATEST" ]]; then
-  exit 0
-fi
+[[ ! -d "$PLUGIN_DIR" ]] && exit 0
 
-export CLAUDE_PLUGIN_ROOT="${LATEST%/}"
+export CLAUDE_PLUGIN_ROOT="$PLUGIN_DIR"
 exec bash "$CLAUDE_PLUGIN_ROOT/hooks/run-hook.cmd" session-start

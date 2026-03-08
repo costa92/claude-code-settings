@@ -9,7 +9,7 @@ description: Convert Markdown articles to WeChat Official Account compatible HTM
 >
 > **Draft Upload Trigger**: When user wants to upload an article to WeChat draft box, ALWAYS prefer `upload_draft.py` over manual steps. It handles conversion, image upload, cover extraction, and draft creation in one command: `python3 ${SKILL_DIR}/scripts/upload_draft.py article.md --theme coffee`
 >
-> **Default Author**: When generating any draft JSON for WeChat (create_draft or convert --draft), ALWAYS set `"author": "月影"` unless the user explicitly specifies a different author.
+> **Default Author**: When generating any draft JSON for WeChat (create_draft or convert --draft), use the author from `~/.claude/env.json` (`wechat_author_name`) unless the user explicitly specifies a different author.
 
 # WeChat Article Converter
 
