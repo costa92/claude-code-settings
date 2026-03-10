@@ -82,20 +82,33 @@ TIMEOUTS = {**_default_timeouts, **_user_config.get("timeouts", {})}
 
 # Retry configurations
 RETRY_CONFIG = {
-    "max_attempts": 3,
-    "initial_delay": 2,  # seconds
-    "backoff_factor": 1.5,  # exponential backoff multiplier
+    "max_attempts": 4,
+    "initial_delay": 3,  # seconds
+    "backoff_factor": 2,  # exponential backoff multiplier
     "retriable_errors": [
         "SSL",
         "ConnectionError",
         "TimeoutError",
         "NetworkError",
-        "500",  # Server errors
+        "500",
         "502",
         "503",
         "504",
+        "RemoteProtocolError",
+        "Server disconnected",
+        "disconnected",
+        "UNAVAILABLE",
+        "high demand",
+        "No data received",
     ]
 }
+
+# Model degradation chain: pro → 3.1-flash → 2.5-flash
+MODEL_FALLBACK_CHAIN = [
+    "gemini-3-pro-image-preview",
+    "gemini-3.1-flash-image-preview",
+    "gemini-2.5-flash-image",
+]
 
 # Image generation defaults (read model from env.json)
 IMAGE_DEFAULTS = {

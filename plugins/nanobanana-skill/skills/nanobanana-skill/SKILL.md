@@ -8,18 +8,24 @@ allowed-tools: Read, Write, Glob, Grep, Task, Bash(cat:*), Bash(ls:*), Bash(tree
 
 Generate or edit images using Google Gemini API through the nanobanana tool.
 
+## Architecture
+
+This plugin is a **thin wrapper** that delegates to the canonical implementation:
+
+- **Canonical script**: `~/.claude/skills/article-generator/scripts/nanobanana.py`
+- **This wrapper**: `${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/nanobanana.py`
+
+The wrapper only changes the default size (9:16 portrait vs 16:9 landscape in article-generator).
+All features — retry, model degradation, enhance — are in the canonical script.
+
 ## Requirements
 
 1. **GEMINI_API_KEY**（必需）: 优先从 `~/.claude/env.json` 的 `gemini_api_key` 字段读取。
    如未配置，尝试环境变量 `GEMINI_API_KEY`，或遗留路径 `~/.nanobanana.env`。
-   缺少时提示用户在 `env.json` 中填写。
 2. **Python3 及依赖**: `google-genai`、`Pillow`、`python-dotenv`
-   ```bash
-   python3 -m pip install -r ${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/requirements.txt
-   ```
-3. **脚本路径**: `${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/nanobanana.py`
+   （首次运行自动安装）
 
-**注意**: 必须使用绝对路径调用脚本，相对路径会导致找不到文件。
+**注意**: 必须使用绝对路径调用脚本。
 
 ## Instructions
 
@@ -32,7 +38,7 @@ Generate or edit images using Google Gemini API through the nanobanana tool.
    - Model preference (optional, defaults to gemini-3-pro-image-preview)
    - Resolution (optional, defaults to 1K)
 
-2. Run the nanobanana script with appropriate parameters:
+2. Run the nanobanana script:
 
    ```bash
    python3 ${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/nanobanana.py --prompt "description of image" --output "filename.png"
@@ -72,12 +78,20 @@ Generate or edit images using Google Gemini API through the nanobanana tool.
 
 - `gemini-3-pro-image-preview` (default) - Higher quality
 - `gemini-2.5-flash-image` - Faster generation
+- `gemini-3.1-flash-image-preview` - Good balance of quality and availability
+
+**Model degradation**: On 503/overloaded errors, automatically falls back:
+`pro → 3.1-flash → 2.5-flash`. Use `--no-fallback` to disable.
 
 ### Resolution (--resolution)
 
 - `1K` (default)
 - `2K`
 - `4K`
+
+### Prompt Enhancement (--enhance)
+
+Add `--enhance` to automatically rewrite the prompt using Gemini for better image quality.
 
 ## Examples
 
@@ -96,13 +110,13 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/nanobanana.py \
   --output "logo.png"
 ```
 
-### Generate landscape image with high resolution
+### Generate with prompt enhancement
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/nanobanana.py \
-  --prompt "Futuristic cityscape with flying cars" \
+  --prompt "Futuristic cityscape" \
   --size 1344x768 \
-  --resolution 2K \
+  --enhance \
   --output "cityscape.png"
 ```
 
@@ -115,23 +129,12 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/nanobanana.py \
   --output "photo-with-rainbow.png"
 ```
 
-### Use faster model
-
-```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/nanobanana.py \
-  --prompt "Quick sketch of a cat" \
-  --model gemini-2.5-flash-image \
-  --output "cat-sketch.png"
-```
-
 ## Error Handling
 
-If the script fails:
-
-- Check that `GEMINI_API_KEY` is set in `~/.claude/env.json`, env var, or `~/.nanobanana.env`
-- Verify input image files exist and are readable
-- Ensure the output directory is writable
-- If no image is generated, try making the prompt more specific about wanting an image
+- **503/Overloaded**: Automatic model degradation (pro → 3.1-flash → 2.5-flash)
+- **Network errors**: Automatic retry with exponential backoff (4 attempts)
+- **Missing API key**: Check `~/.claude/env.json` → env var → `~/.nanobanana.env`
+- **No image generated**: Try a more specific prompt
 
 ## Best Practices
 
@@ -140,4 +143,4 @@ If the script fails:
 3. For social media posts, use 9:16 for stories or 1:1 for posts
 4. For wallpapers, use 16:9 or 21:9
 5. Start with 1K resolution for testing, upgrade to 2K/4K for final output
-6. Use gemini-3-pro-image-preview for best quality, gemini-2.5-flash-image for speed
+6. Use `--enhance` for blog article images to get better quality prompts

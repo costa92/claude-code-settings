@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-# Generate or edit images using Google Gemini API
+"""
+Generate or edit images using Google Gemini API.
+
+This is the canonical implementation — the plugin version
+(~/.claude/plugins/nanobanana-skill) is a thin wrapper that delegates here.
+"""
+import json
 import os
 import sys
 import argparse
@@ -19,7 +25,6 @@ except ImportError as e:
     print(f"❌ 缺少依赖: {e}")
     print("🔧 正在自动安装依赖...\n")
 
-    # Get script directory and run setup_dependencies.py
     script_dir = os.path.dirname(os.path.abspath(__file__))
     setup_script = os.path.join(script_dir, "setup_dependencies.py")
 
@@ -38,9 +43,8 @@ except ImportError as e:
 
 # Import shared configuration
 try:
-    from config import ASPECT_RATIO_MAP, RETRY_CONFIG
+    from config import ASPECT_RATIO_MAP, RETRY_CONFIG, MODEL_FALLBACK_CHAIN
 except ImportError:
-    # Fallback if config.py not found
     ASPECT_RATIO_MAP = {
         "1024x1024": "1:1",
         "832x1248": "2:3",
@@ -54,18 +58,35 @@ except ImportError:
         "1536x672": "21:9",
     }
     RETRY_CONFIG = {
-        "max_attempts": 3,
-        "initial_delay": 2,
-        "backoff_factor": 1.5,
-        "retriable_errors": ["SSL", "ConnectionError", "TimeoutError", "NetworkError", "500", "502", "503", "504"]
+        "max_attempts": 4,
+        "initial_delay": 3,
+        "backoff_factor": 2,
+        "retriable_errors": [
+            "SSL", "ConnectionError", "TimeoutError", "NetworkError",
+            "500", "502", "503", "504",
+            "RemoteProtocolError", "Server disconnected", "disconnected",
+            "UNAVAILABLE", "high demand", "No data received",
+        ]
     }
+    MODEL_FALLBACK_CHAIN = [
+        "gemini-3-pro-image-preview",
+        "gemini-3.1-flash-image-preview",
+        "gemini-2.5-flash-image",
+    ]
+
+# Overloaded error patterns (trigger model degradation)
+_OVERLOADED_PATTERNS = ["503", "UNAVAILABLE", "high demand", "overloaded"]
+
+
+class NoImageDataError(Exception):
+    """API returned a response but contained no image data."""
+    pass
 
 # Load env.json for configuration (model name, etc.)
 _env_json_config = {}
 _env_json_path = os.path.expanduser("~/.claude/env.json")
 if os.path.exists(_env_json_path):
     try:
-        import json
         with open(_env_json_path) as f:
             _env_json_config = json.load(f)
     except Exception:
@@ -74,13 +95,11 @@ if os.path.exists(_env_json_path):
 # Priority: Environment variable > ~/.claude/env.json > ~/.nanobanana.env
 api_key = os.getenv("GEMINI_API_KEY")
 
-# Fallback 1: Load from ~/.claude/env.json (unified config)
 if not api_key:
     val = _env_json_config.get("gemini_api_key", "")
     if val and not val.startswith("your-"):
         api_key = val
 
-# Fallback 2: Load from ~/.nanobanana.env (legacy)
 if not api_key:
     dotenv_path = os.path.expanduser("~/.nanobanana.env")
     if os.path.exists(dotenv_path):
@@ -95,25 +114,15 @@ if not api_key:
         "  3. ~/.nanobanana.env: GEMINI_API_KEY=your_key_here (legacy)"
     )
 
-# CRITICAL FIX: Remove GOOGLE_API_KEY from environment to prevent conflicts
-# google.genai library prioritizes GOOGLE_API_KEY over explicit api_key parameter
-# This prevents using an exhausted GOOGLE_API_KEY when GEMINI_API_KEY is valid
+# Prevent google.genai from using a different (possibly exhausted) key
 if "GOOGLE_API_KEY" in os.environ:
     del os.environ["GOOGLE_API_KEY"]
 
-# Initialize Gemini client
 client = genai.Client(api_key=api_key)
 
 
 def retry_on_error(max_attempts=None, initial_delay=None, backoff_factor=None):
-    """
-    Decorator to retry function calls on specific errors with exponential backoff.
-
-    Args:
-        max_attempts: Maximum number of retry attempts (default from RETRY_CONFIG)
-        initial_delay: Initial delay in seconds (default from RETRY_CONFIG)
-        backoff_factor: Multiplier for delay on each retry (default from RETRY_CONFIG)
-    """
+    """Retry on transient network/API errors with exponential backoff."""
     max_attempts = max_attempts or RETRY_CONFIG["max_attempts"]
     initial_delay = initial_delay or RETRY_CONFIG["initial_delay"]
     backoff_factor = backoff_factor or RETRY_CONFIG["backoff_factor"]
@@ -122,126 +131,26 @@ def retry_on_error(max_attempts=None, initial_delay=None, backoff_factor=None):
         @wraps(func)
         def wrapper(*args, **kwargs):
             delay = initial_delay
-            last_exception = None
-
             for attempt in range(1, max_attempts + 1):
                 try:
                     return func(*args, **kwargs)
                 except Exception as e:
-                    last_exception = e
                     error_str = str(e)
-
-                    # Check if error is retriable
                     is_retriable = any(
-                        err_pattern in error_str
-                        for err_pattern in RETRY_CONFIG["retriable_errors"]
+                        p in error_str for p in RETRY_CONFIG["retriable_errors"]
                     )
-
                     if not is_retriable or attempt >= max_attempts:
                         raise
-
                     print(f"⚠️  Attempt {attempt}/{max_attempts} failed: {error_str[:100]}")
-                    print(f"   Retrying in {delay:.1f} seconds...")
+                    print(f"   Retrying in {delay:.1f}s...")
                     time.sleep(delay)
                     delay *= backoff_factor
-
         return wrapper
     return decorator
 
 
-def main():
-    # Parse command-line arguments
-    parser = argparse.ArgumentParser(
-        description="Generate or edit images using Google Gemini API"
-    )
-    parser.add_argument(
-        "--prompt",
-        type=str,
-        required=True,
-        help="Prompt for image generation or editing",
-    )
-    parser.add_argument(
-        "--output",
-        type=str,
-        default=f"nanobanana-{uuid.uuid4()}.png",
-        help="Output image filename (default: nanobanana-<UUID>.png)",
-    )
-    parser.add_argument(
-        "--input", type=str, nargs="*", help="Input image files for editing (optional)"
-    )
-    parser.add_argument(
-        "--size",
-        type=str,
-        default="1344x768",
-        choices=list(ASPECT_RATIO_MAP.keys()),
-        help="Size/aspect ratio of the generated image (default: 1344x768 / 16:9 - landscape cover)",
-    )
-    _default_model = _env_json_config.get("gemini_image_model", "gemini-3-pro-image-preview")
-    parser.add_argument(
-        "--model",
-        type=str,
-        default=_default_model,
-        choices=["gemini-3-pro-image-preview", "gemini-2.5-flash-image"],
-        help=f"Model to use for image generation (default: {_default_model})",
-    )
-    parser.add_argument(
-        "--resolution",
-        type=str,
-        default="1K",
-        choices=["1K", "2K", "4K"],
-        help="Resolution of the generated image (default: 1K)",
-    )
-    parser.add_argument(
-        "--enhance",
-        action="store_true",
-        help="Automatically enhance the prompt using Gemini before generation",
-    )
-
-    args = parser.parse_args()
-
-    # Get aspect ratio from size
-    aspect_ratio = ASPECT_RATIO_MAP.get(args.size, "16:9")
-
-    # Build contents list for the API call
-    contents = []
-
-    # Check if input images are provided
-    if args.input and len(args.input) > 0:
-        # Use images.generate_content() with images for editing
-        print(f"Editing images with prompt: {args.prompt}")
-        print(f"Input images: {args.input}")
-        print(f"Aspect ratio: {aspect_ratio} ({args.size})")
-
-        # Add prompt first
-        contents.append(args.prompt)
-
-        # Add all input images
-        for img_path in args.input:
-            image = Image.open(img_path)
-            contents.append(image)
-    else:
-        # Prompt enhancement logic
-        final_prompt = args.prompt
-        if args.enhance:
-            print(f"✨ Enhancing prompt: {args.prompt}")
-            try:
-                final_prompt = enhance_prompt(client, args.prompt)
-                print(f"🚀 Enhanced prompt: {final_prompt}")
-            except Exception as e:
-                print(f"⚠️  Prompt enhancement failed: {e}")
-                print(f"   Using original prompt.")
-
-        print(f"Generating image (size: {args.size}) with prompt: {final_prompt}")
-        contents.append(final_prompt)
-
-    # Generate image with retry logic
-    generate_image_with_retry(args.model, contents, aspect_ratio, args.resolution, args.output)
-
-
-def enhance_prompt(client, original_prompt):
-    """
-    Enhance the prompt using Gemini text model.
-    """
+def enhance_prompt(original_prompt):
+    """Enhance the prompt using Gemini text model for better image generation."""
     system_instruction = (
         "You are an expert AI art prompt engineer. "
         "Your task is to rewrite the input prompt into a detailed, high-quality image generation prompt "
@@ -267,20 +176,9 @@ def enhance_prompt(client, original_prompt):
     return original_prompt
 
 
-
 @retry_on_error()
-def generate_image_with_retry(model, contents, aspect_ratio, resolution, output_path):
-    """
-    Generate or edit image with automatic retry on network/SSL errors.
-
-    Args:
-        model: Model name
-        contents: Content list (prompt + optional images)
-        aspect_ratio: Aspect ratio string
-        resolution: Resolution (1K, 2K, 4K)
-        output_path: Output file path
-    """
-    # Generate or edit image with config
+def _generate_single_model(model, contents, aspect_ratio, resolution, output_path):
+    """Single model attempt with retry on transient errors."""
     response = client.models.generate_content(
         model=model,
         contents=contents,
@@ -301,24 +199,135 @@ def generate_image_with_retry(model, contents, aspect_ratio, resolution, output_
     ):
         raise ValueError("No data received from the API.")
 
-    # Extract image from response
     image_saved = False
     for part in response.candidates[0].content.parts:
         if part.text is not None:
             print(f"{part.text}", end="")
         elif part.inline_data is not None and part.inline_data.data is not None:
             image = Image.open(BytesIO(part.inline_data.data))
-
             image.save(output_path)
             image_saved = True
             print(f"\n\nImage saved to: {output_path}")
 
     if not image_saved:
-        print(
-            "\n\nWarning: No image data found in the API response. This usually means the model returned only text. Please try again with a different prompt to make image generation more clear."
+        raise NoImageDataError(
+            "No image data in API response. Try a more specific prompt."
         )
-        sys.exit(1)
+
+
+def generate_image(model, contents, aspect_ratio, resolution, output_path, no_fallback=False):
+    """
+    Generate image with automatic model degradation on persistent 503/overloaded errors.
+
+    Degradation chain (downward only): pro → 3.1-flash → 2.5-flash
+    Never escalates to a more expensive model.
+    """
+    if no_fallback:
+        return _generate_single_model(model, contents, aspect_ratio, resolution, output_path)
+
+    # Build fallback chain: only include models at same level or cheaper
+    chain = MODEL_FALLBACK_CHAIN.copy()
+    if model in chain:
+        idx = chain.index(model)
+        chain = chain[idx:]  # Only this model and cheaper ones
+    else:
+        chain.insert(0, model)
+
+    for i, fallback_model in enumerate(chain):
+        try:
+            return _generate_single_model(fallback_model, contents, aspect_ratio, resolution, output_path)
+        except NoImageDataError:
+            # No image in response — try next model (might succeed with different model)
+            if i < len(chain) - 1:
+                print(f"\n⚠️  {fallback_model} returned no image, trying {chain[i + 1]}...")
+                continue
+            raise
+        except Exception as e:
+            error_str = str(e)
+            is_overloaded = any(p in error_str for p in _OVERLOADED_PATTERNS)
+            if is_overloaded and i < len(chain) - 1:
+                print(f"\n⚠️  {fallback_model} unavailable (503), falling back to {chain[i + 1]}...")
+                continue
+            raise
+
+
+def run(default_size="1344x768"):
+    """
+    Main entry point. Accepts default_size override for different contexts:
+    - article-generator: 1344x768 (16:9 landscape for covers)
+    - plugin standalone: 768x1344 (9:16 portrait)
+    """
+    parser = argparse.ArgumentParser(
+        description="Generate or edit images using Google Gemini API"
+    )
+    parser.add_argument(
+        "--prompt", type=str, required=True,
+        help="Prompt for image generation or editing",
+    )
+    parser.add_argument(
+        "--output", type=str, default=f"nanobanana-{uuid.uuid4()}.png",
+        help="Output image filename (default: nanobanana-<UUID>.png)",
+    )
+    parser.add_argument(
+        "--input", type=str, nargs="*",
+        help="Input image files for editing (optional)",
+    )
+    parser.add_argument(
+        "--size", type=str, default=default_size,
+        choices=list(ASPECT_RATIO_MAP.keys()),
+        help=f"Size/aspect ratio (default: {default_size})",
+    )
+
+    _default_model = _env_json_config.get("gemini_image_model", "gemini-3-pro-image-preview")
+    parser.add_argument(
+        "--model", type=str, default=_default_model,
+        choices=["gemini-3-pro-image-preview", "gemini-2.5-flash-image", "gemini-3.1-flash-image-preview"],
+        help=f"Model (default: {_default_model})",
+    )
+    parser.add_argument(
+        "--resolution", type=str, default="1K",
+        choices=["1K", "2K", "4K"],
+        help="Resolution (default: 1K)",
+    )
+    parser.add_argument(
+        "--enhance", action="store_true",
+        help="Enhance prompt using Gemini before generation",
+    )
+    parser.add_argument(
+        "--no-fallback", action="store_true",
+        help="Disable automatic model degradation on 503 errors",
+    )
+
+    args = parser.parse_args()
+    aspect_ratio = ASPECT_RATIO_MAP.get(args.size, "16:9")
+    contents = []
+
+    if args.input and len(args.input) > 0:
+        print(f"Editing images with prompt: {args.prompt}")
+        print(f"Input images: {args.input}")
+        print(f"Aspect ratio: {aspect_ratio} ({args.size})")
+        contents.append(args.prompt)
+        for img_path in args.input:
+            image = Image.open(img_path)
+            contents.append(image)
+    else:
+        final_prompt = args.prompt
+        if args.enhance:
+            print(f"✨ Enhancing prompt: {args.prompt}")
+            try:
+                final_prompt = enhance_prompt(args.prompt)
+                print(f"🚀 Enhanced prompt: {final_prompt}")
+            except Exception as e:
+                print(f"⚠️  Prompt enhancement failed: {e}")
+                print("   Using original prompt.")
+        print(f"Generating image (size: {args.size}, model: {args.model}) with prompt: {final_prompt}")
+        contents.append(final_prompt)
+
+    generate_image(
+        args.model, contents, aspect_ratio, args.resolution,
+        args.output, no_fallback=args.no_fallback,
+    )
 
 
 if __name__ == "__main__":
-    main()
+    run(default_size="1344x768")

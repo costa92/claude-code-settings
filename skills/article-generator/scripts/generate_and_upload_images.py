@@ -61,6 +61,11 @@ GEMINI_PRICING = {
         "2K": 0.20,  # $0.20 per image
         "4K": 0.40,  # $0.40 per image
     },
+    "gemini-3.1-flash-image-preview": {
+        "1K": 0.04,  # $0.04 per image (similar to 2.5-flash)
+        "2K": 0.08,
+        "4K": 0.16,
+    },
     "gemini-2.5-flash-image": {
         "1K": 0.04,  # $0.04 per image (cheaper, faster)
         "2K": 0.08,
@@ -453,14 +458,15 @@ def check_dependencies():
     return errors
 
 
-def generate_image(config: ImageConfig, resolution: str = "2K", model: str = "gemini-3-pro-image-preview") -> bool:
+def generate_image(config: ImageConfig, resolution: str = "2K", model: str = "gemini-3-pro-image-preview", enhance: bool = None) -> bool:
     """
     使用 Gemini API 生成图片
 
     Args:
-        config: 图片配置
+        config: 图片配置（config.enhance 为默认增强设置）
         resolution: 分辨率 (1K, 2K, 4K)
         model: Gemini 模型名称
+        enhance: 是否增强提示词（None=使用config.enhance）
 
     Returns:
         bool: 是否成功
@@ -493,6 +499,8 @@ def generate_image(config: ImageConfig, resolution: str = "2K", model: str = "ge
             "--model", model,
             "--output", str(output_path)
         ]
+        if enhance if enhance is not None else config.enhance:
+            cmd.append("--enhance")
 
         result = subprocess.run(
             cmd,
@@ -1600,7 +1608,8 @@ def main():
                 name=item["name"],
                 prompt=item["prompt"],
                 aspect_ratio=item.get("aspect_ratio", "3:2"),
-                filename=item.get("filename")
+                filename=item.get("filename"),
+                enhance=item.get("enhance", False)
             ))
 
     else:
@@ -1620,6 +1629,11 @@ def main():
 
     # Check dependencies based on what we need
     if configs:
+        # CLI --enhance flag overrides per-config enhance setting
+        if hasattr(args, 'enhance') and args.enhance:
+            for config in configs:
+                config.enhance = True
+
         # AI image generation requires nanobanana + Gemini API
         errors = check_dependencies()
         if errors:
