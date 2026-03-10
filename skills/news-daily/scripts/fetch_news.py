@@ -3,17 +3,25 @@
 AI Daily News Fetcher
 Fetches AI news from multiple RSS sources and returns structured data.
 
-Supported sources:
-- smol.ai: Daily AI news digest
+Supported sources (11):
+- smol.ai: Daily AI news digest (default)
+- TLDR AI: Daily AI newsletter
+- OpenAI Blog: Model releases and research announcements
+- Google DeepMind Blog: Cutting-edge AI research
+- MIT Tech Review AI: Deep analysis on AI trends
+- TechCrunch AI: Startups, funding, product launches
 - Import AI: Jack Clark's weekly AI newsletter
 - Last Week in AI: Weekly AI news summary
 - Ahead of AI: Sebastian Raschka's ML/AI research updates
-- TLDR AI: Daily AI newsletter
+- 量子位 (QbitAI): Chinese AI news media
+- Hacker News AI: AI/LLM discussions (30+ points)
 """
+import html as html_module
 import sys
 import json
 import argparse
 import re
+import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -27,6 +35,7 @@ except ImportError:
     sys.exit(1)
 
 REQUEST_TIMEOUT = 30
+MAX_RETRIES = 2  # retry once on transient failures
 
 # Content truncation settings (to avoid exceeding 256KB limit)
 MAX_CONTENT_LENGTH = 50000  # Maximum characters per entry content
@@ -34,7 +43,11 @@ DEFAULT_LIMIT_ALL_SOURCES = 3  # Default limit when using --all-sources
 OUTPUT_DIR = Path.home() / ".claude" / "skills" / "news-daily" / "data"  # Default output directory
 
 # How many hours old a digest can be before we consider it "stale" and supplement with realtime sources
-STALE_THRESHOLD_HOURS = 36
+# (Used internally by smart_fetch via date-string comparison)
+
+# Dedup settings
+HISTORY_FILE = OUTPUT_DIR / "seen_history.json"
+HISTORY_DAYS = 7  # Keep history for this many days
 
 # RSS Sources Configuration
 RSS_SOURCES = {
@@ -50,6 +63,36 @@ RSS_SOURCES = {
         "name": "TLDR Tech",
         "url": "https://tldr.tech/rss",
         "description": "Daily tech newsletter covering AI, startups, and dev news",
+        "frequency": "daily",
+        "language": "en",
+    },
+
+    # === AI Labs & Tech Media (English) ===
+    "openai": {
+        "name": "OpenAI Blog",
+        "url": "https://openai.com/blog/rss.xml",
+        "description": "OpenAI official blog: model releases, research announcements, and policy updates",
+        "frequency": "weekly",
+        "language": "en",
+    },
+    "deepmind": {
+        "name": "Google DeepMind Blog",
+        "url": "https://deepmind.google/blog/rss.xml",
+        "description": "Cutting-edge AI research from Google DeepMind",
+        "frequency": "weekly",
+        "language": "en",
+    },
+    "mittr_ai": {
+        "name": "MIT Tech Review AI",
+        "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
+        "description": "MIT Technology Review AI coverage: deep analysis on AI trends and impact",
+        "frequency": "daily",
+        "language": "en",
+    },
+    "techcrunch_ai": {
+        "name": "TechCrunch AI",
+        "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+        "description": "TechCrunch AI section: startups, funding, product launches, and industry news",
         "frequency": "daily",
         "language": "en",
     },
@@ -125,13 +168,23 @@ def fetch_rss(source_id=None, url=None):
 
     try:
         headers = {
-            "User-Agent": "AI-Daily-Fetcher/1.0 (https://github.com/ai-daily)"
+            "User-Agent": "Mozilla/5.0 (compatible; AI-Daily-Fetcher/2.0)"
         }
-        response = requests.get(rss_url, timeout=REQUEST_TIMEOUT, headers=headers)
-        response.raise_for_status()
-        feed = feedparser.parse(response.content)
-        return feed, source_info
-    except requests.RequestException as e:
+        last_err = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = requests.get(rss_url, timeout=REQUEST_TIMEOUT, headers=headers)
+                response.raise_for_status()
+                feed = feedparser.parse(response.content)
+                return feed, source_info
+            except requests.RequestException as e:
+                last_err = e
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(2)
+        raise Exception(f"Failed to fetch RSS from {source_info['name']} after {MAX_RETRIES} attempts: {last_err}")
+    except Exception as e:
+        if "Failed to fetch" in str(e):
+            raise
         raise Exception(f"Failed to fetch RSS from {source_info['name']}: {e}")
 
 
@@ -179,9 +232,10 @@ def get_date_range(feed):
             date_from_link = extract_date_from_link(entry.link)
             if date_from_link:
                 dates.append(date_from_link)
+                continue
 
         # Method 2: Parse from pubDate
-        elif hasattr(entry, 'published_parsed') and entry.published_parsed:
+        if hasattr(entry, 'published_parsed') and entry.published_parsed:
             dt = datetime(*entry.published_parsed[:6], tzinfo=timezone.utc)
             dates.append(dt.strftime("%Y-%m-%d"))
 
@@ -329,7 +383,7 @@ def extract_entry_content(entry):
         raw_content = content.get("title", "")
 
     # Clean HTML entities
-    raw_content = raw_content.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
+    raw_content = html_module.unescape(raw_content)
 
     # Truncate content if too long (to avoid exceeding 256KB limit)
     if len(raw_content) > MAX_CONTENT_LENGTH:
@@ -494,13 +548,65 @@ def load_env_config():
     return {}
 
 
-def smart_fetch(limit=5, date_expr=None):
+def load_history():
+    """Load seen history {date_str: [url1, url2, ...]}"""
+    if HISTORY_FILE.exists():
+        try:
+            return json.loads(HISTORY_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+
+def save_history(history):
+    """Save history, auto-prune entries older than HISTORY_DAYS."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=HISTORY_DAYS)).strftime("%Y-%m-%d")
+    pruned = {d: urls for d, urls in history.items() if d >= cutoff}
+    HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+    HISTORY_FILE.write_text(json.dumps(pruned, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def dedup_entries(entries, history):
+    """Filter out entries whose link has been shown before.
+
+    Returns:
+        (filtered_entries, num_removed)
+    """
+    seen_urls = set()
+    for urls in history.values():
+        seen_urls.update(urls)
+
+    kept = []
+    removed = 0
+    for entry in entries:
+        link = entry.get("link", "")
+        if link and link in seen_urls:
+            removed += 1
+        else:
+            kept.append(entry)
+    return kept, removed
+
+
+def record_shown(entries, date_str, history):
+    """Append shown entry URLs to history for the given date."""
+    urls = history.get(date_str, [])
+    existing = set(urls)
+    for entry in entries:
+        link = entry.get("link", "")
+        if link and link not in existing:
+            urls.append(link)
+            existing.add(link)
+    history[date_str] = urls
+
+
+def smart_fetch(limit=5, date_expr=None, no_dedup=False):
     """Smart mode: smol.ai latest digest + realtime HN supplement when stale.
 
     Args:
         limit: max entries per source
         date_expr: 'today' | 'yesterday' | 'day-before' | 'YYYY-MM-DD' | None
                    None → read from env.json news_daily_date (default: 'yesterday')
+        no_dedup: if True, skip deduplication
     """
     # Resolve target date
     if date_expr is None:
@@ -508,6 +614,11 @@ def smart_fetch(limit=5, date_expr=None):
         date_expr = cfg.get("news_daily_date", "yesterday")
     target_date = resolve_date(date_expr)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    # Load dedup history
+    history = load_history() if not no_dedup else {}
+    total_filtered = 0
+
     output = {
         "mode": "smart",
         "requested_date": target_date,
@@ -518,13 +629,19 @@ def smart_fetch(limit=5, date_expr=None):
     try:
         feed, source_info = fetch_rss("smol")
         entries = get_latest_entries(feed, limit)
+
+        # Dedup
+        if not no_dedup:
+            entries, removed = dedup_entries(entries, history)
+            total_filtered += removed
+
         newest_age = None
         if feed.entries and hasattr(feed.entries[0], 'published_parsed') and feed.entries[0].published_parsed:
             newest_age = entry_age_hours(feed.entries[0])
 
         actual_date = entries[0]["date"] if entries else None
-        # Stale if smol's latest is older than target_date
-        stale = (actual_date is None) or (actual_date < target_date)
+        # Stale if smol's latest is older than target_date or all entries deduped away
+        stale = (actual_date is None) or (actual_date < target_date) or len(entries) == 0
 
         output["sources"]["smol"] = {
             "name": source_info["name"],
@@ -537,7 +654,7 @@ def smart_fetch(limit=5, date_expr=None):
         if stale and actual_date:
             output["note"] = (
                 f"smol.ai 最新内容来自 {actual_date}（目标日期 {target_date}），"
-                f"已自动补充 Hacker News 实时内容"
+                f"已自动补充实时内容"
             )
     except Exception as e:
         output["sources"]["smol"] = {"error": str(e)}
@@ -559,6 +676,11 @@ def smart_fetch(limit=5, date_expr=None):
                 if len(hn_entries) >= limit:
                     break
 
+            # Dedup HN entries
+            if not no_dedup:
+                hn_entries, removed = dedup_entries(hn_entries, history)
+                total_filtered += removed
+
             output["sources"]["hn_ai"] = {
                 "name": source_hn["name"],
                 "entries": hn_entries,
@@ -567,6 +689,35 @@ def smart_fetch(limit=5, date_expr=None):
             }
         except Exception as e:
             output["sources"]["hn_ai"] = {"error": str(e)}
+
+    # ── 3. If smol all deduped, supplement with tldrai / qbitai ──
+    if not no_dedup and output["sources"].get("smol", {}).get("count", 0) == 0:
+        for fallback_id in ("tldrai", "qbitai"):
+            try:
+                fb_feed, fb_info = fetch_rss(fallback_id)
+                fb_entries = get_latest_entries(fb_feed, limit)
+                fb_entries, removed = dedup_entries(fb_entries, history)
+                total_filtered += removed
+                if fb_entries:
+                    output["sources"][fallback_id] = {
+                        "name": fb_info["name"],
+                        "entries": fb_entries,
+                        "count": len(fb_entries),
+                        "note": "smol.ai 内容全部已读，自动补充",
+                    }
+            except Exception:
+                pass
+
+    # ── 4. Record shown entries and save history ──
+    if not no_dedup:
+        total_shown = 0
+        for src_data in output["sources"].values():
+            entries_list = src_data.get("entries", [])
+            if entries_list:
+                record_shown(entries_list, today, history)
+                total_shown += len(entries_list)
+        save_history(history)
+        output["dedup"] = {"filtered": total_filtered, "total": total_filtered + total_shown}
 
     return output
 
@@ -594,12 +745,18 @@ def main():
                        help='Maximum number of entries to return per source (default: 10)')
     parser.add_argument('--output', '-o', type=str,
                        help='Save output to file (e.g., --output news.json). Auto-generates filename if "auto" is specified.')
+    parser.add_argument('--no-dedup', action='store_true',
+                       help='Skip deduplication (show all entries even if previously shown)')
 
     args = parser.parse_args()
 
     # Smart mode (recommended default)
     if args.smart:
-        output = smart_fetch(limit=args.limit, date_expr=args.date)
+        date_expr = args.relative or args.date
+        output = smart_fetch(limit=args.limit, date_expr=date_expr, no_dedup=args.no_dedup)
+        if args.output:
+            saved_path = save_output(output, args.output)
+            output["_saved_to"] = str(saved_path)
         print(json.dumps(output, indent=2, ensure_ascii=False))
         return
 
@@ -627,6 +784,9 @@ def main():
     if len(source_ids) > 1:
         results = fetch_all_sources(source_ids)
         output = {"sources": {}}
+        history = load_history() if not args.no_dedup else {}
+        total_filtered = 0
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
         for source_id, result in results.items():
             if result["success"]:
@@ -635,6 +795,9 @@ def main():
 
                 if args.latest:
                     entries = get_latest_entries(feed, args.limit)
+                    if not args.no_dedup:
+                        entries, removed = dedup_entries(entries, history)
+                        total_filtered += removed
                     output["sources"][source_id] = {
                         "name": source_info["name"],
                         "entries": entries,
@@ -660,6 +823,9 @@ def main():
                     else:
                         # Try to get latest entries instead
                         entries = get_latest_entries(feed, args.limit)
+                        if not args.no_dedup:
+                            entries, removed = dedup_entries(entries, history)
+                            total_filtered += removed
                         output["sources"][source_id] = {
                             "name": source_info["name"],
                             "entries": entries,
@@ -669,6 +835,17 @@ def main():
                 output["sources"][source_id] = {
                     "error": result["error"],
                 }
+
+        # Record shown entries and save history
+        if not args.no_dedup:
+            total_shown = 0
+            for src_data in output["sources"].values():
+                entries_list = src_data.get("entries", [])
+                if entries_list:
+                    record_shown(entries_list, today, history)
+                    total_shown += len(entries_list)
+            save_history(history)
+            output["dedup"] = {"filtered": total_filtered, "total": total_filtered + total_shown}
 
         # Save output if requested
         if args.output:
@@ -699,12 +876,24 @@ def main():
     # Latest mode - get most recent available content
     if args.latest:
         entries = get_latest_entries(feed, args.limit)
+        if not args.no_dedup:
+            history = load_history()
+            entries, removed = dedup_entries(entries, history)
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            record_shown(entries, today, history)
+            save_history(history)
         if entries:
-            print(json.dumps({
+            result = {
                 "source": source_info["name"],
                 "entries": entries,
                 "count": len(entries),
-            }, indent=2, ensure_ascii=False))
+            }
+            if not args.no_dedup:
+                result["dedup"] = {"filtered": removed, "total": removed + len(entries)}
+            if args.output:
+                saved_path = save_output(result, args.output)
+                result["_saved_to"] = str(saved_path)
+            print(json.dumps(result, indent=2, ensure_ascii=False))
             return
         print(json.dumps({"error": "no_content", "message": "No content available in RSS"}, indent=2))
         return

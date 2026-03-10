@@ -59,9 +59,5 @@
         ]
       }
     ]
-  },
-  "env": {
-    "ANTHROPIC_BASE_URL": "https://your-api-proxy.example.com",
-    "ANTHROPIC_AUTH_TOKEN": "sk-your-auth-token-here"
   }
 }

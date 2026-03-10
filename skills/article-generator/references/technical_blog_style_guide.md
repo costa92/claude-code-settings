@@ -271,8 +271,8 @@ command --option
 
 **明链接**（推荐）：
 ```markdown
-- **Ollama 官网**: https://ollama.com
-- **GLM4 GitHub**: https://github.com/THUDM/GLM-4
+- [**Ollama 官网**](https://ollama.com)
+- [**GLM4 GitHub**](https://github.com/THUDM/GLM-4)
 ```
 
 ### ❌ 错误格式
@@ -291,8 +291,8 @@ command --option
 ```markdown
 ## 参考资料
 
-- **资源名称1**: https://example.com
-- **资源名称2**: https://example.com/docs
+- [**资源名称1**](https://example.com)
+- [**资源名称2**](https://example.com/docs)
 ```
 
 **>5 条链接（表格格式，推荐）**：

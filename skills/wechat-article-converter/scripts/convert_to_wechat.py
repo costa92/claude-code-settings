@@ -256,6 +256,26 @@ class WeChatConverter:
 
         md_content = re.sub(r'\[([^\]]+)\]\[([^\]]*)\]', replace_refs, md_content)
 
+        # 2.8 Convert plain-text reference URLs to inline markdown links
+        # Handles legacy format: - **Name**: https://url  →  - [**Name**](https://url)
+        # Also handles: - Name: https://url  →  - [Name](https://url)
+        # And table format: | Name | https://url |  →  | Name | [链接](https://url) |
+        def _convert_plain_ref_to_inline(line):
+            # Pattern 1: - **Name**: https://url  or  - Name: https://url
+            m = re.match(r'^(\s*[-*]\s+)(\*{0,2}[^*:]+\*{0,2}):\s*(https?://\S+)\s*$', line)
+            if m:
+                prefix, name, url = m.group(1), m.group(2).strip(), m.group(3)
+                return f"{prefix}[{name}]({url})"
+            # Pattern 2: | Name | https://url | (table row)
+            m = re.match(r'^(\|\s*)([^|]+?)(\s*\|\s*)(https?://\S+?)(\s*\|)\s*$', line)
+            if m:
+                pre, name, mid, url, post = m.groups()
+                return f"{pre}{name.strip()}{mid}[链接]({url.strip()}){post}"
+            return line
+
+        lines = md_content.split('\n')
+        md_content = '\n'.join(_convert_plain_ref_to_inline(l) for l in lines)
+
         # 3. Process Links
         # Reset links
         self.links = []

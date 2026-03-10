@@ -1,6 +1,6 @@
 ---
 name: news-daily
-description: 获取 AI 行业新闻（产品发布、论文、融资、政策），来源涵盖 smol.ai、Import AI、TLDR AI、量子位、ArXiv、Hacker News，Claude 智能分类摘要输出中文 Markdown。可选生成 HTML 网页与分享卡片图。无需额外 API key。用户询问 AI 新闻、每日资讯、news-daily 时触发。
+description: 获取 AI 行业新闻（产品发布、论文、融资、政策），来源涵盖 smol.ai、OpenAI、DeepMind、MIT Tech Review、TechCrunch、Import AI、TLDR AI、量子位、Hacker News，Claude 智能分类摘要输出中文 Markdown。可选生成 HTML 网页与分享卡片图。无需额外 API key。用户询问 AI 新闻、每日资讯、news-daily 时触发。
 ---
 
 # News Daily — AI 行业新闻
@@ -13,12 +13,14 @@ description: 获取 AI 行业新闻（产品发布、论文、融资、政策）
 |---------|------|------|------|
 | `smol` | smol.ai | 日更 | 默认来源，每日 AI 新闻摘要 |
 | `tldrai` | TLDR Tech | 日更 | AI、创业、开发者新闻 |
+| `openai` | OpenAI Blog | 周更 | OpenAI 官方博客，模型发布与研究公告 |
+| `deepmind` | Google DeepMind Blog | 周更 | DeepMind 前沿 AI 研究 |
+| `mittr_ai` | MIT Tech Review AI | 日更 | MIT 技术评论 AI 深度分析 |
+| `techcrunch_ai` | TechCrunch AI | 日更 | 创投、产品发布、行业新闻 |
 | `importai` | Import AI | 周更 | Jack Clark 的 AI 研究与产业 newsletter |
 | `lastweekinai` | Last Week in AI | 周更 | 每周 AI 新闻摘要 |
 | `aheadofai` | Ahead of AI | 周更 | Sebastian Raschka 的 ML/AI 更新 |
 | `qbitai` | 量子位 | 日更 | 中国领先 AI 科技媒体 |
-| `arxiv_ai` | ArXiv AI | 日更 | cs.AI 最新论文 |
-| `arxiv_ml` | ArXiv ML | 日更 | cs.LG 最新论文 |
 | `hn_ai` | Hacker News AI | 实时 | HN 上 AI/LLM 讨论（30+ 分） |
 
 ## 进度清单
@@ -56,8 +58,6 @@ description: 获取 AI 行业新闻（产品发布、论文、融资、政策）
 | "Import AI" | importai |
 | "TLDR AI" | tldrai |
 | "量子位" | qbitai |
-| "ArXiv" / "AI论文" | arxiv_ai |
-| "ML论文" | arxiv_ml |
 | "Hacker News" / "HN" | hn_ai |
 | "所有渠道" / "综合" | --all-sources |
 | （默认） | smol |
@@ -146,7 +146,7 @@ python ~/.claude/skills/news-daily/scripts/fetch_news.py --list-sources
 ┌─────────────────────────────────┐
 │  [标签] AI 日报 · YYYY年M月D日  │  ← 顶部标签行（金黄底白字）
 │                                 │
-│   今日 AI 速报                  │  ← 大标题（32px bold）
+│   今日 AI 速报                  │  ← 大标题（40px/900）
 │   X 条精选 · 来源: smol.ai      │  ← 副标题（灰色）
 ├─────────────────────────────────┤
 │                                 │
@@ -223,17 +223,17 @@ png_file   = {poster_dir}/{date}.png
 body { background: #F5EED8; width: 750px; margin: 0; font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif; }
 .poster { padding: 40px 32px; min-height: 1200px; }
 .header-tag { background: #E8A838; color: #fff; border-radius: 20px; padding: 6px 18px; font-size: 14px; display: inline-block; }
-h1 { font-size: 36px; font-weight: 900; color: #1A1A2E; margin: 16px 0 8px; }
-.subtitle { color: #888; font-size: 15px; }
+h1 { font-size: 40px; font-weight: 900; color: #1A1A2E; margin: 16px 0 8px; }
+.subtitle { color: #888; font-size: 16px; }
 .highlights { background: #EBF4FF; border-radius: 12px; padding: 20px 24px; margin: 24px 0; }
-.highlights h3 { color: #2563EB; margin: 0 0 12px; font-size: 16px; }
-.highlights li { color: #374151; font-size: 14px; line-height: 1.8; }
+.highlights h3 { color: #2563EB; margin: 0 0 12px; font-size: 18px; }
+.highlights li { color: #374151; font-size: 16px; line-height: 1.8; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
 .card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
 .card-icon { background: #2D3A4A; color: #fff; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 12px; }
-.card-title { font-size: 15px; font-weight: 700; color: #1A1A2E; margin-bottom: 8px; line-height: 1.4; }
-.card-desc { font-size: 13px; color: #6B7280; line-height: 1.6; }
-.badge { display: inline-block; background: #4CAF82; color: #fff; font-size: 11px; border-radius: 6px; padding: 2px 8px; margin-top: 10px; }
+.card-title { font-size: 17px; font-weight: 700; color: #1A1A2E; margin-bottom: 8px; line-height: 1.4; }
+.card-desc { font-size: 15px; color: #6B7280; line-height: 1.6; }
+.badge { display: inline-block; background: #4CAF82; color: #fff; font-size: 12px; border-radius: 6px; padding: 2px 8px; margin-top: 10px; }
 /* 底部水印 */
 .footer { margin-top: 32px; padding-top: 20px; border-top: 1px solid #E8DCC0; }
 .footer-inner { display: flex; align-items: center; gap: 16px; }

@@ -1,7 +1,7 @@
 {
-  "name": "ai-daily",
-  "version": "2.1.0",
-  "description": "AI news aggregator that fetches from 9 sources: English (smol.ai, TLDR, Import AI, Last Week in AI, Ahead of AI), Chinese (量子位), Academic (ArXiv AI/ML), Community (Hacker News)",
+  "name": "news-daily",
+  "version": "2.2.0",
+  "description": "AI news aggregator that fetches from 11 sources: English (smol.ai, TLDR, OpenAI, DeepMind, MIT Tech Review, TechCrunch, Import AI, Last Week in AI, Ahead of AI), Chinese (量子位), Community (Hacker News)",
   "repository": "geekjourneyx/ai-daily-skill",
   "requires": {
     "packages": [
@@ -32,6 +32,30 @@
         "url": "https://tldr.tech/rss"
       },
       {
+        "name": "OpenAI Blog",
+        "optional": true,
+        "purpose": "OpenAI official blog: model releases, research announcements",
+        "url": "https://openai.com/blog/rss.xml"
+      },
+      {
+        "name": "Google DeepMind Blog",
+        "optional": true,
+        "purpose": "Cutting-edge AI research from Google DeepMind",
+        "url": "https://deepmind.google/blog/rss.xml"
+      },
+      {
+        "name": "MIT Tech Review AI",
+        "optional": true,
+        "purpose": "MIT Technology Review AI coverage: deep analysis on AI trends",
+        "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed"
+      },
+      {
+        "name": "TechCrunch AI",
+        "optional": true,
+        "purpose": "TechCrunch AI section: startups, funding, product launches",
+        "url": "https://techcrunch.com/category/artificial-intelligence/feed/"
+      },
+      {
         "name": "Import AI",
         "optional": true,
         "purpose": "Jack Clark's weekly AI newsletter",
@@ -56,22 +80,10 @@
         "url": "https://www.qbitai.com/feed"
       },
       {
-        "name": "ArXiv AI",
-        "optional": true,
-        "purpose": "Latest AI research papers (cs.AI)",
-        "url": "https://rss.arxiv.org/rss/cs.AI"
-      },
-      {
-        "name": "ArXiv ML",
-        "optional": true,
-        "purpose": "Latest Machine Learning papers (cs.LG)",
-        "url": "https://rss.arxiv.org/rss/cs.LG"
-      },
-      {
         "name": "Hacker News AI",
         "optional": true,
         "purpose": "AI discussions from Hacker News",
-        "url": "https://hnrss.org/newest?q=AI+OR+LLM&points=30"
+        "url": "https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT+OR+Claude&points=30"
       }
     ]
   }

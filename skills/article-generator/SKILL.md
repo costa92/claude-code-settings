@@ -225,13 +225,13 @@ Replace existing ASCII art code blocks (box-drawing characters) with AI-generate
 - YAML frontmatter required on every article, **必须包含 `description` 字段**（120 字以内摘要）
 - Obsidian callouts for key information
 - Single reference section at end, **参考资料区是纯文字列表，禁止放置图片**
-- **参考资料每条必须包含可访问的完整 URL**（格式 `**名称**: https://url`），无 URL 的条目必须删除或补全
+- **参考资料每条必须包含可访问的完整 URL**（格式 `[**名称**](https://url)`），无 URL 的条目必须删除或补全
 - No redundant sections: 避免"互动环节""写在最后""下期预告"
 - **同一章节内不放两张功能相同的配图**（如同一流程图的两个版本）
 
 ### Code & Links
 - Code must be runnable with type annotations and error handling
-- Explicit links: `**Name**: https://url` — NEVER `[[double brackets]]`
+- Explicit links: `[**Name**](https://url)` — NEVER `[[double brackets]]` or plain-text `**Name**: url`
 - Verify all links return HTTP 200
 - Technical comparisons use parameter tables (cost, latency, memory)
 - **微信平台：外部链接改为搜索指引**（如「搜索 关键词」），微信公众号不支持外链跳转
