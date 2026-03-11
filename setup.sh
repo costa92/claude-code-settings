@@ -592,21 +592,39 @@ $f"
       fi
     fi
   fi
+
+  # --- markitdown (pptx skill, PPTX 文本提取) ---
+  if [[ -d "$CLAUDE_DIR/skills/pptx" ]]; then
+    echo ""
+    info "检测到 pptx skill，需要 markitdown"
+    if python3 -c "import markitdown" &>/dev/null; then
+      ok "markitdown 已安装"
+    else
+      read -rp "  是否安装 markitdown？[y/N] " answer
+      if [[ "$answer" =~ ^[Yy]$ ]]; then
+        python3 -m pip install markitdown --quiet && ok "markitdown 安装完成" || { warn "markitdown 安装失败"; }
+      else
+        info "跳过 markitdown 安装"
+      fi
+    fi
+  fi
 fi
 
 # =========================================================================
-# Step 7: 系统软件包（LibreOffice、Poppler）
+# Step 7: 系统软件包（LibreOffice、Poppler、Pandoc）
 # =========================================================================
 step "Step 7/9: 系统软件包"
 
 # Skills that need these: pptx, docx, pdf, xlsx
 NEED_SOFFICE=false
 NEED_POPPLER=false
+NEED_PANDOC=false
 for skill in pptx docx pdf xlsx; do
   [[ -d "$CLAUDE_DIR/skills/$skill" ]] && NEED_SOFFICE=true && NEED_POPPLER=true
 done
+[[ -d "$CLAUDE_DIR/skills/docx" ]] && NEED_PANDOC=true
 
-if [[ "$NEED_SOFFICE" == false ]] && [[ "$NEED_POPPLER" == false ]]; then
+if [[ "$NEED_SOFFICE" == false ]] && [[ "$NEED_POPPLER" == false ]] && [[ "$NEED_PANDOC" == false ]]; then
   info "无需系统软件包（相关 skill 未安装）"
 else
   # Helper: install a system package if missing
@@ -662,6 +680,26 @@ else
         echo "    brew install poppler"
       else
         echo "    sudo apt install poppler-utils"
+      fi
+    fi
+  fi
+
+  # Pandoc (docx skill 文本提取)
+  if [[ "$NEED_PANDOC" == true ]]; then
+    if command -v pandoc &>/dev/null; then
+      ok "Pandoc $(pandoc --version 2>/dev/null | head -1)"
+    else
+      warn "Pandoc 未安装 — docx skill 需要"
+      info "尝试自动安装 Pandoc..."
+      if _install_sys_pkg pandoc pandoc pandoc; then
+        ok "Pandoc 安装完成"
+      else
+        warn "Pandoc 自动安装失败"
+        if [[ "$OS" == "Darwin" ]]; then
+          echo "    brew install pandoc"
+        else
+          echo "    sudo apt install pandoc"
+        fi
       fi
     fi
   fi
@@ -750,9 +788,11 @@ info "检查清单:"
 [[ -d "$CACHE_DIR" ]] && ok "plugins/cache/ ($(ls "$CACHE_DIR" | wc -l | tr -d ' ') plugins)" || fail "plugins/cache/"
 command -v soffice &>/dev/null && ok "LibreOffice" || warn "LibreOffice 未安装（pptx/docx/pdf/xlsx skill 需要）"
 command -v pdftoppm &>/dev/null && ok "Poppler (pdftoppm)" || warn "Poppler 未安装（pptx/docx/pdf skill 需要）"
+if command -v pandoc &>/dev/null; then ok "Pandoc"; else if [[ "$OS" == "Darwin" ]]; then warn "Pandoc 未安装（docx skill 需要: brew install pandoc）"; else warn "Pandoc 未安装（docx skill 需要: sudo apt install pandoc）"; fi; fi
 command -v defuddle &>/dev/null && ok "defuddle" || warn "defuddle 未安装（defuddle skill 需要: npm install -g defuddle-cli）"
 npm list -g --depth=0 pptxgenjs 2>/dev/null | grep -q pptxgenjs && ok "pptxgenjs" || warn "pptxgenjs 未安装（pptx skill 需要: npm install -g pptxgenjs）"
 python3 -c "import playwright" &>/dev/null && ok "playwright (Python)" || warn "playwright 未安装（webapp-testing skill 需要）"
+python3 -c "import markitdown" &>/dev/null && ok "markitdown (Python)" || warn "markitdown 未安装（pptx skill 需要: pip install markitdown）"
 [[ -f "$CLAUDE_DIR/plugins/.sync-manifest.json" ]] && ok "plugin→skills 同步 ($(python3 -c "import json; d=json.load(open('$CLAUDE_DIR/plugins/.sync-manifest.json')); print(len(d.get('skills',{})))" 2>/dev/null || echo '?') skills)" || warn "plugin→skills 未同步"
 echo ""
 info "如果插件仍无法加载，请运行: claude plugin list"

@@ -1,6 +1,6 @@
 ---
 name: content-repurposer
-description: Repurpose a single article into multiple platform-specific formats. Converts a source article (Markdown) into WeChat short post, Xiaohongshu (小红书) post, Twitter/X thread, short video script, Newsletter excerpt, or Zhihu answer. Use when the user wants to maximize content ROI by distributing one piece across platforms. Triggers on requests like "一鱼多吃", "多平台分发", "转成小红书", "repurpose", "convert to thread".
+description: 将一篇文章转化为小红书、Twitter thread、短视频脚本、知乎等多平台格式。当用户说「一鱼多吃」「多平台分发」「转成小红书」时使用。
 ---
 
 # Content Repurposer

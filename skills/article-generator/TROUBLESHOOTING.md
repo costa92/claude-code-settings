@@ -101,7 +101,7 @@ env | grep GEMINI_API_KEY
 期望输出：
 
 ```
-GEMINI_API_KEY=AIzaSyBUMY8bn1wxtHieDwWqAiM7wc356cJ9GD0
+GEMINI_API_KEY=AIzaSy...YOUR_KEY_HERE
 ```
 
 #### 2. 验证文件路径
@@ -321,10 +321,10 @@ NameError: name 'args' is not defined
 
 `generate_and_upload_parallel()` 函数内部使用了 `args.keep_files`（全局 argparse 变量），但该函数作为独立函数不应依赖全局变量。
 
-**Bug 位置：**
-- 函数签名（约第 885 行）：缺少 `keep_files` 参数
-- 函数内部（约第 1122 行）：引用 `args.keep_files` 而非本地参数
-- 调用处（约第 1655 行）：未传递 `keep_files` 参数
+**Bug 位置（已修复，以下行号仅供参考）：**
+- 函数签名：缺少 `keep_files` 参数
+- 函数内部：引用 `args.keep_files` 而非本地参数
+- 调用处：未传递 `keep_files` 参数
 
 ---
 

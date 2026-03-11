@@ -1,6 +1,6 @@
 ---
 name: revealjs
-description: Create polished, professional reveal.js presentations. Use when the user asks to create slides, a presentation, a deck, or a slideshow. Supports themes, multi-column layouts, callout boxes, code highlighting, animations, speaker notes, and custom styling. Generates HTML + CSS with no build step required.
+description: Generate reveal.js HTML presentations with themes, layouts, charts, and animations. Use when the user asks for slides, a slideshow, or an HTML deck.
 ---
 
 # Reveal.js Presentations

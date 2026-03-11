@@ -1,6 +1,6 @@
 ---
 name: content-planner
-description: Plan content topics, manage editorial calendar, and build a content pipeline for WeChat Official Account and other platforms. Use when the user wants to plan content strategy, brainstorm topics, organize publishing schedule, or track content pipeline. Triggers on "选题", "内容规划", "内容日历", "发布计划", "content plan", "editorial calendar", "选题库", "内容排期".
+description: 规划公众号选题、管理内容日历和排期。当用户说「选题」「内容规划」「发布计划」「editorial calendar」时使用。
 ---
 
 # Content Planner
@@ -19,7 +19,7 @@ description: Plan content topics, manage editorial calendar, and build a content
 
 | 来源 | 方法 | 工具 |
 |------|------|------|
-| 热点追踪 | 监控 AI/技术领域热点事件 | WebSearch, ai-daily skill |
+| 热点追踪 | 监控 AI/技术领域热点事件 | WebSearch, news-daily skill |
 | 读者痛点 | 从评论区/社群提炼高频问题 | 用户提供 |
 | 竞品分析 | 分析同类公众号的爆款选题 | WebFetch 抓取 |
 | 个人经验 | 复盘自己的开发/使用经验 | 用户提供 |
@@ -194,7 +194,7 @@ description: Plan content topics, manage editorial calendar, and build a content
 
 5. 可选：配合其他 skill
    → article-generator: 展开选题并撰写文章
-   → content-reviewer: 审核文章质量（6 维评分）
+   → content-reviewer: 审核文章质量（7 维评分）
    → wechat-seo-optimizer: 优化标题和摘要
    → wechat-article-converter: 转换为微信格式并上传草稿箱
    → content-repurposer: 多平台分发（小红书、Twitter、知乎等）

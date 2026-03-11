@@ -1,6 +1,6 @@
 ---
 name: wechat-article-converter
-description: Convert Markdown articles to WeChat Official Account compatible HTML. Supports 7 Python themes + 9 Go backend themes, batch conversion, preview server, draft box upload, AI image generation, writing assistant with creator styles, and AI trace removal (humanizer). Use when user wants to convert markdown to WeChat format, write articles, remove AI traces, generate images for WeChat, or publish to WeChat Official Account.
+description: 转换 Markdown 为微信公众号 HTML，支持 16 种主题、草稿上传、AI 配图、写作助手和去痕。当用户说「转微信格式」「上传草稿」「去 AI 痕迹」时使用。
 ---
 
 > **Trigger Behavior**: When user wants to convert a Markdown article to WeChat format, ALWAYS use AskUserQuestion with smart priority mode - (1) show 3 recommended themes (Coffee/Tech/Warm) + "view more" option; (2) if "view more" selected, show 3 MD2 themes + "back to recommended" option; (3) if "back" selected, show 3 recommended themes + Simple theme. After conversion completes successfully, AUTOMATICALLY start the preview server by running: python3 ${SKILL_DIR}/scripts/preview_server.py
@@ -422,6 +422,9 @@ bash ${SKILL_DIR}/scripts/md2wechat_backend.sh config show
 - [wechat_article_guide.md](references/wechat_article_guide.md) - 微信与技术博客对比
 - [theme_code_highlighting.md](references/theme_code_highlighting.md) - 主题代码高亮配置
 
+### 通用参考文档
+- [troubleshooting.md](references/troubleshooting.md) - Python 引擎和 Go 后端故障排查
+
 ### Go 后端参考文档
 - [md2wechat_themes.md](references/md2wechat_themes.md) - AI/API 主题风格指南
 - [wechat_api.md](references/wechat_api.md) - 微信公众号 API 参考
@@ -434,41 +437,9 @@ bash ${SKILL_DIR}/scripts/md2wechat_backend.sh config show
 
 ## 故障排查
 
-### Python 引擎
+Python 引擎和 Go 后端的常见问题解决方案（图片不显示、样式丢失、IP 白名单、配置错误等）。
 
-**图片在微信编辑器中不显示**
-- 确保图片使用外链 URL（CDN），以 `https://` 开头
-- 避免使用相对路径 `./images/`
-
-**样式在微信编辑器中丢失**
-- 微信编辑器会过滤部分 CSS
-- 使用内联样式代替 class
-- 避免使用 `position: absolute`、`float` 等
-
-**代码块格式错乱**
-- 使用 `<pre><code>` 包裹，设置 `white-space: pre-wrap`
-
-### Go 后端
-
-**"command not found" 或下载失败**
-- `md2wechat_backend.sh` 首次运行会自动下载二进制
-- 确保有 `curl` 或 `wget`
-- 网络问题可手动下载：https://github.com/geekjourneyx/md2wechat-skill/releases
-
-**"IP not in whitelist" 错误（errcode=40164）**
-- `upload_draft.py` 会自动检测此错误并**立即终止**（不会重试所有图片）
-- 错误信息会直接显示当前 IP 和解决方法
-- 手动检查公网 IP：`curl --noproxy '*' ifconfig.me`
-- 在微信开发者平台添加 IP 白名单：mp.weixin.qq.com → 设置与开发 → 基本配置
-- 注意：通过代理时，Go 后端的出口 IP 可能与 `curl ifconfig.me` 不同，以错误信息中显示的 IP 为准
-
-**"AppID not configured" 错误**
-- 设置环境变量 `WECHAT_APPID` 和 `WECHAT_SECRET`
-- 或运行 `bash ${SKILL_DIR}/scripts/md2wechat_backend.sh config init`
-
-**AI 图片生成失败**
-- 检查 `IMAGE_API_KEY` 是否已设置
-- 检查 `IMAGE_API_BASE` 是否正确
+详见 [troubleshooting.md](references/troubleshooting.md)
 
 ---
 

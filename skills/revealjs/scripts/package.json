@@ -1,0 +1,15 @@
+{
+  "name": "revealjs-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Helper scripts for reveal.js presentation skill",
+  "scripts": {
+    "check-charts": "node check-charts.js",
+    "check-overflow": "node check-overflow.js",
+    "create": "node create-presentation.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "puppeteer": "^24.0.0"
+  }
+}

@@ -1,6 +1,6 @@
 ---
 name: content-remixer
-description: Deconstruct viral articles into reusable creative building blocks, let users pick blocks, and assemble new content via article-generator. Use when user says "拆解爆款", "创意积木", "remix 文章", "学习爆款写法", or provides a URL asking to learn from its writing style.
+description: 拆解爆款文章为可复用创意积木，挑选后组装新内容。当用户说「拆解爆款」「创意积木」「remix」「学习爆款写法」时使用。
 ---
 
 # Content Remixer

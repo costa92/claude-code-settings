@@ -1,6 +1,6 @@
 ---
 name: wechat-seo-optimizer
-description: Optimize WeChat article titles, abstracts, and keywords for maximum reach. Provides title A/B testing suggestions, keyword density analysis, abstract optimization, and cover image recommendations. Use when the user wants to improve article click-through rate, optimize titles, or analyze keyword strategy. Triggers on "标题优化", "SEO", "取标题", "提高阅读量", "title optimization", "optimize headline".
+description: 优化微信公众号标题、摘要和关键词，提升打开率。当用户说「标题优化」「取标题」「提高阅读量」「SEO」时使用。
 ---
 
 # WeChat SEO Optimizer

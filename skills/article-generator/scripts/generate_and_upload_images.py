@@ -53,7 +53,7 @@ PICGO_CMD = "picgo"
 # 全局验证标记（延迟验证）
 _github_token_validated = False
 
-# Gemini API 定价（基于 2024 年定价）
+# Gemini API 定价（基于 2025-2026 年定价，仅用于 --dry-run 成本估算）
 # 参考: https://ai.google.dev/pricing
 GEMINI_PRICING = {
     "gemini-3-pro-image-preview": {
@@ -1472,8 +1472,20 @@ def main():
     parser.add_argument("--check", action="store_true", help="检查依赖")
     parser.add_argument("--dry-run", action="store_true",
                        help="预览模式：显示成本和时间估算，不实际生成图片")
-    parser.add_argument("--model", default="gemini-3-pro-image-preview",
-                       choices=["gemini-3-pro-image-preview", "gemini-2.5-flash-image"],
+    # 从 env.json 读取默认模型（与 nanobanana.py 保持一致）
+    _default_model = "gemini-3-pro-image-preview"
+    try:
+        import json as _json
+        _env_path = os.path.expanduser("~/.claude/env.json")
+        if os.path.exists(_env_path):
+            with open(_env_path) as _f:
+                _env = _json.load(_f)
+                _default_model = _env.get("gemini_image_model", _default_model)
+    except Exception:
+        pass
+
+    parser.add_argument("--model", default=_default_model,
+                       choices=["gemini-3-pro-image-preview", "gemini-2.5-flash-image", "gemini-3.1-flash-image-preview"],
                        help="使用的 Gemini 模型")
     parser.add_argument("--parallel", action="store_true",
                        help="启用并行生成模式（提升速度，但可能触发API限流）")

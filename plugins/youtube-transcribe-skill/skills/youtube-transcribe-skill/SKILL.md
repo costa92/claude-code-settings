@@ -48,6 +48,8 @@ Use command-line tools to quickly extract subtitles.
 
 ## Step 3: Browser Automation (Fallback)
 
+> **Note**: `chrome-devtools-mcp` is an optional dependency. The primary extraction method is `yt-dlp` (Step 2). This browser fallback is only needed when `yt-dlp` is unavailable or fails. Most users will never reach this step.
+
 When the CLI method fails or `yt-dlp` is missing, use browser UI automation to extract subtitles.
 
 1. **Check Tool Availability**:

@@ -1,6 +1,6 @@
 ---
 name: article-generator
-description: Generate technical blog articles with authentic, non-AI style. Outputs Markdown format with YAML frontmatter, Obsidian callouts, code examples, and CDN images. Avoids marketing fluff and fake engagement. Supports image generation via Gemini API and automatic upload to PicGo image hosting.
+description: 生成技术博客文章（Markdown/Obsidian 格式），含 Gemini 配图和 CDN 上传。当用户要写文章、写教程、写技术博客时使用。
 ---
 
 # Article Generator
@@ -35,10 +35,12 @@ description: Generate technical blog articles with authentic, non-AI style. Outp
    - 上传 CDN，替换文章中的 Mermaid 代码块为 `![描述](CDN_URL)`
    - **禁止在最终文章中保留 Mermaid 代码块**（微信等平台不支持渲染）
 7. **[ ] Image auto-process** — 文章保存后**立即自动执行**图片生成流程（不得留给用户手动处理）：
-   - **截图**（shot-scraper）：不依赖 Gemini，始终执行，`--process-file` 会自动处理 `<!-- SCREENSHOT -->` 标签
-   - **AI 图**：Gemini 探针测试（见下方降级链），探针成功则立即执行 `--process-file` 替换所有 `<!-- IMAGE -->` 占位符
+   - **批量处理脚本**：`generate_and_upload_images.py`（支持 `--process-file`），**不是** `nanobanana.py`（仅支持单张生成）
+   - **截图**（shot-scraper）：不依赖 Gemini，始终执行，`generate_and_upload_images.py --process-file` 会自动处理 `<!-- SCREENSHOT -->` 标签
+   - **AI 图**：Gemini 探针测试（见下方降级链），探针成功则立即执行 `generate_and_upload_images.py --process-file` 替换所有 `<!-- IMAGE -->` 占位符
    - **降级链**：默认模型 → flash 模型 → 两者都失败时才保留占位符
-   - **关键**：探针成功后必须在同一 session 内执行 `--process-file`，不得只记录命令让用户后续手动执行
+   - **关键**：探针成功后必须在同一 session 内执行 `generate_and_upload_images.py --process-file`，不得只记录命令让用户后续手动执行
+   - **注意**：若不用 `generate_and_upload_images.py` 而是用 `nanobanana.py` 逐张生成，需先 `mkdir -p` 创建输出目录（`nanobanana.py` 不会自动创建目录）
 8. **[ ] Verify image replacement** — 检查文章中是否还有残留的 `<!-- IMAGE:` 占位符：
    - 无残留 → 完成
    - 有残留（Gemini 完全不可用）→ 在完成汇总中列出数量和可执行命令
@@ -91,22 +93,39 @@ cd /tmp && uv init --name test && uv add requests && uv run python -c "import re
 ```
 
 **2. Gemini 探针测试 + 模型降级链**
+
+> **重要**：探针用 `nanobanana.py`（单张生成），批量处理用 `generate_and_upload_images.py`（支持 `--process-file`）。两个是不同脚本，不要混淆。
+
 ```bash
-# 步骤 1：用默认模型（pro）探针
+# 步骤 1：用默认模型（pro）探针（nanobanana.py 仅用于探针）
 python3 ${SKILL_DIR}/scripts/nanobanana.py \
   --prompt "test" --size 1024x1024 --output /tmp/gemini_probe.jpg
-# 成功 → 用默认模型继续 --process-file
+# 成功 → 用 generate_and_upload_images.py --process-file 批量生成
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+  --process-file /absolute/path/to/article.md
 
-# 步骤 2：pro 失败（503/429）→ 降级到 flash
+# 步骤 2：pro 失败（503/429）→ 降级到 flash 探针
 python3 ${SKILL_DIR}/scripts/nanobanana.py \
   --prompt "test" --size 1024x1024 --output /tmp/gemini_probe.jpg \
   --model gemini-2.5-flash-image
-# 成功 → 用 flash 模型继续 --process-file --model gemini-2.5-flash-image
+# 成功 → 用 flash 模型继续批量生成
+python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+  --process-file /absolute/path/to/article.md --model gemini-2.5-flash-image
 
 # 步骤 3：flash 也失败（503/429/No data received）→ 跳过 AI 图片，保留占位符
 ```
 
-**模型降级链**：`env.json:gemini_image_model`（默认，质量最高）→ `gemini-2.5-flash-image`（速度快，可用性高）→ 保留占位符
+**备选方案：用 nanobanana.py 逐张生成**（当 generate_and_upload_images.py 不可用时）：
+```bash
+# 必须先创建输出目录（nanobanana.py 不会自动创建）
+mkdir -p /path/to/images/
+# 逐张生成，每张指定 --prompt 和 --output
+python3 ${SKILL_DIR}/scripts/nanobanana.py \
+  --prompt "your prompt" --size 1344x768 --output /path/to/images/cover.jpg
+# 生成后需手动上传 CDN 并替换文章中的占位符
+```
+
+**模型降级链**：`env.json:gemini_image_model`（默认，质量最高）→ `gemini-3.1-flash-image-preview`（中间降级）→ `gemini-2.5-flash-image`（速度快，可用性高）→ 保留占位符
 
 **3. 截图与 AI 图解耦**
 - 截图（shot-scraper）不依赖 Gemini API，始终可执行
@@ -174,7 +193,7 @@ Phase B: 写作（先文章后图片）
   4. Content Generation → Write tool 保存文件
   5. SCREENSHOT placeholders（引用外部内容时必须）
   6. Mermaid → image（流程图/架构图渲染为 PNG，禁止保留代码块）
-  7. Image auto-process（探针成功 → 立即 --process-file，截图始终执行）
+  7. Image auto-process（探针用 nanobanana.py → 批量用 generate_and_upload_images.py --process-file，截图始终执行）
   8. Verify image replacement（检查残留占位符，仅 Gemini 完全不可用时才保留）
 
 Phase C: 写作后（按场景裁剪）

@@ -1,7 +1,6 @@
 ---
 name: brand-guidelines
-description: Applies Anthropic's official brand colors and typography to any sort of artifact that may benefit from having Anthropic's look-and-feel. Use it when brand colors or style guidelines, visual formatting, or company design standards apply.
-license: Complete terms in LICENSE.txt
+description: Apply Anthropic brand colors (orange/blue/green) and typography (Poppins/Lora) to artifacts. Use when styling needs brand consistency or company design standards.
 ---
 
 # Anthropic Brand Styling

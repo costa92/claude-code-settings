@@ -106,7 +106,7 @@ For each major section:
 5. **Create comparison table**
 6. **Update references**
 
-**Progress tracking:** Use TodoWrite for each section
+**Progress tracking:** Use TaskCreate for each section
 
 ## Phase 5: Tables and Figures
 

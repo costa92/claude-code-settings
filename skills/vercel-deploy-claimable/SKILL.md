@@ -1,9 +1,6 @@
 ---
 name: vercel-deploy-claimable
-description: Deploy applications and websites to Vercel. Use this skill when the user requests deployment actions such as "Deploy my app", "Deploy this to production", "Create a preview deployment", "Deploy and give me the link", or "Push this live". No authentication required - returns preview URL and claimable deployment link.
-metadata:
-  author: vercel
-  version: "1.0.0"
+description: Deploy apps to Vercel without auth, returning preview URL and claimable link. Use when user says "deploy", "push live", or "give me the link".
 ---
 
 # Vercel Deploy
@@ -20,7 +17,7 @@ Deploy any project to Vercel instantly. No authentication required.
 ## Usage
 
 ```bash
-bash /mnt/skills/user/vercel-deploy/scripts/deploy.sh [path]
+bash ${SKILL_DIR}/scripts/deploy.sh [path]
 ```
 
 **Arguments:**
@@ -30,13 +27,13 @@ bash /mnt/skills/user/vercel-deploy/scripts/deploy.sh [path]
 
 ```bash
 # Deploy current directory
-bash /mnt/skills/user/vercel-deploy/scripts/deploy.sh
+bash ${SKILL_DIR}/scripts/deploy.sh
 
 # Deploy specific project
-bash /mnt/skills/user/vercel-deploy/scripts/deploy.sh /path/to/project
+bash ${SKILL_DIR}/scripts/deploy.sh /path/to/project
 
 # Deploy existing tarball
-bash /mnt/skills/user/vercel-deploy/scripts/deploy.sh /path/to/project.tgz
+bash ${SKILL_DIR}/scripts/deploy.sh /path/to/project.tgz
 ```
 
 ## Output

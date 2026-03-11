@@ -70,8 +70,9 @@
    ├─ 重要：使用 Shell(command="realpath filename.md") 获取绝对路径
    ├─ 创建 images/ 目录：mkdir -p images
    ├─ Gemini 探针测试（降级链：默认模型 → flash → 跳过）
-   ├─ 探针成功 → 立即执行 --process-file（同一 session 内完成，不得留给用户手动处理）
+   ├─ 探针成功 → 立即执行 generate_and_upload_images.py --process-file（同一 session 内完成，不得留给用户手动处理）
    ├─ 示例：python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py --process-file /absolute/path/to/article.md
+   ├─ 备选：用 nanobanana.py 逐张生成（需先 mkdir -p 创建输出目录，生成后手动上传 CDN 并替换占位符）
    ├─ 截图（shot-scraper）始终执行，不依赖 Gemini
    ├─ 上传所有图片到 PicGo/CDN
    ├─ 使用 CDN URLs 更新文章文件
@@ -87,7 +88,7 @@
 ### 执行要求
 
 - **步骤 4（保存到文件）是不可协商的** - 你必须调用 Write 工具
-- **步骤 5（图片自动处理）必须在同一 session 内执行** — 探针成功后立即 --process-file，不得只记录命令
+- **步骤 5（图片自动处理）必须在同一 session 内执行** — 探针成功后立即用 `generate_and_upload_images.py --process-file` 批量处理，或用 `nanobanana.py` 逐张生成（注意：`nanobanana.py` 不支持 `--process-file`）
 - **如果你只显示内容而不保存文件，任务就是不完整的**
 
 ---
@@ -982,7 +983,6 @@ AskQuestion({
 ```bash
 python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
   --config images_config.json \
-  --output-dir ./images \
   --resolution 2K
 ```
 

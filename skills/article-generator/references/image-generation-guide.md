@@ -109,7 +109,7 @@ python3 ${SKILL_DIR}/scripts/nanobanana.py \
 # 3. flash 也失败（503/429/No data received）→ 跳过 AI 图片，保留占位符
 ```
 
-**降级链**：`gemini-3-pro-image-preview`（默认）→ `gemini-2.5-flash-image`（降级）→ 保留占位符
+**降级链**：`gemini-3-pro-image-preview`（默认）→ `gemini-3.1-flash-image-preview`（中间降级）→ `gemini-2.5-flash-image`（最终降级）→ 保留占位符
 
 **降级后的 --process-file 命令**：
 ```bash
@@ -240,17 +240,16 @@ Optional parameters:
 
 ## Screenshot Execution (Independent of Gemini)
 
-截图使用 `shot-scraper` 直接执行，**不依赖 Gemini API**，不经过 `generate_and_upload_images.py`。
+截图使用 `shot-scraper` 直接执行，**不依赖 Gemini API**。
+
+> **注意**：`generate_and_upload_images.py --process-file` 会自动处理文章中的 `<!-- SCREENSHOT -->` 标签（调用 shot-scraper）。如果你使用 `--process-file` 批量处理，截图会自动完成，无需手动执行。以下手动方式仅用于单独截图场景：
 
 ```bash
-# 单张截图
+# 手动单张截图（不使用 --process-file 时）
 shot-scraper https://example.com -o /tmp/screenshot.jpg --wait 3000
 
 # 截图后上传到 CDN
 picgo upload /tmp/screenshot.jpg
-
-# 注意：generate_and_upload_images.py 没有 --screenshots-only 标志
-# 截图必须用 shot-scraper 直接执行
 ```
 
 **执行顺序**：先跑截图（始终可用）→ 再跑 AI 图（可能不可用）→ 分别上传 CDN

@@ -14,3 +14,6 @@ shot-scraper>=1.0
 
 # GitHub Token 验证（可选）
 requests>=2.31.0
+
+# S3 上传（可选）
+boto3>=1.26.0  # optional: S3 upload support

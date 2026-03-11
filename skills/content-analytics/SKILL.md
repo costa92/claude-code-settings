@@ -1,6 +1,6 @@
 ---
 name: content-analytics
-description: Analyze WeChat Official Account article performance data from exported CSV/Excel files. Provides insights on reading trends, completion rate, sharing patterns, follower growth, and content strategy recommendations. Use when the user wants to analyze article performance, understand audience behavior, or make data-driven content decisions. Triggers on "数据分析", "文章数据", "阅读量分析", "粉丝分析", "content analytics", "article performance", "公众号数据".
+description: 分析微信公众号文章数据（CSV/Excel），输出阅读趋势、互动率、增长归因和策略建议。当用户说「数据分析」「文章数据」「粉丝分析」时使用。
 ---
 
 # Content Analytics

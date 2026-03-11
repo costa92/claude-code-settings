@@ -1,6 +1,6 @@
 ---
 name: news-daily
-description: 获取 AI 行业新闻（产品发布、论文、融资、政策），来源涵盖 smol.ai、OpenAI、DeepMind、MIT Tech Review、TechCrunch、Import AI、TLDR AI、量子位、Hacker News，Claude 智能分类摘要输出中文 Markdown。可选生成 HTML 网页与分享卡片图。无需额外 API key。用户询问 AI 新闻、每日资讯、news-daily 时触发。
+description: 抓取 AI 行业 RSS 新闻（smol.ai、HN、量子位等 11 源）并生成中文分类摘要，可选输出海报/网页。当用户提到 AI 新闻、每日资讯、news-daily 时触发。
 ---
 
 # News Daily — AI 行业新闻

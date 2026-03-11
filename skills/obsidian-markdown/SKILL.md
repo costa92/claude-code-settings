@@ -1,6 +1,6 @@
 ---
 name: obsidian-markdown
-description: Create and edit Obsidian Flavored Markdown with wikilinks, embeds, callouts, properties, and other Obsidian-specific syntax. Use when working with .md files in Obsidian, or when the user mentions wikilinks, callouts, frontmatter, tags, embeds, or Obsidian notes.
+description: Create and edit Obsidian Flavored Markdown — wikilinks, embeds, callouts, frontmatter, tags. Use when writing or editing .md files for Obsidian.
 ---
 
 # Obsidian Flavored Markdown Skill
@@ -120,125 +120,13 @@ Note: Spaces must be URL-encoded as `%20` in Markdown links.
 
 ## Embeds
 
-### Embed Notes
-
-```markdown
-![[Note Name]]
-![[Note Name#Heading]]
-![[Note Name#^block-id]]
-```
-
-### Embed Images
-
-```markdown
-![[image.png]]
-![[image.png|640x480]]    Width x Height
-![[image.png|300]]        Width only (maintains aspect ratio)
-```
-
-### External Images
-
-```markdown
-![Alt text](https://example.com/image.png)
-![Alt text|300](https://example.com/image.png)
-```
-
-### Embed Audio
-
-```markdown
-![[audio.mp3]]
-![[audio.ogg]]
-```
-
-### Embed PDF
-
-```markdown
-![[document.pdf]]
-![[document.pdf#page=3]]
-![[document.pdf#height=400]]
-```
-
-### Embed Lists
-
-```markdown
-![[Note#^list-id]]
-```
-
-Where the list has been defined with a block ID:
-```markdown
-- Item 1
-- Item 2
-- Item 3
-
-^list-id
-```
-
-### Embed Search Results
-
-````markdown
-```query
-tag:#project status:done
-```
-````
+Use `![[...]]` to embed notes, images, audio, PDFs, and search results inline. Supports size parameters (e.g. `![[image.png|300]]`) and section targeting (e.g. `![[Note#Heading]]`).
+详见 [embeds-reference.md](references/embeds-reference.md)
 
 ## Callouts
 
-### Basic Callout
-
-```markdown
-> [!note]
-> This is a note callout.
-
-> [!info] Custom Title
-> This callout has a custom title.
-
-> [!tip] Title Only
-```
-
-### Foldable Callouts
-
-```markdown
-> [!faq]- Collapsed by default
-> This content is hidden until expanded.
-
-> [!faq]+ Expanded by default
-> This content is visible but can be collapsed.
-```
-
-### Nested Callouts
-
-```markdown
-> [!question] Outer callout
-> > [!note] Inner callout
-> > Nested content
-```
-
-### Supported Callout Types
-
-| Type | Aliases | Description |
-|------|---------|-------------|
-| `note` | - | Blue, pencil icon |
-| `abstract` | `summary`, `tldr` | Teal, clipboard icon |
-| `info` | - | Blue, info icon |
-| `todo` | - | Blue, checkbox icon |
-| `tip` | `hint`, `important` | Cyan, flame icon |
-| `success` | `check`, `done` | Green, checkmark icon |
-| `question` | `help`, `faq` | Yellow, question mark |
-| `warning` | `caution`, `attention` | Orange, warning icon |
-| `failure` | `fail`, `missing` | Red, X icon |
-| `danger` | `error` | Red, zap icon |
-| `bug` | - | Red, bug icon |
-| `example` | - | Purple, list icon |
-| `quote` | `cite` | Gray, quote icon |
-
-### Custom Callouts (CSS)
-
-```css
-.callout[data-callout="custom-type"] {
-  --callout-color: 255, 0, 0;
-  --callout-icon: lucide-alert-circle;
-}
-```
+Use `> [!type]` syntax for callouts. Supports 13 built-in types (note, tip, warning, etc.), foldable variants (`-`/`+`), nesting, and custom CSS types.
+详见 [callouts-reference.md](references/callouts-reference.md)
 
 ## Lists
 
@@ -358,106 +246,10 @@ Escape pipes with backslash:
 | [[Link\|Display]] | ![[Image\|100]] |
 ```
 
-## Math (LaTeX)
+## Advanced Syntax
 
-### Inline Math
-
-```markdown
-This is inline math: $e^{i\pi} + 1 = 0$
-```
-
-### Block Math
-
-```markdown
-$$
-\begin{vmatrix}
-a & b \\
-c & d
-\end{vmatrix} = ad - bc
-$$
-```
-
-### Common Math Syntax
-
-```markdown
-$x^2$              Superscript
-$x_i$              Subscript
-$\frac{a}{b}$      Fraction
-$\sqrt{x}$         Square root
-$\sum_{i=1}^{n}$   Summation
-$\int_a^b$         Integral
-$\alpha, \beta$    Greek letters
-```
-
-## Diagrams (Mermaid)
-
-````markdown
-```mermaid
-graph TD
-    A[Start] --> B{Decision}
-    B -->|Yes| C[Do this]
-    B -->|No| D[Do that]
-    C --> E[End]
-    D --> E
-```
-````
-
-### Sequence Diagrams
-
-````markdown
-```mermaid
-sequenceDiagram
-    Alice->>Bob: Hello Bob
-    Bob-->>Alice: Hi Alice
-```
-````
-
-### Linking in Diagrams
-
-````markdown
-```mermaid
-graph TD
-    A[Biology]
-    B[Chemistry]
-    A --> B
-    class A,B internal-link;
-```
-````
-
-## Footnotes
-
-```markdown
-This sentence has a footnote[^1].
-
-[^1]: This is the footnote content.
-
-You can also use named footnotes[^note].
-
-[^note]: Named footnotes still appear as numbers.
-
-Inline footnotes are also supported.^[This is an inline footnote.]
-```
-
-## Comments
-
-```markdown
-This is visible %%but this is hidden%% text.
-
-%%
-This entire block is hidden.
-It won't appear in reading view.
-%%
-```
-
-## Horizontal Rules
-
-```markdown
----
-***
-___
-- - -
-* * *
-```
+Obsidian supports LaTeX math (`$...$` / `$$...$$`), Mermaid diagrams, footnotes, `%%comments%%`, horizontal rules, and inline HTML.
+详见 [advanced-syntax.md](references/advanced-syntax.md)
 
 ## Properties (Frontmatter)
 
@@ -522,23 +314,6 @@ Tags can contain:
 - Underscores `_`
 - Hyphens `-`
 - Forward slashes `/` (for nesting)
-
-## HTML Content
-
-Obsidian supports HTML within Markdown:
-
-```markdown
-<div class="custom-container">
-  <span style="color: red;">Colored text</span>
-</div>
-
-<details>
-  <summary>Click to expand</summary>
-  Hidden content here.
-</details>
-
-<kbd>Ctrl</kbd> + <kbd>C</kbd>
-```
 
 ## Complete Example
 

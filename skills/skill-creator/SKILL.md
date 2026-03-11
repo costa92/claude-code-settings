@@ -1,7 +1,6 @@
 ---
 name: skill-creator
-description: Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
-license: Complete terms in LICENSE.txt
+description: Create or update a Claude Code skill. Use when user says "create skill", "new skill", "build a skill", or wants to package/iterate on existing skills.
 ---
 
 # Skill Creator

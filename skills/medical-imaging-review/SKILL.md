@@ -1,16 +1,6 @@
 ---
 name: medical-imaging-review
-description: Write comprehensive literature reviews for medical imaging AI research. Use when writing survey papers, systematic reviews, or literature analyses on topics like segmentation, detection, classification in CT, MRI, X-ray imaging. Triggers on requests for "review paper", "survey", "literature review", "综述", or mentions of writing academic reviews on deep learning for medical imaging.
-allowed-tools:
-  - Read
-  - Write
-  - Edit
-  - Glob
-  - Grep
-  - Bash
-  - WebSearch
-  - WebFetch
-  - TodoWrite
+description: Write medical imaging AI literature reviews and survey papers. Use for systematic reviews on segmentation, detection, classification in CT/MRI/X-ray research.
 ---
 
 # Medical Imaging AI Literature Review Writing Skill
