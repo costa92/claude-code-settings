@@ -6,8 +6,8 @@
         "scope": "user",
         "installPath": "~/.claude/plugins/cache/n8n-mcp-skills/n8n-mcp-skills/1.1.0",
         "version": "1.1.0",
-        "installedAt": "2026-03-09T02:34:10.300Z",
-        "lastUpdated": "2026-03-09T02:34:10.300Z",
+        "installedAt": "2026-03-13T01:48:55.367Z",
+        "lastUpdated": "2026-03-13T01:48:55.367Z",
         "gitCommitSha": "d9c287202999481777868c4ce7441ced847350b3"
       }
     ],
@@ -34,10 +34,10 @@
     "superpowers@superpowers-marketplace": [
       {
         "scope": "user",
-        "installPath": "~/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1",
-        "version": "4.3.1",
+        "installPath": "~/.claude/plugins/superpowers",
+        "version": "5.0.2",
         "installedAt": "2026-03-09T02:34:17.055Z",
-        "lastUpdated": "2026-03-09T02:34:17.055Z",
+        "lastUpdated": "2026-03-13T02:09:08.000Z",
         "gitCommitSha": "e4a2375cb705ca5800f0833528ce36a3faf9017a"
       }
     ],
