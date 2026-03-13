@@ -1,0 +1,14 @@
+# .plan/project.yaml — 项目元信息与运行时状态
+# 由 dev-framework 自动生成和维护
+
+name: ""                    # 项目名称（从目录名或用户输入推断）
+language: ""                # 检测到的主语言（go/python/typescript）
+framework: ""               # 检测到的框架（gin/fastapi/nextjs 等，可为空）
+mode: "full"                # 运行模式：full（完整流程）/ quick（快速模式）
+current_phase: "triage"     # 当前阶段：triage/requirements/design/coding/review/testing/done
+current_agent: "triage"     # 当前活跃 Agent
+history: []                 # Handoff 历史记录
+#   - from: triage
+#     to: pm
+#     timestamp: 2026-01-01T00:00:00
+#     approved: false       # 仅 architect→developer 转交需要
