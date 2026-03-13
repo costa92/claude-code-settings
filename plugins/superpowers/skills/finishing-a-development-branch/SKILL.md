@@ -24,11 +24,6 @@ Guide completion of development work by presenting clear options and handling ch
 npm test / cargo test / pytest / go test ./...
 ```
 
-**If no automated test suite exists:**
-- Perform comprehensive **manual verification** of all changes.
-- Document the verification steps taken in your session.
-- If the project has a `GEMINI.md` or `CLAUDE.md`, check for specific manual testing instructions.
-
 **If tests fail:**
 ```
 Tests failing (<N> failures). Must fix before completing:
