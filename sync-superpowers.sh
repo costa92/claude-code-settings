@@ -19,7 +19,7 @@ elif [[ -d "$PLUGINS_CACHE/superpowers-marketplace/superpowers" ]]; then
 fi
 
 if [[ -z "${PLUGIN_ROOT:-}" || ! -d "${PLUGIN_ROOT:-}" ]]; then
-    fail "找不到 superpowers 插件目录"
+    fail "找不到 superpowers 插件 directory"
     exit 1
 fi
 
@@ -35,7 +35,6 @@ if ! curl -sL "$UPSTREAM_ZIP" -o "$TMP_DIR/main.zip"; then
 fi
 
 unzip -q "$TMP_DIR/main.zip" -d "$TMP_DIR"
-# Find the actual directory created by unzip (usually the only directory there)
 SRC_DIR=$(find "$TMP_DIR" -maxdepth 1 -type d -not -path "$TMP_DIR" | head -n 1)
 
 if [[ -z "$SRC_DIR" || ! -d "$SRC_DIR" ]]; then
@@ -43,9 +42,12 @@ if [[ -z "$SRC_DIR" || ! -d "$SRC_DIR" ]]; then
     exit 1
 fi
 
-total_updated=0
-total_unchanged=0
-total_new=0
+# Use temp files for counting to avoid subshell scope issues
+CNT_NEW=$(mktemp)
+CNT_UPD=$(mktemp)
+CNT_OK=$(mktemp)
+echo 0 > "$CNT_NEW"; echo 0 > "$CNT_UPD"; echo 0 > "$CNT_OK"
+trap "rm -rf '$TMP_DIR' '$CNT_NEW' '$CNT_UPD' '$CNT_OK'" EXIT
 
 sync_dir() {
     local sub_dir="$1"
@@ -55,7 +57,7 @@ sync_dir() {
     [[ ! -d "$src" ]] && return 0
     mkdir -p "$dest"
 
-    while read -r src_file; do
+    find "$src" -type f | while read -r src_file; do
         local rel_path="${src_file#$src/}"
         local dest_file="$dest/$rel_path"
         
@@ -64,21 +66,20 @@ sync_dir() {
             if [[ "$CHECK_ONLY" == false ]]; then
                 mkdir -p "$(dirname "$dest_file")"
                 cp "$src_file" "$dest_file"
-                # Keep executable bit for hooks
                 [[ "$sub_dir" == "hooks" ]] && [[ "$rel_path" != *.json ]] && chmod +x "$dest_file"
             fi
-            total_new=$((total_new + 1))
+            echo $(( $(cat "$CNT_NEW") + 1 )) > "$CNT_NEW"
         elif ! diff -q "$src_file" "$dest_file" >/dev/null 2>&1; then
             echo "  [UPDATE]  $sub_dir/$rel_path"
             if [[ "$CHECK_ONLY" == false ]]; then
                 cp "$src_file" "$dest_file"
                 [[ "$sub_dir" == "hooks" ]] && [[ "$rel_path" != *.json ]] && chmod +x "$dest_file"
             fi
-            total_updated=$((total_updated + 1))
+            echo $(( $(cat "$CNT_UPD") + 1 )) > "$CNT_UPD"
         else
-            total_unchanged=$((total_unchanged + 1))
+            echo $(( $(cat "$CNT_OK") + 1 )) > "$CNT_OK"
         fi
-    done < <(find "$src" -type f)
+    done
 }
 
 echo "=== 同步目录 ==="
@@ -116,8 +117,6 @@ if [[ -f "$INSTALLED_JSON" ]]; then
         echo "  [WARN]    版本不一致：json=$RECORDED_VERSION, 实际=$ACTUAL_VERSION"
         if [[ "$CHECK_ONLY" == false ]]; then
             NOW_UTC=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
-            # Use the actual PLUGIN_ROOT (resolved to absolute path, with ~ replaced by $HOME)
-            ABS_PLUGIN_ROOT="${PLUGIN_ROOT/#\~/$HOME}"
             jq --arg k "$PLUGIN_KEY" --arg ver "$ACTUAL_VERSION" --arg ts "$NOW_UTC" --arg path "$PLUGIN_ROOT" '
                 .plugins[$k][-1].version = $ver |
                 .plugins[$k][-1].installPath = $path |
@@ -141,6 +140,10 @@ else
         echo "  [FIXED]   已写入 SessionStart hook"
     fi
 fi
+
+total_new=$(cat "$CNT_NEW")
+total_updated=$(cat "$CNT_UPD")
+total_unchanged=$(cat "$CNT_OK")
 
 echo ""
 echo "════════════════════════════════"
