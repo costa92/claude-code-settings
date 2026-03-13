@@ -35,10 +35,11 @@ if ! curl -sL "$UPSTREAM_ZIP" -o "$TMP_DIR/main.zip"; then
 fi
 
 unzip -q "$TMP_DIR/main.zip" -d "$TMP_DIR"
-SRC_DIR="$TMP_DIR/superpowers-main"
+# Find the actual directory created by unzip (usually the only directory there)
+SRC_DIR=$(find "$TMP_DIR" -maxdepth 1 -type d -not -path "$TMP_DIR" | head -n 1)
 
-if [[ ! -d "$SRC_DIR" ]]; then
-    fail "解压失败或目录结构不符合预期"
+if [[ -z "$SRC_DIR" || ! -d "$SRC_DIR" ]]; then
+    fail "解压失败或未找到源目录"
     exit 1
 fi
 
