@@ -20,16 +20,17 @@ tools: Read, Write, WebSearch, WebFetch
 2. 基于模板（已在提示中提供）生成 PRD 文档
 3. 将 PRD 写入 `.plan/artifacts/prd.md`
 4. 输出护栏自检：PRD 必须包含「背景」「需求列表」「验收标准」三个必要部分
-5. 将以下 JSON 作为你的**最终输出**：
+5. 将以下格式作为你的**最终输出**（必须用 ---JSON--- 标记包裹）：
 
-```json
+---JSON---
 {
   "status": "done",
   "artifact": ".plan/artifacts/prd.md",
   "handoff_to": "architect",
-  "summary": "PRD 概要（一句话）"
+  "summary": "PRD 概要（一句话）",
+  "context_for_next": "下一个 Agent 必须了解的关键信息（如：核心需求重点、特殊约束、用户强调的优先级等）"
 }
-```
+---JSON---
 
 ## PRD 模板
 

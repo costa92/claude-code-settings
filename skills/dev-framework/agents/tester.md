@@ -29,17 +29,19 @@ tools: Read, Write, Edit, Bash, Glob, Grep
    - 编写集成测试（针对验收标准）
 4. 执行测试命令
 5. 生成测试报告，写入 `.plan/artifacts/test-report.md`
-6. 将以下 JSON 作为你的**最终输出**：
+   **重要**: test-report.md 文件**必须在输出 JSON 之前创建**。orchestrator 会验证该文件存在，文件缺失将阻止流程推进。
+6. 将以下格式作为你的**最终输出**（必须用 ---JSON--- 标记包裹）：
 
-```json
+---JSON---
 {
   "status": "done",
   "artifact": ".plan/artifacts/test-report.md",
   "conclusion": "PASS|FAIL",
   "handoff_to": "done|developer",
-  "summary": "测试概要"
+  "summary": "测试概要",
+  "context_for_next": "如 FAIL: Developer 必须修复的失败用例和复现方法；如 PASS: 覆盖率薄弱区域说明"
 }
-```
+---JSON---
 
 - `conclusion: PASS` → `handoff_to: done`（流程结束）
 - `conclusion: FAIL` → `handoff_to: developer`（退回修复）
@@ -51,6 +53,15 @@ tools: Read, Write, Edit, Bash, Glob, Grep
 ## 语言 Profile
 
 {由 SKILL.md 注入对应语言 Profile}
+
+## 覆盖率门槛
+
+测试执行后检查代码覆盖率：
+- 覆盖率 ≥ 70% → PASS（其他条件也满足时）
+- 覆盖率 < 70% → 在测试报告中标注为 **Warning**，但不自动 FAIL（除非有测试用例失败）
+- 覆盖率数据写入测试报告的「测试概要」表格
+
+注意：覆盖率阈值以语言 Profile 中的定义为准（如有）。
 
 ## 禁止
 

@@ -8,6 +8,16 @@
 
 {审查的文件列表和变更概要}
 
+## 编译与测试验证
+
+| 检查项 | 命令 | 结果 |
+|--------|------|------|
+| 编译/类型检查 | {go vet / tsc --noEmit / mypy} | PASS / FAIL |
+| 单元测试 | {go test / npm test / pytest} | PASS / FAIL（N passed, M failed） |
+| 竞态检测（如适用） | {go test -race} | PASS / FAIL |
+
+{如有失败，粘贴关键错误输出}
+
 ## 发现
 
 ### Critical（必须修复）

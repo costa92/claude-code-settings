@@ -5,7 +5,9 @@ description: 多 Agent 软件开发协作框架。多个专家 Agent 通过 Hand
 
 # Dev Framework
 
-多 Agent 软件开发协作框架，基于 OpenAI 多 Agent 设计哲学。
+多 Agent 软件开发协作框架。SKILL.md 是决策层，orchestrator.py 是状态层。
+
+**关键约束：SKILL.md 不可自行决定下一个 Agent，必须通过 orchestrator.py next 获取。所有状态变更通过 orchestrator.py 完成。**
 
 ## 触发词
 
@@ -15,134 +17,230 @@ description: 多 Agent 软件开发协作框架。多个专家 Agent 通过 Hand
 
 ### Phase 1: 初始化
 
-检查项目根目录下 `.plan/` 是否存在：
+检查 `.plan/` 是否存在：
 
 **不存在（首次运行）：**
 
-1. 创建目录结构：
+1. 检测项目语言（扫描 go.mod / pyproject.toml / package.json），均不存在则询问用户
+2. 运行:
+   ```bash
+   python3 ~/.claude/skills/dev-framework/orchestrator.py init \
+     --project-dir {PWD} --language {lang} --framework {fw}
    ```
-   .plan/
-   ├── project.yaml
-   ├── trace.log
-   ├── handoff/
-   └── artifacts/
-   ```
-2. 检测项目语言（按优先级扫描）：
-   - `go.mod` → language: go
-   - `pyproject.toml` / `setup.py` / `requirements.txt` → language: python
-   - `package.json`（含 react 依赖）→ language: react
-   - `tsconfig.json` / `package.json`（无 react）→ language: typescript
-   - 均不存在 → 询问用户
-3. 初始化 `project.yaml`（使用 templates/project.yaml 模板）
-4. 向 `.gitignore` 追加 `.plan/`（如果不存在）
-5. 写入 trace.log 首条记录
+3. 进入 Phase 2
 
 **已存在（会话恢复）：**
 
-1. 读取 `.plan/project.yaml` 获取 `current_agent` 和 `current_phase`
-2. 读取 `.plan/trace.log` 最后一条记录：
-   - `handoff` → 启动目标 Agent
-   - `start` 或 `artifact` → 恢复该 Agent（重新调度）
-   - `blocked` → 提示用户审批
-   - `done` → 提示"流程已完成，如需重新开始请删除 .plan/ 目录"
-3. 告知用户恢复状态，继续流程
+1. 运行:
+   ```bash
+   python3 ~/.claude/skills/dev-framework/orchestrator.py status --project-dir {PWD}
+   ```
+2. 根据返回的 `resume_action`:
+   - `completed` → 提示"流程已完成，如需重新开始请删除 .plan/ 目录"
+   - `await_approval` → 进入 Phase 4（人工审批）
+   - `dispatch_{agent}` → 构建该 Agent 的 prompt，继续调度循环
 
 ### Phase 2: Triage 路由
 
-将用户输入传给 Triage Agent：
-
-1. 读取 `agents/triage.md` 作为 Agent prompt
-2. 将用户输入作为任务描述
+1. 读取 `agents/triage.md` 内容
+2. 构建 prompt: triage.md 内容 + 用户输入
 3. 通过 Agent tool 调度 Triage subagent
-4. 解析返回的 JSON（route_to, mode, summary）
-5. 更新 project.yaml（mode, current_agent, current_phase）
-6. 写入 handoff 文件：`.plan/handoff/001-triage-to-{target}.md`
-7. 写入 trace.log
+4. 提取 Agent 输出中 `---JSON---` 标记包裹的 JSON（用 orchestrator.py parse-json）
+5. 调用 orchestrator.py:
+   ```bash
+   python3 ~/.claude/skills/dev-framework/orchestrator.py handoff --project-dir {PWD} \
+     --from triage --to {route_to} --summary "{summary}" --mode {mode}
+   python3 ~/.claude/skills/dev-framework/orchestrator.py next --project-dir {PWD} \
+     --current-agent triage --conclusion done --route-to {route_to}
+   ```
+6. 进入 Phase 3
 
 ### Phase 3: Agent 调度循环
 
-根据 Triage 路由结果（或恢复点），进入调度循环：
-
 ```
-while current_agent != "done":
-    1. 读取 agents/{current_agent}.md
-    2. 读取对应语言 Profile（如需要）
-    3. 读取对应模板文件
-    4. 构建 Context Packet（注入 profile + template + 前序 artifacts）
-       - 如果是 Reviewer 退回 Developer：注入 review-report.md
-       - 如果是 full 模式：注入当前 Task 信息
-    5. 通过 Agent tool 调度 subagent
-    6. 解析返回 JSON
-    7. 处理结果：
-       - status: done
-         → 写入 handoff 文件
-         → 写入 trace.log
-         → 如果 requires_approval: true → 暂停，请求人工审批（🔒）
-         → 更新 current_agent = handoff_to
-       - status: rollback
-         → 写入 trace.log（rollback 事件）
-         → 更新 current_agent = handoff_to
-         → 写入 handoff 文件（附带 reason）
-    8. 如果 handoff_to == "done" → 退出循环
+首次进入或会话恢复时:
+  0. python3 ~/.claude/skills/dev-framework/orchestrator.py status --project-dir {PWD}
+     → 检查 resume_action:
+     - "completed" → 提示"流程已完成"，不进入循环
+     - "await_approval" → 直接进入 Phase 4
+     - "dispatch_{agent}" → 从该 agent 继续（读取最新 handoff 文件获取上下文）
+
+loop:
+  1. python3 ~/.claude/skills/dev-framework/orchestrator.py status --project-dir {PWD}
+     → 获取 current_agent, current_task, mode
+
+  2. 如果 current_agent == "done" → Phase 5
+
+  3. 构建 prompt:
+     - 读取 agents/{current_agent}.md
+     - 如果 current_agent in [developer, reviewer, tester]:
+       读取 profiles/{language}.md 注入
+     - 如果 current_agent == "ui-designer":
+       读取 templates/ui-design.md 注入
+     - 读取对应 templates/ 文件注入
+     - 读取最新 handoff 文件注入
+     - 如果是 Reviewer 退回: 读取 artifacts/review-report.md 注入
+
+  4. 通过 Agent tool 调度 subagent
+     → 调度前记录开始时间: start_time = 当前 UTC ISO 时间
+
+  5. echo "{output}" | python3 ~/.claude/skills/dev-framework/orchestrator.py parse-json
+     → 提取 JSON 结果
+     → **如果返回 error**：重新调度同一 Agent（最多 1 次重试），提示 Agent 必须在输出末尾包含 ---JSON--- 标记
+
+  6. python3 ~/.claude/skills/dev-framework/orchestrator.py trace --project-dir {PWD} \
+       --agent {agent} --event artifact --detail {artifact} --message "{summary}" \
+       --start-time "{start_time}"
+
+  7. python3 ~/.claude/skills/dev-framework/orchestrator.py handoff --project-dir {PWD} \
+       --from {agent} --to {handoff_to} --summary "{summary}" \
+       --current-task "{task}" \
+       --files-created "{files_created逗号分隔}" --files-modified "{files_modified逗号分隔}"
+
+  7.5 **Artifact 验证（reviewer/tester 专用）**：
+     如果 current_agent 是 reviewer 或 tester，在调用 next 之前验证对应 artifact 文件已创建：
+     - reviewer → 检查 `.plan/artifacts/review-report.md` 存在
+     - tester → 检查 `.plan/artifacts/test-report.md` 存在
+     如果文件不存在，**不调用 next**，而是重新 dispatch 同一 Agent（最多 1 次重试），在 prompt 中强调必须创建 artifact 文件。
+     注意：orchestrator.py next 也会做此检查（双重保险），但在 SKILL.md 层提前拦截可以避免无谓的错误输出。
+
+  8. python3 ~/.claude/skills/dev-framework/orchestrator.py next --project-dir {PWD} \
+       --current-agent {agent} --conclusion {conclusion} \
+       --current-task "{task}" --total-tasks {N}
+     → 获取 next_agent
+
+  9. 如果 next.blocked == true:
+     - 如果是审批 → Phase 4
+     - 如果是回退超限 → 通知用户人工介入
+     否则 → 回到 1
 ```
 
 ### Phase 3.5: 任务迭代（full 模式）
 
-当 Architect 产出含 Task List 的 design.md 后，按任务驱动迭代：
+当 Architect 完成后，在进入 Developer 前:
 
-```
-解析 design.md 中的 Task List → tasks = [Task1, Task2, ...]
-
-for task in tasks:
-    1. current_task = task
-    2. 调度 Developer（注入当前 task 描述）
-    3. Developer 完成 → 调度 Reviewer
-    4. Reviewer PASS → 进入下一个 task
-       Reviewer FAIL → 回退 Developer（注入 review-report.md），重复直到 PASS
-    5. 写入 trace.log 记录每个 task 的完成
-
-所有 tasks 完成 → 调度 Tester（整体测试）
+```bash
+python3 ~/.claude/skills/dev-framework/orchestrator.py parse-tasks --project-dir {PWD}
+→ {"tasks": [...], "total": N, "parallel_groups": [["Task 1", "Task 2"], ["Task 3"]]}
 ```
 
-快速模式下无 Task List，直接走 Developer → Reviewer → Tester。
+记住 total，在后续调用 orchestrator.py next 时传入 --total-tasks N。
+
+#### 并行执行策略
+
+`parallel_groups` 返回按依赖分组的 Task 批次。**同一批次内的 Task 无依赖关系，应并行执行**：
+
+**⚠️ 并行前必须检查文件冲突：**
+```bash
+python3 ~/.claude/skills/dev-framework/orchestrator.py check-conflicts --project-dir {PWD} \
+  --tasks "Task 2,Task 3,Task 4"
+```
+如果返回 `has_conflicts: true`，**将冲突 Task 改为串行执行**。只有无冲突的 Task 才能并行。
+
+**执行流程：**
+
+1. 取当前批次（parallel_groups 中第一个未完成的组）
+2. 对批次运行 `check-conflicts`，将有冲突的 Task 拆出串行
+3. 为可并行的 Task 构建 Developer prompt
+4. 通过 Agent tool **在单条消息中同时调度多个 subagent**（并行执行）
+5. 收集所有 Developer 输出
+6. **对每个完成的 Task 调用 `complete-task` 标记完成**（必须在 handoff 之前调用，跳过会导致 handoff 和 next 报错）：
+   ```bash
+   python3 ~/.claude/skills/dev-framework/orchestrator.py complete-task --project-dir {PWD} \
+     --task-id "Task N"
+   ```
+7. **必须 dispatch Reviewer Agent 做批量审查**（不可直接 PASS，不可跳过 Reviewer dispatch）：
+   - 构建 Reviewer prompt，传入所有已完成 Task 的文件列表
+   - 通过 Agent tool 调度 Reviewer subagent
+   - 获取审查结论（PASS/FAIL）
+8. Reviewer PASS 后，使用 `--completed-through` 一次性跳到下一批次：
+   ```bash
+   python3 ~/.claude/skills/dev-framework/orchestrator.py next --project-dir {PWD} \
+     --current-agent reviewer --conclusion PASS \
+     --completed-through {批次最后一个Task编号} --total-tasks {N}
+   ```
+   **注意**: `--completed-through` 会校验 1-N 的所有 Task 是否已通过 `complete-task` 标记完成，未标记的会报错。
+9. 如果 Reviewer FAIL，退回该批次所有 Task 给 Developer 修复
+
+#### 串行回退
+
+如果并行执行中某个 Task 导致问题（如文件冲突），可回退到逐 Task 串行模式：
+orchestrator.py 的 next 命令（不带 --completed-through）仍强制: Developer 完成 → 必须 Reviewer → PASS 后才能下一个 Task。
+
+#### 禁止事项
+
+- **禁止跳过 Reviewer dispatch**：不可直接调用 `next --conclusion PASS` 而不实际 dispatch Reviewer Agent
+- **禁止跳过 complete-task**：每个 Task 完成后必须调用 `complete-task` 标记
+- **禁止 completed-through 超过实际完成数**：orchestrator 会拒绝未标记完成的 Task
+
+### Phase 4.5: 集成验证（全栈项目）
+
+当项目同时包含前端和后端（`has_frontend: true` + 后端语言非空）时，所有 Task 完成后、进入 Tester 前，执行集成验证：
+
+```bash
+python3 ~/.claude/skills/dev-framework/orchestrator.py validate-build --project-dir {PWD}
+```
+
+此命令自动根据 project.yaml 的 language/has_frontend 运行对应构建命令：
+- Go: `go build ./...`
+- Python: `python3 -m compileall -q {pkg}`
+- TypeScript: `npx tsc --noEmit`
+- 前端: 自动查找 web/frontend/client 子目录运行 `npm run build`
+
+**构建失败则阻塞**：命令返回 exit(1)，不可进入 Tester。修复后重新运行直到通过。
+通过后写 trace：
+```bash
+python3 ~/.claude/skills/dev-framework/orchestrator.py trace --project-dir {PWD} \
+  --agent system --event build-ok --message "集成构建验证通过"
+```
 
 ### Phase 4: 人工审批（🔒 节点）
 
-当 Architect Agent 返回 `requires_approval: true` 时：
+当 orchestrator.py next 返回 `blocked: true`（Architect → Developer 转交）:
 
-1. 写入 trace.log：`blocked` 事件
-2. 向用户展示：
-   - PRD 摘要（来自 .plan/artifacts/prd.md）
-   - 设计方案摘要（来自 .plan/artifacts/design.md）
-3. 提示用户：此时可直接编辑 `.plan/artifacts/prd.md` 或 `design.md`
-4. 使用 AskUserQuestion 请求审批，三个选项：
-   - 「确认，进入编码」→ 写入 trace.log：`approved`，继续调度 Developer
-   - 「我修改了 PRD」→ 回退到 Architect，基于修改后的 PRD 重新设计
-   - 「我修改了设计文档」→ 直接继续编码，Developer 读取最新 design.md
+1. 向用户展示 PRD、UI 设计（如有）和技术设计方案摘要
+2. 提示: 此时可直接编辑 .plan/artifacts/prd.md、ui-design.md 或 design.md
+3. 使用 AskUserQuestion 三个选项:
+   - 「确认，进入编码」→ `python3 ~/.claude/skills/dev-framework/orchestrator.py approve --project-dir {PWD}`
+   - 「我修改了 PRD」→ 回退到 Architect（或 UI Designer，如有前端）
+   - 「我修改了设计文档」→ 直接继续编码
+4. 回到 Phase 3
+
+### 前端项目特殊流程
+
+当 project.yaml 中 `has_frontend: true` 时，PM 完成后自动插入 UI Designer 环节：
+
+```
+PM → UI Designer → Architect → [人工审批] → Developer → Reviewer → ...
+```
+
+UI Designer 产出 `.plan/artifacts/ui-design.md`，Architect 和 Developer 必须参考此文件。
+Reviewer 在审查前端代码时需对照 ui-design.md 检查 UI 实现一致性。
 
 ### Phase 5: 完成
 
-当 Tester 返回 `handoff_to: done` 时：
+当 orchestrator.py next 返回 `next_agent: done`:
 
-1. 写入 trace.log：`done` 事件
-2. 更新 project.yaml：`current_phase: done`
-3. 向用户输出完成摘要：
+1. **完成前验证（full 模式必须）**：检查 `.plan/artifacts/review-report.md` 和 `.plan/artifacts/test-report.md` 是否存在。
+   - 如果缺失，不可写 trace done。回退到对应阶段：
+     - 缺 review-report.md → 回退到 reviewer（重新 dispatch Reviewer Agent）
+     - 缺 test-report.md → 回退到 tester（重新 dispatch Tester Agent）
+2. python3 ~/.claude/skills/dev-framework/orchestrator.py trace --project-dir {PWD} --agent system --event done --message "交付完成"
+3. 向用户输出完成摘要:
    - 创建/修改的文件列表
    - 测试结果概要
-   - 所有 artifacts 的路径
+   - 所有 artifacts 路径
 
-## Agent 调度时的 Prompt 构建
-
-调度每个 Agent 时，构建的完整 prompt 包含：
+## Agent Prompt 构建模板
 
 ```
-[Agent 定义文件内容]
+[agents/{agent}.md 内容]
 
 ---
 
 ## Context Packet
 
-[最新 handoff 文件内容]
+[最新 .plan/handoff/NNN-xxx.md 内容]
 
 ## 语言 Profile（如适用）
 
@@ -150,32 +248,26 @@ for task in tasks:
 
 ## 模板（如适用）
 
-[对应 template 文件内容]
+[templates/{template}.md 内容]
 
 ## 项目信息
 
-[project.yaml 内容]
+[.plan/project.yaml 内容]
 ```
 
-## Trace 日志写入
+## orchestrator.py 路径
 
-每个关键事件写入 `.plan/trace.log`，格式：
-
+所有 orchestrator.py 调用使用绝对路径:
 ```
-[{ISO timestamp}] {AGENT} | {event_type} | {detail} | {message}
+python3 ~/.claude/skills/dev-framework/orchestrator.py {command} --project-dir {PWD}
 ```
 
-Agent 名缩写映射：
-- triage → TRIAGE
-- pm → PM
-- architect → ARCH
-- developer → DEV
-- reviewer → REVIEW
-- tester → TESTER
-- 系统事件 → SYSTEM
+## 上下文管理
 
-## 错误处理
+长流程（full 模式 + 多 Task）容易耗尽上下文窗口。遵循以下规则：
 
-- Agent 调度失败（tool 超时等）→ 写入 trace.log error 事件，通知用户
-- 回退超过 2 次 → 暂停循环，写入 trace.log，请求人工介入
-- 护栏重试超过 3 次 → 写入 trace.log，转交给下一步处理或通知用户
+1. **Agent prompt 精简**：构建 prompt 时只注入必要内容，不要把整个 PRD + design + 所有 handoff 历史都塞进去
+2. **优先并行执行**：并行 Agent 消耗的是各自 subagent 的上下文，不增加主会话负担
+3. **Agent 输出限制**：在 Agent prompt 中明确要求「输出控制在 200 行以内，只输出关键信息和 JSON 结果」
+4. **中间结果落盘**：Agent 产出的报告/代码写入文件而非在对话中传递。后续 Agent 通过读取文件获取上下文
+5. **handoff 文件摘要化**：handoff 只记录摘要和文件列表，不复制完整内容

@@ -29,25 +29,31 @@ tools: Read, Write, Edit, Bash, Glob, Grep
 1. **如果是 Reviewer 退回**：先读取 `.plan/artifacts/review-report.md`，了解具体问题并修复
 2. 读取设计文档（full 模式）或用户描述（quick 模式）
 3. 读取当前 Task 描述（full 模式下按 Task List 逐个实现）
-4. 读取语言 Profile，遵循其规范
+4. 读取语言 Profile，遵循其规范。**必须阅读 Profile 中的「Developer 编码检查清单」，编码完成后逐项自检**
 5. 实现代码：
    - 创建必要的文件和目录
-   - 编写实现代码（不写测试）
+   - 编写实现代码（不写新的测试用例）
+   - **修改接口/函数签名时，必须同步更新所有调用方，包括测试文件中的 mock 实现和调用点**
    - 检查已有文件避免重复创建（会话恢复场景）
 6. 运行语言 Profile 中定义的 lint 命令
-7. lint 失败则自行修复（最多 3 轮）
-8. 将以下 JSON 作为你的**最终输出**：
+7. **编译验证（必须）**：运行语言 Profile 中的编译/类型检查命令，确保所有文件（含测试文件）可编译通过：
+   - Go: `go vet ./...`
+   - Python: `mypy src/` 或 `python -m py_compile`
+   - TypeScript: `npx tsc --noEmit`
+8. 编译或 lint 失败则自行修复（最多 3 轮）
+9. 将以下格式作为你的**最终输出**（必须用 ---JSON--- 标记包裹）：
 
-```json
+---JSON---
 {
   "status": "done",
   "files_created": ["path/to/file1", "path/to/file2"],
   "files_modified": ["path/to/existing"],
   "handoff_to": "reviewer",
   "current_task": "Task 1",
-  "summary": "实现概要"
+  "summary": "实现概要",
+  "context_for_next": "Reviewer 应重点关注的区域、已知的技术妥协或待确认的设计决策"
 }
-```
+---JSON---
 
 ## 语言 Profile
 
@@ -57,16 +63,17 @@ tools: Read, Write, Edit, Bash, Glob, Grep
 
 如果编码中发现设计缺陷或需求矛盾：
 
-```json
+---JSON---
 {
   "status": "rollback",
   "handoff_to": "architect|pm",
   "reason": "具体原因"
 }
-```
+---JSON---
 
 ## 禁止
 
 - 不要修改 PRD 或设计文档
-- 不要跳过 lint 检查
-- 不要写测试（测试由 Tester Agent 负责）
+- 不要跳过 lint 和编译验证
+- 不要写新的测试用例（测试由 Tester Agent 负责）
+- 注意：「不写测试」指不写新测试用例，但修改接口/签名时**必须**同步更新已有测试文件中的 mock 实现和调用点

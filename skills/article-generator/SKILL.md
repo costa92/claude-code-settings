@@ -55,7 +55,7 @@ description: 生成技术博客文章（Markdown/Obsidian 格式），含 Gemini
    - 同一章节内无重复图片？（同一 section 不应出现两张功能相同的配图）
    - 微信平台：外部链接已转为搜索指引？（如 `搜索「关键词」`，微信不支持外链）
    - 文章中无残留 Mermaid 代码块？（流程图/架构图必须已渲染为图片）
-   - 参考资料每条都包含完整 URL？（格式：`**名称**: https://url`，禁止只写名称不写链接）
+   - 参考链接已内联到正文？（格式：`[名称](url)`，禁止在末尾设独立参考资料区）
 10. **[ ] Verify content depth** — 字数要求见下表
 11. **[ ] Quality gate** — 按场景选择审查模式：
    - **发布模式**（默认）：运行 `/content-reviewer` ≥ 55/70，运行 `/wechat-seo-optimizer`
@@ -243,14 +243,13 @@ Replace existing ASCII art code blocks (box-drawing characters) with AI-generate
 ### Structure
 - YAML frontmatter required on every article, **必须包含 `description` 字段**（120 字以内摘要）
 - Obsidian callouts for key information
-- Single reference section at end, **参考资料区是纯文字列表，禁止放置图片**
-- **参考资料每条必须包含可访问的完整 URL**（格式 `[**名称**](https://url)`），无 URL 的条目必须删除或补全
+- **禁止在文章末尾设置独立的「参考资料」区域**——所有参考链接必须以 `[名称](url)` 格式内联到正文中首次提及的位置（微信转换器会自动提取为尾注引用，独立区域会导致重复）
 - No redundant sections: 避免"互动环节""写在最后""下期预告"
 - **同一章节内不放两张功能相同的配图**（如同一流程图的两个版本）
 
 ### Code & Links
 - Code must be runnable with type annotations and error handling
-- Explicit links: `[**Name**](https://url)` — NEVER `[[double brackets]]` or plain-text `**Name**: url`
+- Reference links use inline format: `[Name](https://url)` — NEVER `[[double brackets]]`
 - Verify all links return HTTP 200
 - Technical comparisons use parameter tables (cost, latency, memory)
 - **微信平台：外部链接改为搜索指引**（如「搜索 关键词」），微信公众号不支持外链跳转
