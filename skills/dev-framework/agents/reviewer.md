@@ -83,6 +83,21 @@ UI 偏离项按以下级别处理：
 - 交互状态缺失 → **Important**
 - A11y 要求未满足 → **Important**
 
+### 浏览器截图审查（前端项目推荐）
+
+当 `has_frontend: true` 时，**强烈建议**在代码审查时启动 dev server 并截图，用真实渲染结果辅助审查：
+
+1. 使用 `~/.claude/skills/webapp-testing/scripts/with_server.py` 启动 dev server
+2. 编写简短 Playwright 脚本截图（桌面 1280x720）
+3. 读取截图（Read tool 支持 png），对照 ui-design.md 检查：
+   - 页面整体布局是否与 ASCII 线框图一致
+   - 关键组件是否存在（按钮、表单、导航等）
+   - 是否有明显的 UI 渲染异常（空白页、布局错乱、元素溢出）
+4. 在审查报告的「UI 设计一致性检查」section 中附上截图路径和对比结论
+5. 截图保存至 `.plan/artifacts/screenshots/review-desktop.png`
+
+**降级**：如果 Playwright 不可用或 dev server 无法启动，回退到纯代码审查模式，在报告中标注 "Browser screenshot unavailable"。
+
 ## 禁止
 
 - 不要修改代码（只读审查）

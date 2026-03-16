@@ -20,6 +20,23 @@ src/
 - 框架: Vitest + React Testing Library
 - 覆盖率门槛: ≥ 70%（低于此值在测试报告中标注 Warning）
 
+## E2E / 浏览器测试
+- 工具: Playwright（`pip install playwright && playwright install chromium`）
+- Dev Server 启动: `npm run dev`（默认端口见 vite.config 或 package.json，通常 5173 或 3000）
+- Dev Server Helper: `~/.claude/skills/webapp-testing/scripts/with_server.py`
+- 截图命令示例:
+  ```bash
+  python3 ~/.claude/skills/webapp-testing/scripts/with_server.py \
+    --server "npm run dev" --port 5173 \
+    -- python3 browser_test.py
+  ```
+- 浏览器测试覆盖项:
+  - 桌面截图 (1280x720) + 移动端截图 (375x667)
+  - Console error 检查（有 JS error → FAIL）
+  - DOM 结构验证（对照 ui-design.md 选择器）
+  - 交互测试（表单提交、按钮点击、路由导航）
+  - 响应式布局验证（对照 ui-design.md 断点定义）
+
 ## Lint / Format
 - Format: `npx prettier --write .`
 - Lint: `npx eslint .`
@@ -50,3 +67,63 @@ src/
 - key prop 使用 index 而非唯一 ID
 - 未处理 loading/error 状态
 - 服务端组件与客户端组件混用（Next.js App Router）
+
+## API 测试
+
+前端项目通常消费后端 API，需要对 API 调用层进行测试：
+
+### 推荐方案
+
+| 方案 | 适用场景 | 示例 |
+|------|----------|------|
+| **MSW (Mock Service Worker)** | 拦截 fetch/axios 请求 | `http.get('/api/users', resolver)` |
+| **vitest mock** | 单元测试 mock 函数 | `vi.mock('../api/client')` |
+| **nock** | Node.js 端 HTTP mock | Express/Next.js API routes 测试 |
+
+### MSW 模式（推荐）
+
+```typescript
+// src/mocks/handlers.ts
+import { http, HttpResponse } from 'msw';
+
+export const handlers = [
+  http.get('/api/users/:id', ({ params }) => {
+    return HttpResponse.json({ id: params.id, name: 'Test User' });
+  }),
+  http.post('/api/users', async ({ request }) => {
+    const body = await request.json();
+    return HttpResponse.json({ id: '1', ...body }, { status: 201 });
+  }),
+];
+
+// src/mocks/server.ts
+import { setupServer } from 'msw/node';
+import { handlers } from './handlers';
+export const server = setupServer(...handlers);
+
+// vitest.setup.ts
+import { server } from './src/mocks/server';
+beforeAll(() => server.listen());
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+```
+
+### API Route 测试（Next.js）
+
+```typescript
+// 直接测 API handler，不需要启动服务器
+import { GET } from '@/app/api/users/route';
+import { NextRequest } from 'next/server';
+
+it('GET /api/users', async () => {
+  const req = new NextRequest('http://localhost/api/users');
+  const res = await GET(req);
+  expect(res.status).toBe(200);
+});
+```
+
+### Developer 要求
+
+- API 调用层独立封装（如 `src/lib/api.ts`），不在组件内直接 fetch
+- 所有 API 调用函数可独立 mock
+- 错误状态（网络错误、4xx、5xx）有对应 UI 反馈

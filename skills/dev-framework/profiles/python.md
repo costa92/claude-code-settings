@@ -16,6 +16,14 @@ pyproject.toml  # 项目配置
 - 框架: pytest
 - 覆盖率门槛: ≥ 70%（低于此值在测试报告中标注 Warning）
 
+## 服务端验收测试
+- 启动（FastAPI）: `PORT=18080 uvicorn app.main:app --host 0.0.0.0 --port 18080 &`
+- 启动（Flask）: `PORT=18080 flask run --port 18080 &`
+- 启动（Django）: `python manage.py runserver 18080 &`
+- 等待就绪: `for i in $(seq 1 10); do curl -sf http://localhost:18080/health && break || sleep 1; done`
+- 关停: `pkill -f 'uvicorn|flask|runserver'`
+- 测试端口: 18080（避免与开发端口冲突）
+
 ## Lint / Format
 - Format: `black .` 或 `ruff format .`
 - Lint: `ruff check .`
@@ -46,3 +54,87 @@ pyproject.toml  # 项目配置
 - 未处理的异常被吞
 - async 函数内调用同步阻塞 IO
 - 缺少 `__init__.py` 导致导入失败
+
+## 数据库测试
+
+当 project.yaml 中 `has_database: true` 时，Developer 和 Tester 需遵循以下策略：
+
+### 推荐方案（按优先级）
+
+| 方案 | 适用场景 | 示例 |
+|------|----------|------|
+| **SQLite 内存** | 轻量 SQLAlchemy 项目 | `create_engine("sqlite:///:memory:")` |
+| **testcontainers-python** | 需要真实 PG/MySQL/Redis | `PostgresContainer("postgres:16")` |
+| **Protocol/ABC Mock** | 单元测试隔离 DB 层 | 定义 Protocol，注入 MagicMock |
+
+### 测试隔离模式
+
+```python
+# 方式 1: Protocol + MagicMock（单元测试）
+from typing import Protocol
+from unittest.mock import MagicMock
+
+class UserRepository(Protocol):
+    def save(self, user: User) -> None: ...
+    def find_by_id(self, id: str) -> User | None: ...
+
+@pytest.fixture
+def mock_repo():
+    repo = MagicMock(spec=UserRepository)
+    repo.find_by_id.return_value = User(id="1", name="test")
+    return repo
+
+# 方式 2: SQLite 内存 + fixture（集成测试）
+@pytest.fixture
+def db_session():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    session = Session(engine)
+    yield session
+    session.close()
+
+# 方式 3: testcontainers（集成测试）
+@pytest.fixture(scope="session")
+def pg_container():
+    with PostgresContainer("postgres:16") as pg:
+        yield pg.get_connection_url()
+```
+
+### Developer 要求
+
+- 数据库操作通过 Repository 类封装，依赖通过构造函数注入
+- 使用 Alembic / Django migrations 管理表结构
+- 测试 fixture 负责 setup/teardown，不依赖全局状态
+
+## 外部 API 测试
+
+当 project.yaml 中 `has_external_api: true` 时：
+
+### 推荐方案
+
+| 方案 | 适用场景 | 示例 |
+|------|----------|------|
+| **Protocol Mock** | 单元测试 | `MagicMock(spec=PaymentClient)` |
+| **responses / respx** | 集成测试 | 拦截 requests/httpx 请求 |
+| **pytest-recording** | 录制回放 | VCR.py 录制真实 HTTP 请求 |
+
+```python
+# responses 拦截 requests（同步）
+import responses
+
+@responses.activate
+def test_external_api():
+    responses.add(responses.GET, "https://api.example.com/data",
+                  json={"status": "ok"}, status=200)
+    result = my_client.fetch_data()
+    assert result["status"] == "ok"
+
+# respx 拦截 httpx（异步）
+import respx
+
+@respx.mock
+async def test_async_api():
+    respx.get("https://api.example.com/data").respond(200, json={"status": "ok"})
+    result = await my_async_client.fetch_data()
+    assert result["status"] == "ok"
+```

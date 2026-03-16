@@ -74,6 +74,7 @@ Task 拆分原则：
 - [ ] 包含「数据模型」（至少有结构定义）
 - [ ] 包含「API 定义」（至少有端点列表）
 - [ ] 包含「Task List」（至少 1 个 Task）
+- [ ] 如果 project.yaml 中 `has_database: true` 或 `has_external_api: true`，包含「测试策略」（数据库测试方案 + 外部 API 测试方案 + 测试基础设施）
 
 如果缺少必要部分，自行补充后再输出。最多重试 3 次。
 

@@ -236,6 +236,12 @@ def _output(data):
     print(json.dumps(data, ensure_ascii=False))
 
 
+def _normalize_task_id(raw):
+    """Task-1 / Task 1 / Task1 → 'Task 1'"""
+    m = re.match(r'Task[- ]?(\d+)', raw, re.IGNORECASE)
+    return f"Task {m.group(1)}" if m else raw
+
+
 # === 子命令 ===
 
 def cmd_init(args):
@@ -248,12 +254,18 @@ def cmd_init(args):
     language = args.language or _detect_language(args.project_dir)
     framework = args.framework or _detect_framework(args.project_dir, language)
     has_frontend = _detect_has_frontend(args.project_dir)
+    has_database = _detect_has_database(args.project_dir)
+    has_external_api = _detect_has_external_api(args.project_dir)
+    has_api_server = _detect_has_api_server(args.project_dir, language, framework)
 
     project = {
         "name": os.path.basename(os.path.abspath(args.project_dir)),
         "language": language,
         "framework": framework,
         "has_frontend": has_frontend,
+        "has_database": has_database,
+        "has_external_api": has_external_api,
+        "has_api_server": has_api_server,
         "mode": "full",
         "current_phase": "triage",
         "current_agent": "triage",
@@ -264,7 +276,7 @@ def cmd_init(args):
 
     _write_project(pd, project)
     _write_trace(pd, "system", "start", "",
-                 f"dev-framework 初始化，语言: {language}，框架: {framework}，前端: {has_frontend}")
+                 f"dev-framework 初始化，语言: {language}，框架: {framework}，前端: {has_frontend}，数据库: {has_database}，外部API: {has_external_api}，API服务: {has_api_server}")
 
     # 追加 .gitignore
     gitignore = os.path.join(args.project_dir, ".gitignore")
@@ -368,6 +380,218 @@ def _detect_has_frontend(project_dir):
     return False
 
 
+# 前端文件扩展名（用于检测 handoff 中的前端文件变更）
+_FRONTEND_EXTS = {
+    '.html', '.htm', '.ejs', '.hbs', '.pug',
+    '.css', '.scss', '.sass', '.less', '.styl',
+    '.jsx', '.tsx', '.vue', '.svelte',
+}
+
+
+def _has_frontend_file_changes(project_dir):
+    """扫描 handoff 文件，检测是否有前端文件被创建或修改"""
+    handoff_dir = os.path.join(_plan_dir(project_dir), "handoff")
+    if not os.path.isdir(handoff_dir):
+        return False, []
+
+    frontend_files = []
+    for fname in sorted(os.listdir(handoff_dir)):
+        fpath = os.path.join(handoff_dir, fname)
+        if not os.path.isfile(fpath):
+            continue
+        try:
+            with open(fpath, encoding="utf-8") as f:
+                content = f.read()
+        except (IOError, OSError):
+            continue
+        # 提取反引号中的文件路径
+        for m in re.finditer(r'`([^`]+)`', content):
+            path = m.group(1).strip()
+            ext = os.path.splitext(path)[1].lower()
+            if ext in _FRONTEND_EXTS:
+                if path not in frontend_files:
+                    frontend_files.append(path)
+
+    return bool(frontend_files), frontend_files
+
+
+def _detect_has_database(project_dir):
+    """检测项目是否使用数据库"""
+    # Go: 常见数据库驱动
+    go_mod = os.path.join(project_dir, "go.mod")
+    if os.path.exists(go_mod):
+        try:
+            with open(go_mod, encoding="utf-8") as f:
+                content = f.read().lower()
+            db_indicators = [
+                "database/sql", "gorm.io", "go-redis", "mongo-driver",
+                "pgx", "go-sqlite3", "sqlx", "ent", "sqlc",
+            ]
+            if any(ind in content for ind in db_indicators):
+                return True
+        except (IOError, OSError):
+            pass
+
+    # Python: 常见 ORM / 数据库库
+    for req_file in ["requirements.txt", "pyproject.toml", "setup.py", "Pipfile"]:
+        path = os.path.join(project_dir, req_file)
+        if os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8") as f:
+                    content = f.read().lower()
+                db_indicators = [
+                    "sqlalchemy", "django", "tortoise-orm", "peewee",
+                    "pymongo", "redis", "psycopg", "mysql-connector",
+                    "asyncpg", "aiosqlite", "prisma",
+                ]
+                if any(ind in content for ind in db_indicators):
+                    return True
+            except (IOError, OSError):
+                pass
+
+    # Node.js: 常见数据库库
+    for pkg_dir in ["", "web", "frontend", "server", "backend", "api"]:
+        pkg_path = os.path.join(project_dir, pkg_dir, "package.json") if pkg_dir else os.path.join(project_dir, "package.json")
+        if os.path.exists(pkg_path):
+            try:
+                with open(pkg_path, encoding="utf-8") as f:
+                    content = f.read().lower()
+                db_indicators = [
+                    "prisma", "typeorm", "sequelize", "mongoose", "knex",
+                    "drizzle-orm", "mikro-orm", "pg", "mysql2", "redis",
+                    "ioredis", "better-sqlite3",
+                ]
+                if any(ind in content for ind in db_indicators):
+                    return True
+            except (IOError, OSError):
+                pass
+
+    # 检测常见数据库配置文件
+    db_config_files = [
+        "docker-compose.yml", "docker-compose.yaml",
+        "prisma/schema.prisma", "migrations",
+        "alembic.ini", "alembic",
+    ]
+    for f in db_config_files:
+        if os.path.exists(os.path.join(project_dir, f)):
+            return True
+
+    return False
+
+
+def _detect_has_external_api(project_dir):
+    """检测项目是否调用外部 API"""
+    # Go: HTTP 客户端库
+    go_mod = os.path.join(project_dir, "go.mod")
+    if os.path.exists(go_mod):
+        try:
+            with open(go_mod, encoding="utf-8") as f:
+                content = f.read().lower()
+            api_indicators = ["resty", "go-retryablehttp", "grpc"]
+            if any(ind in content for ind in api_indicators):
+                return True
+        except (IOError, OSError):
+            pass
+
+    # Python: HTTP 客户端库
+    for req_file in ["requirements.txt", "pyproject.toml"]:
+        path = os.path.join(project_dir, req_file)
+        if os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8") as f:
+                    content = f.read().lower()
+                api_indicators = ["httpx", "aiohttp", "requests", "grpcio", "boto3", "stripe"]
+                if any(ind in content for ind in api_indicators):
+                    return True
+            except (IOError, OSError):
+                pass
+
+    # Node.js: HTTP 客户端库
+    pkg_path = os.path.join(project_dir, "package.json")
+    if os.path.exists(pkg_path):
+        try:
+            with open(pkg_path, encoding="utf-8") as f:
+                content = f.read().lower()
+            api_indicators = ["axios", "got", "node-fetch", "ky", "@grpc", "stripe", "aws-sdk"]
+            if any(ind in content for ind in api_indicators):
+                return True
+        except (IOError, OSError):
+            pass
+
+    return False
+
+
+def _detect_has_api_server(project_dir, language, framework):
+    """检测项目是否是 HTTP/API 服务（需要启动服务做验收测试）"""
+    # 已知 Web 框架直接判定
+    web_frameworks = {
+        "gin", "echo", "fiber", "chi", "mux", "iris",           # Go
+        "fastapi", "flask", "django", "sanic", "starlette",     # Python
+        "express", "nest", "hono", "koa", "fastify",            # Node.js
+        "next", "nuxt",                                         # SSR 框架
+    }
+    if framework in web_frameworks:
+        return True
+
+    # Go: 检测 net/http 或 Web 框架
+    go_mod = os.path.join(project_dir, "go.mod")
+    if os.path.exists(go_mod):
+        try:
+            with open(go_mod, encoding="utf-8") as f:
+                content = f.read().lower()
+            server_indicators = [
+                "gin-gonic/gin", "labstack/echo", "gofiber/fiber",
+                "go-chi/chi", "gorilla/mux", "kataras/iris",
+            ]
+            if any(ind in content for ind in server_indicators):
+                return True
+        except (IOError, OSError):
+            pass
+        # 检查 main.go 是否有 http.ListenAndServe
+        main_go = os.path.join(project_dir, "main.go")
+        if os.path.exists(main_go):
+            try:
+                with open(main_go, encoding="utf-8") as f:
+                    content = f.read()
+                if "ListenAndServe" in content or "http.Server" in content:
+                    return True
+            except (IOError, OSError):
+                pass
+
+    # Python: 检测 Web 框架
+    for req_file in ["requirements.txt", "pyproject.toml"]:
+        path = os.path.join(project_dir, req_file)
+        if os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8") as f:
+                    content = f.read().lower()
+                server_indicators = [
+                    "fastapi", "flask", "django", "sanic",
+                    "starlette", "tornado", "bottle", "aiohttp",
+                ]
+                if any(ind in content for ind in server_indicators):
+                    return True
+            except (IOError, OSError):
+                pass
+
+    # Node.js: 检测 server 框架
+    pkg_path = os.path.join(project_dir, "package.json")
+    if os.path.exists(pkg_path):
+        try:
+            with open(pkg_path, encoding="utf-8") as f:
+                content = f.read().lower()
+            server_indicators = [
+                "express", "fastify", "koa", "hono", "@nestjs",
+                "next", "nuxt",
+            ]
+            if any(ind in content for ind in server_indicators):
+                return True
+        except (IOError, OSError):
+            pass
+
+    return False
+
+
 def cmd_status(args):
     """返回当前状态"""
     pd = _plan_dir(args.project_dir)
@@ -421,9 +645,10 @@ def cmd_handoff(args):
     pd = _plan_dir(args.project_dir)
     project = _read_project(pd)
 
-    # full 模式下 developer/reviewer/tester 的 handoff 必须提供 --current-task
+    # full 模式下 developer/reviewer 的 handoff 必须提供 --current-task
+    # 注意：tester 不在此列，因为 Tester 是全项目级测试，不绑定特定 Task
     mode = project.get("mode", "full")
-    if mode == "full" and args.from_agent in ("developer", "reviewer", "tester"):
+    if mode == "full" and args.from_agent in ("developer", "reviewer"):
         if not args.current_task:
             _output({
                 "error": f"full 模式下 {args.from_agent} 的 handoff 必须提供 --current-task",
@@ -750,13 +975,13 @@ def cmd_parse_tasks(args):
     debug_info = [] if hasattr(args, 'debug') and args.debug else None
 
     # 支持多种 Task 标题格式：
-    # - ### Task 1: ...
+    # - ### Task 1: ... / ### Task-1: ... / ### Task1: ...
     # - ### Task 1：... (中文冒号)
     # - Task 1: ... (没有 ###)
-    task_pattern = re.compile(r'(?:### )?(Task \d+)[：:]\s*(.+?)(?=\n(?:### )?(?:Task \d+[：:]|## |$))', re.DOTALL)
+    task_pattern = re.compile(r'(?:### )?(Task[- ]?\d+)[：:]\s*(.+?)(?=\n(?:### )?(?:Task[- ]?\d+[：:]|## |$))', re.DOTALL)
 
     for match in task_pattern.finditer(content):
-        task_id = match.group(1)
+        task_id = _normalize_task_id(match.group(1))
         task_name = match.group(2).strip()
 
         # 移除任务名称中多余的换行
@@ -770,49 +995,67 @@ def cmd_parse_tasks(args):
         }
 
         # 提取文件列表 - 支持多种格式：
-        # - 文件: internal/...
-        # - 文件: internal/...
-        # - - 文件: internal/...
+        # - 文件: `internal/store/store.go`（重写）, `internal/store/memory.go`（新建）
+        # - 文件:
+        #   - `internal/store/store.go`
         section_content = match.group(0)
 
-        # 寻找 "文件" 或 "依赖" 段落
-        for line in section_content.split('\n'):
-            line = line.strip()
+        # 方式 1: 单行 "- 文件: path1, path2" 格式（支持 **文件** markdown bold）
+        file_line_match = re.search(r'\*{0,2}(?:文件|Files?)\*{0,2}\s*[：:]\s*(.+)', section_content, re.IGNORECASE)
+        if file_line_match:
+            file_text = file_line_match.group(1).strip()
+            # 提取反引号内的路径，或逗号分隔的路径
+            backtick_paths = re.findall(r'`([^`]+)`', file_text)
+            if backtick_paths:
+                for p in backtick_paths:
+                    # 去除括号注释如 "（重写）"
+                    clean = re.sub(r'[（(].+?[）)]', '', p).strip()
+                    if clean and '/' in clean or '.' in clean:
+                        task["files"].append(clean)
+            elif file_text:
+                # 无反引号，按逗号分隔
+                for p in re.split(r'[,，]', file_text):
+                    clean = re.sub(r'[（(].+?[）)]', '', p).strip().strip('`')
+                    if clean and clean.lower() not in ['无', 'none', '']:
+                        task["files"].append(clean)
 
-            # 匹配文件行：- `file/path` 或 - file/path
-            if re.match(r'^-+\s*`?[^-`]+`?\s*$', line) and not any(kw in line.lower() for kw in ['依赖', 'depend', 'task']):
-                file_path = line.lstrip('- ').strip().strip('`')
-                if file_path and not file_path.lower() in ['无', 'none']:
-                    task["files"].append(file_path)
-
-        # 提取依赖：支持中文"依赖"和英文"deps"
-        dep_match = re.search(r'(?:依赖|Depends|deps)\s*[：:]\s*(.+?)(?:\n- |\n## |$)', section_content, re.DOTALL | re.IGNORECASE)
+        # 提取依赖：支持中文"依赖"和英文"deps"（支持 **依赖** markdown bold）
+        dep_match = re.search(r'\*{0,2}(?:依赖|Depends|deps)\*{0,2}\s*[：:]\s*(.+?)(?:\n- |\n## |$)', section_content, re.DOTALL | re.IGNORECASE)
         if dep_match:
             dep_text = dep_match.group(1).strip()
             if dep_text not in ["无", "none", ""]:
-                # 支持逗号、空格分隔
-                for sep in [',', '，', ' ']:
+                # 优先用逗号（中/英）分隔多个依赖
+                for sep in [',', '，']:
                     deps = [d.strip() for d in dep_text.split(sep) if d.strip()]
                     if len(deps) > 1:
                         task["deps"] = deps
                         break
                 if not task["deps"]:
-                    task["deps"] = [dep_text]
+                    # 无逗号分隔时，尝试匹配 "Task N" / "Task-N" 模式提取多个依赖
+                    task_refs = re.findall(r'Task[- \s]?\d+', dep_text, re.IGNORECASE)
+                    if task_refs:
+                        task["deps"] = [_normalize_task_id(t.strip()) for t in task_refs]
+                    else:
+                        task["deps"] = [dep_text]
 
         tasks.append(task)
 
-    # 如果没有找到任务，尝试更宽松的格式
+    # 如果没有找到任务，尝试更宽松的格式（仅在 "## Task List" section 内搜索）
     if not tasks:
-        # 尝试找编号列表
-        for i, line in enumerate(content.split('\n'), 1):
-            m = re.match(r'^\s*(\d+)\.\s*(.+)$', line)
-            if m:
-                tasks.append({
-                    "id": f"Task {m.group(1)}",
-                    "name": m.group(2).strip(),
-                    "files": [],
-                    "deps": []
-                })
+        task_list_match = re.search(
+            r'## Task List\s*\n(.*?)(?=\n## |\Z)', content, re.DOTALL
+        )
+        search_content = task_list_match.group(1) if task_list_match else ""
+        if search_content:
+            for i, line in enumerate(search_content.split('\n'), 1):
+                m = re.match(r'^\s*(\d+)\.\s*(.+)$', line)
+                if m:
+                    tasks.append({
+                        "id": f"Task {m.group(1)}",
+                        "name": m.group(2).strip(),
+                        "files": [],
+                        "deps": []
+                    })
 
     # 分析并行分组：无依赖或依赖已完成的 Task 可以并行
     task_ids = [t["id"] for t in tasks]
@@ -987,6 +1230,9 @@ def main():
     p.add_argument("--project-dir", required=True)
     p.add_argument("--tasks", required=True, help="逗号分隔的 Task ID, 如 'Task 2,Task 3,Task 4'")
 
+    p = sub.add_parser("detect-frontend-changes", help="检测 handoff 中是否涉及前端文件变更")
+    p.add_argument("--project-dir", required=True)
+
     args = parser.parse_args()
     commands = {
         "init": cmd_init,
@@ -1001,6 +1247,7 @@ def main():
         "validate-build": cmd_validate_build,
         "complete-task": cmd_complete_task,
         "check-conflicts": cmd_check_conflicts,
+        "detect-frontend-changes": cmd_detect_frontend_changes,
     }
 
     if args.command in commands:
@@ -1039,11 +1286,11 @@ def cmd_check_conflicts(args):
     # 解析每个 Task 的文件列表
     task_files = {}
     task_pattern = re.compile(
-        r'(?:### )?(Task \d+)[：:]\s*(.+?)(?=\n(?:### )?(?:Task \d+[：:]|## |$))',
+        r'(?:### )?(Task[- ]?\d+)[：:]\s*(.+?)(?=\n(?:### )?(?:Task[- ]?\d+[：:]|## |$))',
         re.DOTALL
     )
     for match in task_pattern.finditer(content):
-        task_id = match.group(1)
+        task_id = _normalize_task_id(match.group(1))
         section = match.group(0)
         file_match = re.search(r'(?:文件|files?)\s*[：:]\s*(.+?)(?:\n- |\n##|\n###|$)',
                                section, re.IGNORECASE)
@@ -1072,6 +1319,20 @@ def cmd_check_conflicts(args):
     if conflicts:
         result["recommendation"] = "存在文件冲突，建议将冲突 Task 改为串行执行，或合并到同一 Agent"
     _output(result)
+
+
+def cmd_detect_frontend_changes(args):
+    """检测 handoff 中是否涉及前端文件变更"""
+    has_changes, files = _has_frontend_file_changes(args.project_dir)
+    pd = _plan_dir(args.project_dir)
+    project = _read_project(pd)
+    has_frontend_flag = project.get("has_frontend", False)
+    _output({
+        "has_frontend": has_frontend_flag,
+        "has_frontend_changes": has_changes,
+        "need_browser_test": has_frontend_flag or has_changes,
+        "frontend_files": files,
+    })
 
 
 def _run_build_cmd(cmd, cwd, label):

@@ -80,6 +80,20 @@ loop:
      - 读取对应 templates/ 文件注入
      - 读取最新 handoff 文件注入
      - 如果是 Reviewer 退回: 读取 artifacts/review-report.md 注入
+     - 如果 has_database 或 has_external_api 为 true（检查 .plan/project.yaml）:
+       - 调度 Developer 时: 提示"参考语言 Profile 中数据库/API 测试章节，确保实现可测试的接口抽象"
+       - 调度 Tester 时: 读取 artifacts/design.md 的「测试策略」section 注入，提示"必须执行数据库测试和/或 API 测试，参考语言 Profile 和 design.md 测试策略"
+       - 调度 Reviewer 时: 提示"检查存储层是否通过接口抽象、测试是否覆盖数据库/API 场景"
+     - 如果 has_api_server 为 true（检查 .plan/project.yaml）:
+       - 调度 Tester 时: 读取 artifacts/design.md 的「API 定义」section 注入，提示"必须启动真实服务执行端点验收测试（编译→启动→curl 每个端点→验证响应→关停），参考 tester.md 的服务端验收测试流程"
+     - **调度 Tester 时，必须运行前端变更检测**:
+       ```bash
+       python3 ~/.claude/skills/dev-framework/orchestrator.py detect-frontend-changes --project-dir {PWD}
+       ```
+       如果返回 `need_browser_test: true`（has_frontend 标志为 true **或** handoff 中有前端文件变更），则：
+       - 注入浏览器测试指令（参考 Phase 4.6）
+       - 读取 `templates/ui-design.md` 的自动化测试规范（如有 `.plan/artifacts/ui-design.md`）
+       - 提示 Tester 必须执行浏览器测试，不可跳过
 
   4. 通过 Agent tool 调度 subagent
      → 调度前记录开始时间: start_time = 当前 UTC ISO 时间
@@ -193,6 +207,47 @@ python3 ~/.claude/skills/dev-framework/orchestrator.py validate-build --project-
 python3 ~/.claude/skills/dev-framework/orchestrator.py trace --project-dir {PWD} \
   --agent system --event build-ok --message "集成构建验证通过"
 ```
+
+### Phase 4.6: 浏览器测试（涉及前端代码时）
+
+当 `has_frontend: true`，**或开发过程中涉及前端文件变更**时，**Tester Agent 必须执行浏览器测试**，不可跳过。
+
+#### 判断是否需要浏览器测试
+
+在构建 Tester prompt 前，运行：
+```bash
+python3 ~/.claude/skills/dev-framework/orchestrator.py detect-frontend-changes --project-dir {PWD}
+```
+返回 `need_browser_test: true` 时，注入浏览器测试指令。该命令检测两个条件：
+1. `has_frontend: true`（project.yaml 标志）
+2. handoff 文件中有前端文件变更（.html/.css/.jsx/.tsx/.vue/.svelte 等）
+
+任一条件满足即触发。
+
+#### 调度 Tester 时的额外注入
+
+在构建 Tester prompt 时，除标准内容外，必须注入：
+
+1. **`templates/ui-design.md` 中的「自动化测试规范」**（如存在 `.plan/artifacts/ui-design.md`）
+2. **浏览器测试指令**：提示 Tester 使用 Playwright 执行以下验证：
+   - 启动 dev server（参考语言 Profile 中的 `dev_server` 命令）
+   - 截图（桌面 1280x720 + 移动端 375x667）
+   - DOM 结构验证（对照 ui-design.md 的选择器规范）
+   - 交互测试（表单提交、按钮点击、导航跳转）
+   - Console 错误捕获（有 JS error 则 FAIL）
+   - 响应式布局检查（对照 ui-design.md 断点定义）
+3. **webapp-testing 工具路径**：`~/.claude/skills/webapp-testing/scripts/with_server.py`
+
+#### 浏览器测试 artifact
+
+截图保存至 `.plan/artifacts/screenshots/`：
+- `desktop.png` — 桌面视口截图
+- `mobile.png` — 移动端视口截图
+- 其他交互状态截图（按需）
+
+#### Reviewer 浏览器截图审查（可选增强）
+
+当 `has_frontend: true` 且存在 `.plan/artifacts/ui-design.md` 时，Reviewer Agent 可在审查时额外执行浏览器截图，对比实际渲染结果与设计规范。此步骤为可选增强——Reviewer 读取截图文件（png），肉眼比对 ui-design.md 中的 ASCII 线框图和组件规范。
 
 ### Phase 4: 人工审批（🔒 节点）
 
