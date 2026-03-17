@@ -112,6 +112,12 @@ def _parse_value(v):
         return v[1:-1]
     if v.startswith("'") and v.endswith("'"):
         return v[1:-1]
+    # 内联列表: [a, b, c]
+    if v.startswith("[") and v.endswith("]"):
+        inner = v[1:-1].strip()
+        if not inner:
+            return []
+        return [_parse_value(item.strip()) for item in inner.split(",") if item.strip()]
     if v.lower() == "true":
         return True
     if v.lower() == "false":
@@ -237,9 +243,9 @@ def _output(data):
 
 
 def _normalize_task_id(raw):
-    """Task-1 / Task 1 / Task1 → 'Task 1'"""
-    m = re.match(r'Task[- ]?(\d+)', raw, re.IGNORECASE)
-    return f"Task {m.group(1)}" if m else raw
+    """Task-1 / Task 1 / Task1 / task 1 → 'Task 1'"""
+    m = re.match(r'[Tt]ask[- ]?(\d+)', raw.strip())
+    return f"Task {m.group(1)}" if m else raw.strip()
 
 
 # === 子命令 ===
@@ -254,6 +260,11 @@ def cmd_init(args):
     language = args.language or _detect_language(args.project_dir)
     framework = args.framework or _detect_framework(args.project_dir, language)
     has_frontend = _detect_has_frontend(args.project_dir)
+    # 补充: 已知前端框架名也触发 has_frontend
+    if not has_frontend and framework:
+        _FRONTEND_FRAMEWORKS = {"nextjs", "next", "nuxt", "nuxtjs", "react", "vue", "svelte", "angular", "solid", "remix", "gatsby", "vite"}
+        if framework.lower().replace(".", "").replace("-", "") in _FRONTEND_FRAMEWORKS:
+            has_frontend = True
     has_database = _detect_has_database(args.project_dir)
     has_external_api = _detect_has_external_api(args.project_dir)
     has_api_server = _detect_has_api_server(args.project_dir, language, framework)
@@ -272,6 +283,7 @@ def cmd_init(args):
         "current_task": "",
         "rollback_count": 0,
         "history": [],
+        "is_git_repo": os.path.isdir(os.path.join(args.project_dir, ".git")),
     }
 
     _write_project(pd, project)
@@ -291,7 +303,7 @@ def cmd_init(args):
         with open(gitignore, "w", encoding="utf-8") as f:
             f.write(f"{entry}\n")
 
-    _output({"status": "initialized", "plan_dir": pd, "language": language, "framework": framework})
+    _output({"status": "initialized", "plan_dir": pd, "language": language, "framework": framework, "is_git_repo": project["is_git_repo"]})
 
 
 def _detect_language(project_dir):
@@ -301,9 +313,12 @@ def _detect_language(project_dir):
     if os.path.exists(os.path.join(project_dir, "pyproject.toml")) or os.path.exists(os.path.join(project_dir, "requirements.txt")) or os.path.exists(os.path.join(project_dir, "setup.py")):
         return "python"
     if os.path.exists(os.path.join(project_dir, "package.json")):
+        # 先检查 tsconfig.json 存在
+        if os.path.exists(os.path.join(project_dir, "tsconfig.json")):
+            return "typescript"
         with open(os.path.join(project_dir, "package.json"), encoding="utf-8") as f:
             content = f.read()
-        if "typescript" in content or "tsx" in content:
+        if "typescript" in content or "tsx" in content or '"tsc"' in content:
             return "typescript"
         return "javascript"
     if os.path.exists(os.path.join(project_dir, "Cargo.toml")):
@@ -404,9 +419,15 @@ def _has_frontend_file_changes(project_dir):
                 content = f.read()
         except (IOError, OSError):
             continue
-        # 提取反引号中的文件路径
+        # 提取文件路径：反引号内 或 列表项中的路径
+        paths_found = set()
+        # 1. 反引号包裹: `path/to/file.tsx`
         for m in re.finditer(r'`([^`]+)`', content):
-            path = m.group(1).strip()
+            paths_found.add(m.group(1).strip())
+        # 2. 列表项: - path/to/file.tsx
+        for m in re.finditer(r'^[-*]\s+(\S+\.\w+)\s*$', content, re.MULTILINE):
+            paths_found.add(m.group(1).strip())
+        for path in paths_found:
             ext = os.path.splitext(path)[1].lower()
             if ext in _FRONTEND_EXTS:
                 if path not in frontend_files:
@@ -614,16 +635,14 @@ def cmd_status(args):
 
     # 计算恢复动作
     event = last_event.get("event", "")
-    if event == "done":
+    current_agent = project.get("current_agent", "")
+    if event == "done" or current_agent == "done":
         result["resume_action"] = "completed"
-        # 状态一致性修复：trace 显示 done 时覆写 current_agent
         result["current_agent"] = "done"
     elif event == "blocked":
         result["resume_action"] = "await_approval"
-    elif event == "handoff":
-        result["resume_action"] = f"dispatch_{project.get('current_agent', '')}"
     else:
-        result["resume_action"] = f"dispatch_{project.get('current_agent', '')}"
+        result["resume_action"] = f"dispatch_{current_agent}"
 
     # 检查 missing artifacts
     artifacts_dir = os.path.join(pd, "artifacts")
@@ -738,6 +757,7 @@ phase: {_agent_to_phase(args.to_agent)}
     _write_project(pd, project)
 
     _output({"status": "ok", "handoff_file": filename})
+    _update_state_md(args.project_dir)
 
 
 def cmd_trace(args):
@@ -845,12 +865,24 @@ def cmd_next(args):
                 sys.exit(1)
 
             if completed_through >= total:
+                # Update project state
+                pd = _plan_dir(args.project_dir)
+                project = _read_project(pd)
+                project["current_agent"] = "tester"
+                project["current_phase"] = "testing"
+                _write_project(pd, project)
+                _update_state_md(args.project_dir)
                 _output({
                     "next_agent": "tester",
                     "reason": f"批量审查通过（Task 1-{completed_through}），所有 {total} 个 Task 完成，进入整体测试",
                 })
             else:
                 next_task = f"Task {completed_through + 1}"
+                pd = _plan_dir(args.project_dir)
+                project = _read_project(pd)
+                project["current_task"] = next_task
+                _write_project(pd, project)
+                _update_state_md(args.project_dir)
                 _output({
                     "next_agent": "developer",
                     "next_task": next_task,
@@ -859,6 +891,10 @@ def cmd_next(args):
             return
 
         if total is None:
+            project["current_agent"] = "tester"
+            project["current_phase"] = "testing"
+            _write_project(pd, project)
+            _update_state_md(args.project_dir)
             _output({"next_agent": "tester", "reason": "未提供 task 总数，进入整体测试"})
             return
 
@@ -877,19 +913,36 @@ def cmd_next(args):
                 task_num = int(match.group())
                 if task_num < total:
                     next_task = f"Task {task_num + 1}"
+                    project["current_task"] = next_task
+                    project["current_agent"] = "developer"
+                    project["current_phase"] = "coding"
+                    _write_project(pd, project)
+                    _update_state_md(args.project_dir)
                     _output({
                         "next_agent": "developer",
                         "next_task": next_task,
                         "reason": f"{current_task} 审查通过，进入 {next_task}",
                     })
                 else:
+                    project["current_agent"] = "tester"
+                    project["current_phase"] = "testing"
+                    _write_project(pd, project)
+                    _update_state_md(args.project_dir)
                     _output({
                         "next_agent": "tester",
                         "reason": f"所有 {total} 个 Task 审查通过，进入整体测试",
                     })
             else:
+                project["current_agent"] = "tester"
+                project["current_phase"] = "testing"
+                _write_project(pd, project)
+                _update_state_md(args.project_dir)
                 _output({"next_agent": "tester", "reason": "无法解析 Task 编号，进入测试"})
         else:
+            project["current_agent"] = "tester"
+            project["current_phase"] = "testing"
+            _write_project(pd, project)
+            _update_state_md(args.project_dir)
             _output({"next_agent": "tester", "reason": "无 Task List，直接进入测试"})
         return
 
@@ -899,11 +952,19 @@ def cmd_next(args):
         project = _read_project(pd)
         has_frontend = project.get("has_frontend", False)
         if has_frontend:
+            project["current_agent"] = "ui-designer"
+            project["current_phase"] = "ui-design"
+            _write_project(pd, project)
+            _update_state_md(args.project_dir)
             _output({
                 "next_agent": "ui-designer",
                 "reason": "PRD 完成，项目包含前端，进入 UI 设计",
             })
         else:
+            project["current_agent"] = "architect"
+            project["current_phase"] = "design"
+            _write_project(pd, project)
+            _update_state_md(args.project_dir)
             _output({
                 "next_agent": "architect",
                 "reason": "PRD 完成，进入架构设计",
@@ -916,6 +977,7 @@ def cmd_next(args):
         project = _read_project(pd)
         has_frontend = project.get("has_frontend", False)
         rollback_to = args.route_to if args.route_to in ["pm", "ui-designer"] else ("ui-designer" if has_frontend else "pm")
+        _update_state_md(args.project_dir)
         _output({
             "next_agent": rollback_to,
             "reason": f"Architect 回退到 {rollback_to}",
@@ -923,6 +985,7 @@ def cmd_next(args):
         return
 
     if target == "_await_approval":
+        _update_state_md(args.project_dir)
         _output({
             "next_agent": "developer",
             "blocked": True,
@@ -931,6 +994,7 @@ def cmd_next(args):
         return
 
     if target == "_from_route":
+        _update_state_md(args.project_dir)
         _output({
             "next_agent": args.route_to or "pm",
             "reason": "Triage 路由",
@@ -959,6 +1023,7 @@ def cmd_next(args):
     if args.current_task:
         result["next_task"] = args.current_task
     _output(result)
+    _update_state_md(args.project_dir)
 
 
 def cmd_parse_tasks(args):
@@ -973,111 +1038,170 @@ def cmd_parse_tasks(args):
 
     tasks = []
     debug_info = [] if hasattr(args, 'debug') and args.debug else None
+    parse_method = "regex_fallback"
 
-    # 支持多种 Task 标题格式：
-    # - ### Task 1: ... / ### Task-1: ... / ### Task1: ...
-    # - ### Task 1：... (中文冒号)
-    # - Task 1: ... (没有 ###)
-    task_pattern = re.compile(r'(?:### )?(Task[- ]?\d+)[：:]\s*(.+?)(?=\n(?:### )?(?:Task[- ]?\d+[：:]|## |$))', re.DOTALL)
+    # YAML-first: 解析 <!-- task-meta ... --> 块
+    meta_pattern = re.compile(
+        r'###\s+(Task[- ]?\d+)[：:]\s*(.+?)\n'
+        r'<!-- task-meta\s*\n(.*?)\n-->',
+        re.DOTALL
+    )
+    meta_matches = meta_pattern.findall(content)
+    if meta_matches:
+        parse_method = "yaml_meta"
+        for raw_id, name, yaml_str in meta_matches:
+            tid = _normalize_task_id(raw_id)
+            meta = _simple_yaml_load(yaml_str)
+            # files 字段: 支持 YAML list 语法 [a, b] 或逐行 - a
+            files = meta.get("files", [])
+            if isinstance(files, str):
+                files = [f.strip() for f in files.split(",") if f.strip()]
+            elif not isinstance(files, list):
+                files = []
+            # deps 字段
+            deps_raw = meta.get("deps", [])
+            if isinstance(deps_raw, str):
+                deps_raw = [d.strip() for d in deps_raw.split(",") if d.strip()]
+            elif not isinstance(deps_raw, list):
+                deps_raw = []
+            deps = [_normalize_task_id(str(d)) for d in deps_raw] if deps_raw else []
+            tasks.append({
+                "id": tid, "name": name.strip(),
+                "files": files,
+                "deps": deps,
+                "wave": int(meta.get("wave", 1)),
+            })
+        # 从 wave 字段构建 waves dict + parallel_groups
+        waves = {}
+        for t in tasks:
+            w = str(t.get("wave", 1))
+            waves.setdefault(w, []).append(t["id"])
+        parallel_groups = [waves[k] for k in sorted(waves.keys(), key=int)]
+    else:
+        # Regex fallback: 原有正则逻辑
+        # 支持多种 Task 标题格式
+        task_pattern = re.compile(r'(?:### )?(Task[- ]?\d+)[：:]\s*(.+?)(?=\n(?:### )?(?:Task[- ]?\d+[：:]|## |$))', re.DOTALL)
 
-    for match in task_pattern.finditer(content):
-        task_id = _normalize_task_id(match.group(1))
-        task_name = match.group(2).strip()
+        for match in task_pattern.finditer(content):
+            task_id = _normalize_task_id(match.group(1))
+            task_name = match.group(2).strip()
+            # 清理 name：去除文件清单、依赖等元数据，只保留描述
+            task_name = re.sub(
+                r'\s*\*{0,2}(?:文件[清单]*|Files?|依赖|Depends|deps)\*{0,2}\s*[：:].*',
+                '', task_name, flags=re.DOTALL | re.IGNORECASE
+            ).strip()
+            task_name = re.sub(r'\s+', ' ', task_name)
 
-        # 移除任务名称中多余的换行
-        task_name = re.sub(r'\s+', ' ', task_name)
+            task = {"id": task_id, "name": task_name, "files": [], "deps": []}
+            section_content = match.group(0)
 
-        task = {
-            "id": task_id,
-            "name": task_name,
-            "files": [],
-            "deps": []
-        }
+            # 提取文件列表（支持 文件/文件清单/Files 等标签，支持多行 - file 格式）
+            file_line_match = re.search(
+                r'\*{0,2}(?:文件[清单]*|Files?)\*{0,2}\s*[：:]\s*\*{0,2}\s*(.+?)(?=\n\*{0,2}(?:依赖|Depends|deps)|\n#{2,}|\Z)',
+                section_content, re.DOTALL | re.IGNORECASE
+            )
+            if file_line_match:
+                file_block = file_line_match.group(1).strip()
+                # 优先提取 backtick 路径
+                backtick_paths = re.findall(r'`([^`]+)`', file_block)
+                if backtick_paths:
+                    for p in backtick_paths:
+                        clean = re.sub(r'[（(].+?[）)]', '', p).strip()
+                        if clean and ('/' in clean or '.' in clean):
+                            task["files"].append(clean)
+                else:
+                    # 提取 "- filepath" 列表项或逗号分隔
+                    list_items = re.findall(r'^[-*]\s+(.+)', file_block, re.MULTILINE)
+                    if list_items:
+                        for item in list_items:
+                            clean = re.sub(r'[（(].+?[）)]', '', item).strip().strip('`')
+                            if clean and ('/' in clean or '.' in clean):
+                                task["files"].append(clean)
+                    elif file_block:
+                        for p in re.split(r'[,，]', file_block):
+                            clean = re.sub(r'[（(].+?[）)]', '', p).strip().strip('`')
+                            if clean and clean.lower() not in ['无', 'none', '']:
+                                task["files"].append(clean)
 
-        # 提取文件列表 - 支持多种格式：
-        # - 文件: `internal/store/store.go`（重写）, `internal/store/memory.go`（新建）
-        # - 文件:
-        #   - `internal/store/store.go`
-        section_content = match.group(0)
+            # 提取依赖（strip markdown bold markers from captured value）
+            dep_match = re.search(
+                r'\*{0,2}(?:依赖|Depends|deps)\*{0,2}\s*[：:]\s*\*{0,2}\s*(.+?)(?:\n[-*] |\n#{2,} |\Z)',
+                section_content, re.DOTALL | re.IGNORECASE
+            )
+            if dep_match:
+                dep_text = dep_match.group(1).strip().strip('*').strip()
+                if dep_text.lower() not in ["无", "none", ""]:
+                    for sep in [',', '，']:
+                        deps = [d.strip().strip('*').strip() for d in dep_text.split(sep) if d.strip().strip('*').strip()]
+                        if len(deps) > 1:
+                            task["deps"] = [_normalize_task_id(d) if re.match(r'[Tt]ask', d) else d for d in deps]
+                            break
+                    if not task["deps"]:
+                        task_refs = re.findall(r'Task[- \s]?\d+', dep_text, re.IGNORECASE)
+                        if task_refs:
+                            task["deps"] = [_normalize_task_id(t.strip()) for t in task_refs]
+                        else:
+                            task["deps"] = [dep_text]
 
-        # 方式 1: 单行 "- 文件: path1, path2" 格式（支持 **文件** markdown bold）
-        file_line_match = re.search(r'\*{0,2}(?:文件|Files?)\*{0,2}\s*[：:]\s*(.+)', section_content, re.IGNORECASE)
-        if file_line_match:
-            file_text = file_line_match.group(1).strip()
-            # 提取反引号内的路径，或逗号分隔的路径
-            backtick_paths = re.findall(r'`([^`]+)`', file_text)
-            if backtick_paths:
-                for p in backtick_paths:
-                    # 去除括号注释如 "（重写）"
-                    clean = re.sub(r'[（(].+?[）)]', '', p).strip()
-                    if clean and '/' in clean or '.' in clean:
-                        task["files"].append(clean)
-            elif file_text:
-                # 无反引号，按逗号分隔
-                for p in re.split(r'[,，]', file_text):
-                    clean = re.sub(r'[（(].+?[）)]', '', p).strip().strip('`')
-                    if clean and clean.lower() not in ['无', 'none', '']:
-                        task["files"].append(clean)
+            tasks.append(task)
 
-        # 提取依赖：支持中文"依赖"和英文"deps"（支持 **依赖** markdown bold）
-        dep_match = re.search(r'\*{0,2}(?:依赖|Depends|deps)\*{0,2}\s*[：:]\s*(.+?)(?:\n- |\n## |$)', section_content, re.DOTALL | re.IGNORECASE)
-        if dep_match:
-            dep_text = dep_match.group(1).strip()
-            if dep_text not in ["无", "none", ""]:
-                # 优先用逗号（中/英）分隔多个依赖
-                for sep in [',', '，']:
-                    deps = [d.strip() for d in dep_text.split(sep) if d.strip()]
-                    if len(deps) > 1:
-                        task["deps"] = deps
-                        break
-                if not task["deps"]:
-                    # 无逗号分隔时，尝试匹配 "Task N" / "Task-N" 模式提取多个依赖
-                    task_refs = re.findall(r'Task[- \s]?\d+', dep_text, re.IGNORECASE)
-                    if task_refs:
-                        task["deps"] = [_normalize_task_id(t.strip()) for t in task_refs]
-                    else:
-                        task["deps"] = [dep_text]
+        # 更宽松的 fallback（仅在 "## Task List" section 内搜索）
+        if not tasks:
+            task_list_match = re.search(
+                r'## Task List\s*\n(.*?)(?=\n## |\Z)', content, re.DOTALL
+            )
+            search_content = task_list_match.group(1) if task_list_match else ""
+            if search_content:
+                for i, line in enumerate(search_content.split('\n'), 1):
+                    m = re.match(r'^\s*(\d+)\.\s*(.+)$', line)
+                    if m:
+                        tasks.append({
+                            "id": f"Task {m.group(1)}",
+                            "name": m.group(2).strip(),
+                            "files": [], "deps": []
+                        })
 
-        tasks.append(task)
+        # 分析并行分组：无依赖或依赖已完成的 Task 可以并行
+        task_ids = [t["id"] for t in tasks]
+        parallel_groups = []
+        remaining = list(range(len(tasks)))
+        resolved = set()
 
-    # 如果没有找到任务，尝试更宽松的格式（仅在 "## Task List" section 内搜索）
-    if not tasks:
-        task_list_match = re.search(
-            r'## Task List\s*\n(.*?)(?=\n## |\Z)', content, re.DOTALL
-        )
-        search_content = task_list_match.group(1) if task_list_match else ""
-        if search_content:
-            for i, line in enumerate(search_content.split('\n'), 1):
-                m = re.match(r'^\s*(\d+)\.\s*(.+)$', line)
-                if m:
-                    tasks.append({
-                        "id": f"Task {m.group(1)}",
-                        "name": m.group(2).strip(),
-                        "files": [],
-                        "deps": []
-                    })
+        while remaining:
+            group = []
+            for idx in remaining:
+                deps = tasks[idx]["deps"]
+                if not deps or all(d in resolved for d in deps):
+                    group.append(tasks[idx]["id"])
+            if not group:
+                group = [tasks[remaining[0]]["id"]]
+            parallel_groups.append(group)
+            resolved.update(group)
+            remaining = [i for i in remaining if tasks[i]["id"] not in resolved]
 
-    # 分析并行分组：无依赖或依赖已完成的 Task 可以并行
-    task_ids = [t["id"] for t in tasks]
-    parallel_groups = []
-    remaining = list(range(len(tasks)))
-    resolved = set()
+    # 构建 waves dict（YAML 路径已在上面构建，regex 路径从 parallel_groups 构建）
+    if parse_method == "regex_fallback":
+        waves = {}
+        for i, group in enumerate(parallel_groups, 1):
+            waves[str(i)] = group
 
-    while remaining:
-        group = []
-        for idx in remaining:
-            deps = tasks[idx]["deps"]
-            # 依赖为空或全部已解决 → 可加入当前批次
-            if not deps or all(d in resolved for d in deps):
-                group.append(tasks[idx]["id"])
-        if not group:
-            # 防止死循环（循环依赖）
-            group = [tasks[remaining[0]]["id"]]
-        parallel_groups.append(group)
-        resolved.update(group)
-        remaining = [i for i in remaining if tasks[i]["id"] not in resolved]
+    result = {
+        "tasks": tasks, "total": len(tasks),
+        "parallel_groups": parallel_groups,
+        "waves": waves,
+        "total_waves": len(parallel_groups),
+        "parse_method": parse_method,
+    }
 
-    result = {"tasks": tasks, "total": len(tasks), "parallel_groups": parallel_groups}
+    # 将 wave 信息写入 project.yaml
+    if tasks:
+        pd = _plan_dir(args.project_dir)
+        project = _read_project(pd)
+        project["total_waves"] = len(parallel_groups)
+        if "current_wave" not in project:
+            project["current_wave"] = 1
+        _write_project(pd, project)
+        _update_state_md(args.project_dir)
 
     if debug_info is not None:
         result["debug"] = {
@@ -1100,6 +1224,7 @@ def cmd_approve(args):
     _write_project(pd, project)
 
     _output({"status": "approved"})
+    _update_state_md(args.project_dir)
 
 
 def cmd_parse_json(args):
@@ -1230,6 +1355,27 @@ def main():
     p.add_argument("--project-dir", required=True)
     p.add_argument("--tasks", required=True, help="逗号分隔的 Task ID, 如 'Task 2,Task 3,Task 4'")
 
+    # extract-section
+    p = sub.add_parser("extract-section", help="从 artifact 文件提取指定 section")
+    p.add_argument("--project-dir", required=True)
+    p.add_argument("--file", required=True, help="artifact 文件名, 如 design.md")
+    p.add_argument("--section", required=True, help="section 标题, 如 'Task 1'")
+
+    # validate-plan
+    p = sub.add_parser("validate-plan", help="验证设计方案完整性（6 维度评分）")
+    p.add_argument("--project-dir", required=True)
+
+    # resume
+    p = sub.add_parser("resume", help="跨会话恢复: 分析状态并生成恢复上下文")
+    p.add_argument("--project-dir", required=True)
+
+    # decision
+    p = sub.add_parser("decision", help="记录架构/技术决策")
+    p.add_argument("--project-dir", required=True)
+    p.add_argument("--agent", required=True, help="做决策的 Agent")
+    p.add_argument("--decision", required=True, help="决策内容")
+    p.add_argument("--rationale", default="", help="决策理由")
+
     p = sub.add_parser("detect-frontend-changes", help="检测 handoff 中是否涉及前端文件变更")
     p.add_argument("--project-dir", required=True)
 
@@ -1248,6 +1394,10 @@ def main():
         "complete-task": cmd_complete_task,
         "check-conflicts": cmd_check_conflicts,
         "detect-frontend-changes": cmd_detect_frontend_changes,
+        "extract-section": cmd_extract_section,
+        "resume": cmd_resume,
+        "decision": cmd_decision,
+        "validate-plan": cmd_validate_plan,
     }
 
     if args.command in commands:
@@ -1269,56 +1419,444 @@ def cmd_complete_task(args):
         completed.append(task_id)
     project["completed_tasks"] = completed
     _write_project(pd, project)
+
+    # Wave 进度追踪：同 wave 所有 task 完成 → 自动推进 current_wave
+    current_wave = project.get("current_wave", 1)
+    total_waves = project.get("total_waves", 0)
+    if total_waves > 0:
+        # 读取 design.md 获取当前 wave 的 task 列表
+        design_path = os.path.join(pd, "artifacts", "design.md")
+        if os.path.isfile(design_path):
+            with open(design_path, encoding="utf-8") as f:
+                dc = f.read()
+            meta_pat = re.compile(
+                r'###\s+(Task[- ]?\d+)[：:]\s*.+?\n'
+                r'<!-- task-meta\s*\n(.*?)\n-->',
+                re.DOTALL
+            )
+            wave_tasks = []
+            for m in meta_pat.finditer(dc):
+                tid = _normalize_task_id(m.group(1))
+                meta = _simple_yaml_load(m.group(2))
+                if int(meta.get("wave", 1)) == current_wave:
+                    wave_tasks.append(tid)
+            if wave_tasks and all(t in completed for t in wave_tasks):
+                project["current_wave"] = current_wave + 1
+                _write_project(pd, project)
+
     _write_trace(pd, "system", "task-done", task_id, f"{task_id} 标记完成")
     _output({"status": "ok", "task": task_id, "total_completed": len(completed)})
+    _update_state_md(args.project_dir)
 
 
-def cmd_check_conflicts(args):
-    """分析并行 Task 批次中的文件冲突"""
-    design_path = os.path.join(args.project_dir, ".plan", "artifacts", "design.md")
-    if not os.path.exists(design_path):
-        _output({"error": "design.md not found"})
-        sys.exit(1)
+def cmd_extract_section(args):
+    """从 artifact 文件提取指定 section（支持 ##/### 级别标题匹配）"""
+    artifact_path = os.path.join(_plan_dir(args.project_dir), "artifacts", args.file)
+    if not os.path.isfile(artifact_path):
+        _output({"section": args.section, "content": "", "found": False})
+        return
+    try:
+        with open(artifact_path, encoding="utf-8") as f:
+            content = f.read()
+    except (IOError, OSError, UnicodeDecodeError) as e:
+        _output({"section": args.section, "content": "", "found": False, "error": str(e)})
+        return
+    # 先找到 section 标题，获取其 heading level（# 数量）
+    heading_match = re.search(r'(#{1,3})\s+' + re.escape(args.section), content, re.IGNORECASE)
+    if heading_match:
+        level = len(heading_match.group(1))  # 1, 2, or 3
+        # 截取到同级或更高级标题（# 数量 <= level），保留子级内容
+        end_pat = r'\n#{1,' + str(level) + r'}\s'
+        start_pat = r'(#{' + str(level) + r'}\s+' + re.escape(args.section) + r'.*?)'
+        m = re.search(start_pat + r'(?=' + end_pat + r'|\Z)', content, re.DOTALL | re.IGNORECASE)
+    else:
+        m = None
+    _output({
+        "section": args.section,
+        "content": m.group(1).strip() if m else "",
+        "found": bool(m),
+    })
+
+
+def _update_state_md(project_dir):
+    """从 project.yaml + handoff/ 聚合生成 .plan/STATE.md（跨会话恢复用）"""
+    pd = _plan_dir(project_dir)
+    project = _read_project(pd)
+
+    current_agent = project.get("current_agent", "unknown")
+    current_phase = project.get("current_phase", "unknown")
+    current_task = project.get("current_task", "")
+    current_wave = project.get("current_wave", 1)
+    total_waves = project.get("total_waves", 0)
+    completed_tasks = project.get("completed_tasks", [])
+    if not isinstance(completed_tasks, list):
+        completed_tasks = []
+    decisions = project.get("decisions", [])
+    if not isinstance(decisions, list):
+        decisions = []
+
+    # 收集累积文件（from handoffs）
+    cumulative_files = {"created": [], "modified": []}
+    handoff_dir = os.path.join(pd, "handoff")
+    if os.path.isdir(handoff_dir):
+        for fname in sorted(os.listdir(handoff_dir)):
+            fpath = os.path.join(handoff_dir, fname)
+            if not fname.endswith(".md") or not os.path.isfile(fpath):
+                continue
+            try:
+                with open(fpath, encoding="utf-8") as f:
+                    hcontent = f.read()
+                for m in re.finditer(r'### 新建文件\n(.*?)(?=\n###|\n##|\Z)', hcontent, re.DOTALL):
+                    for fm in re.findall(r'`([^`]+)`', m.group(1)):
+                        if fm not in cumulative_files["created"]:
+                            cumulative_files["created"].append(fm)
+                for m in re.finditer(r'### 修改文件\n(.*?)(?=\n###|\n##|\Z)', hcontent, re.DOTALL):
+                    for fm in re.findall(r'`([^`]+)`', m.group(1)):
+                        if fm not in cumulative_files["modified"]:
+                            cumulative_files["modified"].append(fm)
+            except (IOError, OSError):
+                continue
+
+    # 构建 STATE.md
+    lines = [
+        f"# STATE — {project.get('name', 'unknown')}",
+        f"\n> Auto-generated by orchestrator.py | {_now()}",
+        "\n## Current Status\n",
+        f"- **Agent**: {current_agent}",
+        f"- **Phase**: {current_phase}",
+        f"- **Task**: {current_task or 'N/A'}",
+        f"- **Wave**: {current_wave}/{total_waves}" if total_waves else f"- **Wave**: N/A",
+        f"- **Mode**: {project.get('mode', 'full')}",
+        "\n## Progress\n",
+        f"| Task | Status |",
+        f"|------|--------|",
+    ]
+
+    # 尝试从 design.md 获取 task 列表
+    design_path = os.path.join(pd, "artifacts", "design.md")
+    all_task_ids = []
+    if os.path.isfile(design_path):
+        with open(design_path, encoding="utf-8") as f:
+            dcontent = f.read()
+        for tm in re.finditer(r'###\s+(Task[- ]?\d+)[：:]', dcontent):
+            tid = _normalize_task_id(tm.group(1))
+            if tid not in all_task_ids:
+                all_task_ids.append(tid)
+
+    if all_task_ids:
+        for tid in all_task_ids:
+            status = "done" if tid in completed_tasks else ("in_progress" if tid == current_task else "pending")
+            lines.append(f"| {tid} | {status} |")
+    elif completed_tasks:
+        for tid in completed_tasks:
+            lines.append(f"| {tid} | done |")
+
+    # Decisions
+    if decisions:
+        lines.append("\n## Decisions\n")
+        for d in decisions:
+            agent = d.get("agent", "?")
+            decision = d.get("decision", "")
+            rationale = d.get("rationale", "")
+            lines.append(f"- **[{agent}]** {decision}")
+            if rationale:
+                lines.append(f"  - _Rationale_: {rationale}")
+
+    # Cumulative files
+    if cumulative_files["created"] or cumulative_files["modified"]:
+        lines.append("\n## Cumulative Files\n")
+        if cumulative_files["created"]:
+            lines.append("### Created")
+            for f in cumulative_files["created"]:
+                lines.append(f"- `{f}`")
+        if cumulative_files["modified"]:
+            lines.append("### Modified")
+            for f in cumulative_files["modified"]:
+                lines.append(f"- `{f}`")
+
+    state_path = os.path.join(pd, "STATE.md")
+    with open(state_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+def cmd_resume(args):
+    """分析 project 状态并生成恢复上下文（跨会话恢复入口）"""
+    pd = _plan_dir(args.project_dir)
+    if not os.path.exists(os.path.join(pd, "project.yaml")):
+        _output({"error": "项目未初始化，无法恢复"})
+        return
+
+    project = _read_project(pd)
+    anomalies = []
+
+    current_agent = project.get("current_agent", "")
+    current_phase = project.get("current_phase", "")
+    current_task = project.get("current_task", "")
+
+    # 检查 trace 与 project.yaml 一致性
+    last_event = _read_last_trace(pd)
+    event = last_event.get("event", "")
+    if event == "done" and current_agent != "done":
+        anomalies.append("trace 显示 done 但 project.yaml current_agent 非 done")
+    if event == "blocked" and current_phase != "design":
+        anomalies.append(f"trace 显示 blocked 但 current_phase={current_phase}（期望 design）")
+
+    # 检查 handoff 链连续性
+    handoff_dir = os.path.join(pd, "handoff")
+    if os.path.isdir(handoff_dir):
+        handoffs = sorted([f for f in os.listdir(handoff_dir) if f.endswith(".md")])
+        if handoffs:
+            latest = handoffs[-1]
+            try:
+                with open(os.path.join(handoff_dir, latest), encoding="utf-8") as f:
+                    hcontent = f.read()
+                # 提取 to: 字段
+                to_match = re.search(r'^to:\s*(.+)', hcontent, re.MULTILINE)
+                if to_match:
+                    handoff_to = to_match.group(1).strip()
+                    if handoff_to != current_agent and current_agent != "done":
+                        anomalies.append(f"最新 handoff.to={handoff_to} 但 current_agent={current_agent}")
+            except (IOError, OSError):
+                anomalies.append(f"无法读取最新 handoff: {latest}")
+
+    # 检查 artifact 完整性
+    artifacts_dir = os.path.join(pd, "artifacts")
+    for agent_key, info in REQUIRED_ARTIFACTS.items():
+        phase = PHASE_MAP.get(agent_key, "")
+        phase_order = list(PHASE_MAP.values())
+        if current_phase in phase_order and phase in phase_order:
+            if phase_order.index(current_phase) > phase_order.index(phase):
+                if not os.path.exists(os.path.join(artifacts_dir, info["file"])):
+                    anomalies.append(f"已过 {phase} 阶段但缺少 {info['file']}")
+
+    # 计算恢复动作
+    if event == "done" or current_agent == "done":
+        resume_action = "completed"
+    elif event == "blocked":
+        resume_action = "await_approval"
+    else:
+        resume_action = f"dispatch_{current_agent}"
+
+    # 构建恢复上下文
+    resume_context = {
+        "agent": current_agent,
+        "phase": current_phase,
+        "task": current_task,
+        "mode": project.get("mode", "full"),
+        "wave": project.get("current_wave", 1),
+        "total_waves": project.get("total_waves", 0),
+        "completed_tasks": project.get("completed_tasks", []),
+    }
+
+    # 生成建议 prompt
+    if resume_action == "completed":
+        suggested_prompt = "流程已完成。如需重新开始，请删除 .plan/ 目录。"
+    elif resume_action == "await_approval":
+        suggested_prompt = "设计方案等待审批。请查看 .plan/artifacts/design.md 后确认。"
+    else:
+        suggested_prompt = f"继续 {current_agent} 阶段"
+        if current_task:
+            suggested_prompt += f"（当前: {current_task}）"
+        suggested_prompt += "。读取最新 handoff 获取上下文。"
+
+    # 更新 STATE.md
+    _update_state_md(args.project_dir)
+
+    _output({
+        "resume_action": resume_action,
+        "resume_context": resume_context,
+        "anomalies": anomalies,
+        "suggested_prompt": suggested_prompt,
+    })
+
+
+def cmd_decision(args):
+    """记录架构/技术决策到 project.yaml["decisions"]"""
+    pd = _plan_dir(args.project_dir)
+    project = _read_project(pd)
+    decisions = project.get("decisions", [])
+    if not isinstance(decisions, list):
+        decisions = []
+    decisions.append({
+        "agent": args.agent,
+        "decision": args.decision,
+        "rationale": args.rationale or "",
+        "timestamp": _now(),
+    })
+    project["decisions"] = decisions
+    _write_project(pd, project)
+    _write_trace(pd, args.agent, "decision", "", args.decision)
+    _update_state_md(args.project_dir)
+    _output({"status": "ok", "total_decisions": len(decisions)})
+
+
+def cmd_validate_plan(args):
+    """验证设计方案完整性 — Goal-backward verification（6 维度评分，满分 100）"""
+    pd = _plan_dir(args.project_dir)
+    design_path = os.path.join(pd, "artifacts", "design.md")
+    if not os.path.isfile(design_path):
+        _output({"error": "design.md not found", "score": 0, "pass": False})
+        return
 
     with open(design_path, encoding="utf-8") as f:
         content = f.read()
 
-    # 解析每个 Task 的文件列表
-    task_files = {}
-    task_pattern = re.compile(
-        r'(?:### )?(Task[- ]?\d+)[：:]\s*(.+?)(?=\n(?:### )?(?:Task[- ]?\d+[：:]|## |$))',
-        re.DOTALL
-    )
-    for match in task_pattern.finditer(content):
-        task_id = _normalize_task_id(match.group(1))
-        section = match.group(0)
-        file_match = re.search(r'(?:文件|files?)\s*[：:]\s*(.+?)(?:\n- |\n##|\n###|$)',
-                               section, re.IGNORECASE)
-        if file_match:
-            raw = file_match.group(1).strip().strip('`')
-            files = [f.strip().strip('`') for f in re.split(r'[,，]', raw) if f.strip()]
-            task_files[task_id] = files
+    project = _read_project(pd)
+    dims = {}
+    blocking = []
+    warnings = []
 
-    # 解析要检查的 Task IDs
-    check_tasks = [t.strip() for t in args.tasks.split(",") if t.strip()]
+    # 1. Section 完整性 (20 分)
+    required_sections = ["技术选型", "数据模型", "API 定义", "Task List", "目录结构"]
+    found = sum(1 for s in required_sections if re.search(rf'##\s+{re.escape(s)}', content))
+    dims["section_completeness"] = {"score": int(found / len(required_sections) * 20), "max": 20,
+                                     "missing": [s for s in required_sections if not re.search(rf'##\s+{re.escape(s)}', content)]}
+    if dims["section_completeness"]["missing"]:
+        blocking.append(f"缺少 section: {', '.join(dims['section_completeness']['missing'])}")
 
-    # 检测冲突
-    file_to_tasks = {}
-    for tid in check_tasks:
-        for f in task_files.get(tid, []):
-            norm = f.split("/")[-1]  # 用文件名做近似匹配
-            file_to_tasks.setdefault(norm, []).append(tid)
+    # 2. Task 元数据完整 (20 分)
+    meta_pattern = re.compile(r'###\s+(Task[- ]?\d+)[：:]\s*(.+?)\n<!-- task-meta\s*\n(.*?)\n-->', re.DOTALL)
+    meta_matches = meta_pattern.findall(content)
+    task_headers = re.findall(r'###\s+(Task[- ]?\d+)[：:]', content)
+    total_tasks = len(task_headers)
+    tasks_with_meta = len(meta_matches)
+    meta_score = 0
+    task_metas = []
+    if total_tasks > 0:
+        meta_ratio = tasks_with_meta / total_tasks
+        meta_score = int(meta_ratio * 10)  # 10 分: 有 meta 块
+        # 检查 files 非空 和 name
+        valid_count = 0
+        for raw_id, name, yaml_str in meta_matches:
+            meta = _simple_yaml_load(yaml_str)
+            files = meta.get("files", [])
+            has_files = bool(files) and files != []
+            task_metas.append({"id": _normalize_task_id(raw_id), "meta": meta, "has_files": has_files})
+            if has_files and name.strip():
+                valid_count += 1
+        if tasks_with_meta > 0:
+            meta_score += int(valid_count / tasks_with_meta * 10)
+        if tasks_with_meta < total_tasks:
+            warnings.append(f"{total_tasks - tasks_with_meta} 个 Task 缺少 <!-- task-meta --> 块")
+    dims["task_metadata"] = {"score": meta_score, "max": 20, "tasks_total": total_tasks, "tasks_with_meta": tasks_with_meta}
 
-    conflicts = {f: tasks for f, tasks in file_to_tasks.items() if len(tasks) > 1}
+    # 3. DAG 有效性 (15 分) — 依赖引用合法、无环
+    dag_score = 15
+    all_task_ids = {_normalize_task_id(h) for h in task_headers}
+    deps_map = {}
+    for tm in task_metas:
+        deps_raw = tm["meta"].get("deps", [])
+        if isinstance(deps_raw, str):
+            deps_raw = [d.strip() for d in deps_raw.split(",") if d.strip()]
+        elif not isinstance(deps_raw, list):
+            deps_raw = []
+        deps = [_normalize_task_id(str(d)) for d in deps_raw if str(d).strip()]
+        deps_map[tm["id"]] = deps
+        for d in deps:
+            if d not in all_task_ids:
+                blocking.append(f"{tm['id']} 依赖不存在的 {d}")
+                dag_score = max(0, dag_score - 5)
 
-    result = {
-        "tasks_checked": check_tasks,
-        "conflicts": conflicts,
-        "has_conflicts": bool(conflicts),
-    }
-    if conflicts:
-        result["recommendation"] = "存在文件冲突，建议将冲突 Task 改为串行执行，或合并到同一 Agent"
-    _output(result)
+    # 简单环检测（拓扑排序 - Kahn's algorithm）
+    in_degree = {tid: 0 for tid in all_task_ids}
+    for tid, deps in deps_map.items():
+        for d in deps:
+            if d in in_degree:
+                in_degree[tid] += 1  # tid depends on d → incoming edge
+    # Kahn's algorithm
+    visited = set()
+    queue = [tid for tid, deg in in_degree.items() if deg == 0]
+    while queue:
+        node = queue.pop(0)
+        visited.add(node)
+        for tid, deps in deps_map.items():
+            if node in deps and tid not in visited:
+                in_degree[tid] -= 1
+                if in_degree[tid] == 0:
+                    queue.append(tid)
+    if len(visited) < len(all_task_ids):
+        cycle_tasks = all_task_ids - visited
+        blocking.append(f"检测到循环依赖: {', '.join(cycle_tasks)}")
+        dag_score = 0
+    dims["dag_validity"] = {"score": dag_score, "max": 15}
+
+    # 4. 文件覆盖度 (15 分)
+    dir_section = re.search(r'## 目录结构\s*\n```\s*\n(.*?)\n```', content, re.DOTALL)
+    dir_files = set()
+    if dir_section:
+        for line in dir_section.group(1).splitlines():
+            stripped = line.strip().strip("├─└│ ")
+            if '.' in stripped and '/' not in stripped:
+                dir_files.add(stripped)
+            elif stripped and not stripped.endswith('/'):
+                dir_files.add(stripped)
+    task_files = set()
+    for tm in task_metas:
+        files = tm["meta"].get("files", [])
+        if isinstance(files, list):
+            for f in files:
+                task_files.add(os.path.basename(str(f)))
+    if dir_files:
+        covered = dir_files & task_files
+        coverage = len(covered) / len(dir_files) if dir_files else 0
+        file_score = int(coverage * 15)
+        uncovered = dir_files - task_files
+        if uncovered:
+            warnings.append(f"目录结构中 {len(uncovered)} 个文件未被 Task 覆盖")
+    else:
+        file_score = 8  # 无目录结构 section，给中间分
+    dims["file_coverage"] = {"score": file_score, "max": 15}
+
+    # 5. Wave 一致性 (15 分)
+    wave_score = 15
+    for tm in task_metas:
+        wave = int(tm["meta"].get("wave", 1))
+        deps = deps_map.get(tm["id"], [])
+        for d in deps:
+            dep_meta = next((t for t in task_metas if t["id"] == d), None)
+            if dep_meta:
+                dep_wave = int(dep_meta["meta"].get("wave", 1))
+                if wave <= dep_wave:
+                    warnings.append(f"{tm['id']} wave={wave} 但依赖 {d} wave={dep_wave}")
+                    wave_score = max(0, wave_score - 5)
+    dims["wave_consistency"] = {"score": wave_score, "max": 15}
+
+    # 6. PRD 对齐 (15 分)
+    prd_path = os.path.join(pd, "artifacts", "prd.md")
+    prd_score = 15
+    if os.path.isfile(prd_path):
+        with open(prd_path, encoding="utf-8") as f:
+            prd_content = f.read()
+        # 提取验收标准关键词
+        ac_match = re.search(r'(?:验收标准|Acceptance Criteria)(.*?)(?=\n## |\Z)', prd_content, re.DOTALL | re.IGNORECASE)
+        if ac_match:
+            ac_text = ac_match.group(1)
+            # 提取关键词（名词短语，>= 2 个中文字符或 >= 3 个英文字符）
+            keywords = re.findall(r'[\u4e00-\u9fff]{2,}|[a-zA-Z_]{3,}', ac_text)
+            keywords = list(set(keywords))[:20]  # 限制数量
+            task_text = "\n".join(m[1] for m in meta_matches) if meta_matches else content
+            matched = sum(1 for kw in keywords if kw.lower() in task_text.lower())
+            if keywords:
+                prd_score = int(matched / len(keywords) * 15)
+                if prd_score < 8:
+                    warnings.append(f"PRD 验收标准关键词覆盖率偏低 ({matched}/{len(keywords)})")
+        else:
+            prd_score = 10  # 无验收标准 section
+    else:
+        prd_score = 10  # 无 PRD 文件
+    dims["prd_alignment"] = {"score": prd_score, "max": 15}
+
+    total_score = sum(d["score"] for d in dims.values())
+    passed = total_score >= 60
+
+    _output({
+        "score": total_score,
+        "max_score": 100,
+        "pass": passed,
+        "dimensions": dims,
+        "blocking_issues": blocking,
+        "warnings": warnings,
+    })
 
 
 def cmd_detect_frontend_changes(args):
@@ -1530,6 +2068,101 @@ def cmd_diagnose(args):
         result["status"] = "warning"
 
     _output(result)
+
+
+def cmd_check_conflicts(args):
+    """检查并行 Task 的文件冲突（全路径匹配 + 目录级软冲突检测）"""
+    pd = _plan_dir(args.project_dir)
+    design_path = os.path.join(pd, "artifacts", "design.md")
+    if not os.path.isfile(design_path):
+        _output({"error": "design.md not found", "has_conflicts": False, "conflicts": [], "soft_conflicts": []})
+        return
+
+    with open(design_path, encoding="utf-8") as f:
+        content = f.read()
+
+    requested = [t.strip() for t in args.tasks.split(",") if t.strip()]
+
+    # 解析每个 Task 的文件列表（YAML-first, 与 parse-tasks 一致）
+    task_files = {}
+    meta_pattern = re.compile(
+        r'###\s+(Task[- ]?\d+)[：:]\s*.+?\n'
+        r'<!-- task-meta\s*\n(.*?)\n-->',
+        re.DOTALL
+    )
+    meta_matches = meta_pattern.findall(content)
+    if meta_matches:
+        for raw_id, yaml_str in meta_matches:
+            tid = _normalize_task_id(raw_id)
+            meta = _simple_yaml_load(yaml_str)
+            files = meta.get("files", [])
+            if isinstance(files, str):
+                files = [f.strip() for f in files.split(",") if f.strip()]
+            elif not isinstance(files, list):
+                files = []
+            task_files[tid] = [str(f) for f in files]
+    else:
+        # Regex fallback: 旧格式
+        for tid_raw in requested:
+            tid = _normalize_task_id(tid_raw)
+            pattern = rf'(?:### )?{re.escape(tid)}[：:]\s*(.+?)(?=\n(?:### )?Task[- ]?\d+[：:]|\n## |\Z)'
+            m = re.search(pattern, content, re.DOTALL)
+            if m:
+                section = m.group(0)
+                file_match = re.search(
+                    r'\*{0,2}(?:文件|files?)\*{0,2}\s*[：:]\s*(.+)',
+                    section, re.IGNORECASE
+                )
+                if file_match:
+                    files_text = file_match.group(1).strip()
+                    backtick = re.findall(r'`([^`]+)`', files_text)
+                    if backtick:
+                        task_files[tid] = [f.strip() for f in backtick]
+                    else:
+                        task_files[tid] = [f.strip() for f in re.split(r'[,，]', files_text) if f.strip()]
+
+    # 硬冲突检测：完全相同的文件路径
+    conflicts = []
+    req_ids = [_normalize_task_id(t) for t in requested]
+    checked = set()
+    for i, t1 in enumerate(req_ids):
+        for t2 in req_ids[i + 1:]:
+            pair = tuple(sorted([t1, t2]))
+            if pair in checked:
+                continue
+            checked.add(pair)
+            f1 = set(task_files.get(t1, []))
+            f2 = set(task_files.get(t2, []))
+            overlap = f1 & f2
+            if overlap:
+                conflicts.append({
+                    "tasks": list(pair),
+                    "files": sorted(overlap),
+                })
+
+    # 软冲突检测：目录级重叠
+    soft_conflicts = []
+    dir_to_tasks = {}
+    for tid in req_ids:
+        for f in task_files.get(tid, []):
+            d = os.path.dirname(f) or "."
+            dir_to_tasks.setdefault(d, set()).add(tid)
+    for d, tids in dir_to_tasks.items():
+        if len(tids) > 1:
+            pair_key = tuple(sorted(tids))
+            # 排除已经是硬冲突的
+            if not any(tuple(sorted(c["tasks"])) == pair_key for c in conflicts):
+                soft_conflicts.append({
+                    "directory": d,
+                    "tasks": sorted(tids),
+                })
+
+    _output({
+        "has_conflicts": len(conflicts) > 0,
+        "conflicts": conflicts,
+        "soft_conflicts": soft_conflicts,
+        "task_files": task_files,
+    })
 
 
 if __name__ == "__main__":

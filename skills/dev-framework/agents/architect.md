@@ -41,27 +41,39 @@ tools: Read, Write, Glob, Grep, Bash
 
 ## Task List 格式
 
-在设计文档末尾：
+在设计文档末尾，使用 `<!-- task-meta -->` HTML 注释包裹 YAML 元数据：
 
 ```markdown
 ## Task List
 
 ### Task 1: {名称}
+<!-- task-meta
+files: [path/to/file1, path/to/file2]
+deps: []
+wave: 1
+-->
 - 描述: {要实现什么}
-- 文件: {涉及的文件路径}
-- 依赖: 无 / Task N
 
 ### Task 2: {名称}
+<!-- task-meta
+files: [path/to/file1, path/to/file3]
+deps: [Task 1]
+wave: 2
+-->
 - 描述: {要实现什么}
-- 文件: {涉及的文件路径}
-- 依赖: Task 1
 ```
+
+**元数据字段说明：**
+- `files`: 该 Task 涉及的文件路径列表（必须非空）
+- `deps`: 依赖的 Task ID 列表（无依赖为 `[]`）
+- `wave`: 执行批次编号，从 1 开始。无依赖的 Task 为 wave 1，依赖 wave N 的 Task 为 wave N+1
 
 Task 拆分原则：
 - 每个 Task 产出独立可审查的代码变更
 - Task 间按依赖排序（被依赖的在前）
 - 简单项目可以只有 1 个 Task
 - **禁止将测试拆为 Task** — 测试由 Tester Agent 独立负责，Task List 仅包含实现任务
+- **wave 编号规则**: `task.wave > max(deps.wave)`，确保 wave 递增
 
 ## 设计文档模板
 
@@ -74,6 +86,9 @@ Task 拆分原则：
 - [ ] 包含「数据模型」（至少有结构定义）
 - [ ] 包含「API 定义」（至少有端点列表）
 - [ ] 包含「Task List」（至少 1 个 Task）
+- [ ] 每个 Task 包含 `<!-- task-meta -->` 块（files, deps, wave）
+- [ ] wave 编号从 1 开始，无依赖的 Task 为 wave 1
+- [ ] 每个 Task 的 files 列表非空
 - [ ] 如果 project.yaml 中 `has_database: true` 或 `has_external_api: true`，包含「测试策略」（数据库测试方案 + 外部 API 测试方案 + 测试基础设施）
 
 如果缺少必要部分，自行补充后再输出。最多重试 3 次。

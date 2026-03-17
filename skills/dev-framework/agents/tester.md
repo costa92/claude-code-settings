@@ -232,11 +232,20 @@ tools: Read, Write, Edit, Bash, Glob, Grep
    import os
 
    SCREENSHOT_DIR = os.path.join(os.environ.get('PROJECT_DIR', '.'), '.plan/artifacts/screenshots')
+   RECORDING_DIR = os.path.join(os.environ.get('PROJECT_DIR', '.'), '.plan/artifacts/recordings')
    os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+   os.makedirs(RECORDING_DIR, exist_ok=True)
 
    with sync_playwright() as p:
        browser = p.chromium.launch(headless=True)
-       context = browser.new_context(viewport={'width': 1280, 'height': 720})
+       context = browser.new_context(
+           viewport={'width': 1280, 'height': 720},
+           record_video_dir=RECORDING_DIR,
+           record_video_size={'width': 1280, 'height': 720},
+       )
+
+       # 启用 Trace 录制（包含截图、DOM 快照、操作日志）
+       context.tracing.start(screenshots=True, snapshots=True, sources=True)
 
        # Active Browser Pages 追踪
        opened_pages = []  # 记录所有打开过的页面
@@ -293,8 +302,15 @@ tools: Read, Write, Edit, Bash, Glob, Grep
        unexpected_pages = [pg for pg in opened_pages if 'about:blank' not in pg['url']]
 
        mobile_context.close()
+
+       # 停止 Trace 录制，保存为可回放文件
+       context.tracing.stop(path=f'{RECORDING_DIR}/trace.zip')
+       # 关闭 context 以 finalize 视频文件
        context.close()
        browser.close()
+
+   # Trace 回放方式: npx playwright show-trace .plan/artifacts/recordings/trace.zip
+   # 视频文件自动保存在 RECORDING_DIR 中（.webm 格式）
    ```
 
 2. **判定规则**：
@@ -306,10 +322,14 @@ tools: Read, Write, Edit, Bash, Glob, Grep
    - 截图已生成但无法自动比对布局 → 在报告中标注为 **Manual Review Needed**
    - 所有自动化检查通过 → 浏览器测试 PASS
 
-3. **截图保存**：
+3. **截图与录制保存**：
    - `.plan/artifacts/screenshots/desktop.png`
    - `.plan/artifacts/screenshots/mobile.png`
    - `.plan/artifacts/screenshots/{interaction-name}.png`（交互状态截图，按需）
+   - `.plan/artifacts/recordings/trace.zip`（Playwright Trace，含操作日志+DOM 快照+逐步截图）
+   - `.plan/artifacts/recordings/*.webm`（浏览器操作视频，自动生成）
+
+   **Trace 回放**：`npx playwright show-trace .plan/artifacts/recordings/trace.zip`（本地浏览器打开，逐步回放每个操作的截图、DOM 状态和网络请求）
 
 4. **写入测试报告**：
    在 test-report.md 的「浏览器测试」section 填写结果（见模板）

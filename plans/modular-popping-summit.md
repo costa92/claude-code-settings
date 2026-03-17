@@ -1,273 +1,200 @@
-# Dev-Framework GSD 设计思想升级计划
+# Dev-Framework Bug 修复与优化计划
 
 ## Context
 
-通过研读 GSD (Get Shit Done) 框架的设计哲学，提取其中高价值、可落地的设计理念，升级 dev-framework skill。GSD 的核心洞察是 **Context Rot 防治**（AI 上下文填满后质量退化）和 **Goal-Backward 验证**（从目标出发反向验证计划完整性）。本次不做全面重写，而是选取 6 项实用改进逐步集成。
+通过三轮系统性测试和代码审计，发现 orchestrator.py 中存在若干 bug、状态一致性问题、错误处理缺陷，以及 SKILL.md/agents 中的文档不一致。本计划按优先级修复所有问题。
 
-## 改动总览
+## 涉及文件
 
-| # | 改进项 | 核心价值 | 涉及文件 |
-|---|--------|----------|----------|
-| 1 | Context Manifest（上下文注入清单） | 防 context rot | SKILL.md, orchestrator.py |
-| 2 | 结构化 Task 元数据 | 消除脆弱正则 | templates/design.md, agents/architect.md, orchestrator.py |
-| 3 | validate-plan 预执行验证 | 拦截低质量设计 | orchestrator.py, SKILL.md |
-| 4 | Wave 执行升级 | 更精确的并行调度 | orchestrator.py, SKILL.md |
-| 5 | Atomic Git Commit | 可追溯、可回滚 | orchestrator.py, SKILL.md |
-| 6 | STATE.md + resume 命令 | 跨会话恢复 | orchestrator.py, SKILL.md |
+| 文件 | 改动类型 |
+|------|----------|
+| `~/.claude/skills/dev-framework/orchestrator.py` | Bug 修复 + 优化 |
+| `~/.claude/skills/dev-framework/agents/reviewer.md` | 文档修正 |
+| `~/.claude/skills/dev-framework/SKILL.md` | 补充缺失文档 |
 
 ---
 
-## 改进 1: Context Manifest（上下文注入清单）
+## 修复 1: 运算符优先级 Bug (HIGH)
 
-**GSD 原则**: 每个 Agent 只接收必需的 artifact，不注入无关历史，防止 context rot。
-
-**现状问题**: SKILL.md Phase 3 step 3（行 74-96）的注入规则零散且宽泛，Developer 可能收到完整 PRD，Reviewer 可能收到所有旧 handoff。
-
-### 改动 1a: SKILL.md — 插入 Context Manifest 表
-
-在 Phase 3 step 3（行 74）前插入 Context Manifest 表，替代当前零散的条件注入逻辑（行 76-96）：
-
-| Agent | MUST 注入 | MUST NOT 注入 | 条件注入 |
-|-------|-----------|---------------|----------|
-| pm | agents/pm.md, templates/prd.md, 最新 handoff, project.yaml(name/lang/fw) | design.md, profiles/, review-report.md, test-report.md | — |
-| ui-designer | agents/ui-designer.md, templates/ui-design.md, 最新 handoff, prd.md | design.md, profiles/, review-report.md | — |
-| architect | agents/architect.md, templates/design.md, prd.md(全文), project.yaml(全量), 最新 handoff | profiles/, review-report.md, test-report.md | ui-design.md(若存在) |
-| developer | agents/developer.md, profiles/{lang}.md, **当前 Task section**(非全文 design.md), 最新 handoff | 全文 prd.md, test-report.md, 旧 handoff | review-report.md(仅退回时) |
-| reviewer | agents/reviewer.md, profiles/{lang}.md, 当前 Task section + API 定义 section, prd.md 验收标准 section, 最新 handoff | 全文 prd.md, 全文 design.md, 旧 handoff, test-report.md | ui-design.md(need_browser_test 时) |
-| tester | agents/tester.md, profiles/{lang}.md, 测试策略 + API 定义 section, prd.md 验收标准 section, 最新 handoff | 全文 prd.md, 全文 design.md, 旧 handoff | ui-design.md 测试选择器(need_browser_test 时) |
-
-将当前 step 3 条件链改写为："查阅 Context Manifest 表，为 current_agent 注入 MUST 项，检查条件项，确认不包含 MUST NOT 项。使用 `extract-section` 命令提取指定 section。"
-
-### 改动 1b: orchestrator.py — 新增 `extract-section` 命令
-
-在 `cmd_detect_frontend_changes` 之后新增，约 20 行：
+**行 1068** — regex fallback 路径中文件路径过滤条件错误：
 
 ```python
-def cmd_extract_section(args):
-    """从 artifact 文件提取指定 section"""
-    artifact_path = os.path.join(_plan_dir(args.project_dir), "artifacts", args.file)
-    if not os.path.isfile(artifact_path):
-        _output({"section": args.section, "content": "", "found": False})
-        return
-    content = open(artifact_path, encoding="utf-8").read()
-    pattern = rf'(##{{1,3}}\s+{re.escape(args.section)}.*?)(?=\n##{{1,3}}\s|\Z)'
-    m = re.search(pattern, content, re.DOTALL | re.IGNORECASE)
-    _output({"section": args.section, "content": m.group(1).strip() if m else "", "found": bool(m)})
-```
+# 当前（错误）：
+if clean and '/' in clean or '.' in clean:
+# 等价于: (clean and '/' in clean) or ('.' in clean)
+# 任何含 . 的字符串（如空字符串 + 属性名）都会通过
 
-subparser: `--file design.md --section "Task 1"`
+# 修复：
+if clean and ('/' in clean or '.' in clean):
+```
 
 ---
 
-## 改进 2: 结构化 Task 元数据
+## 修复 2: 缺失 `_update_state_md()` 调用 (HIGH)
 
-**GSD 原则**: 机器可读的 YAML 元数据替代脆弱正则解析。
+两处修改 project.yaml 后未同步 STATE.md：
 
-### 改动 2a: templates/design.md — Task List section（行 66-77）
+**2a — `cmd_parse_tasks` 行 1150**：写入 `total_waves`/`current_wave` 后缺少调用。
+```python
+_write_project(pd, project)
+_update_state_md(args.project_dir)  # 新增
+```
 
-替换为 HTML 注释包裹的 YAML 元数据格式：
+**2b — `cmd_complete_task` 行 1391**：wave 自动推进后缺少调用。
+```python
+project["current_wave"] = current_wave + 1
+_write_project(pd, project)
+# 不需要单独调用 — 行 1395 已有 _update_state_md()
+# 但需确认 _write_project 在 _update_state_md 之前执行（当前顺序正确）
+```
 
+> 注意：2b 实际上后续行 1395 已调用 `_update_state_md`，只有 2a 需要修复。
+
+---
+
+## 修复 3: `cmd_next` 路由路径状态同步 (HIGH)
+
+多个早期 return 路径不更新 project.yaml：
+
+**3a — `_check_tasks` (reviewer PASS) 路径**（行 897-912）：返回 `next_agent: developer|tester` 但不更新 `current_agent`。
+
+修复：在 reviewer PASS 路径中，对 `developer` 和 `tester` 两种结果分别更新 project.yaml：
+```python
+if task_num < total:
+    next_task = f"Task {task_num + 1}"
+    pd = _plan_dir(args.project_dir)
+    project = _read_project(pd)
+    project["current_task"] = next_task
+    _write_project(pd, project)
+    _output({...})
+else:
+    pd = _plan_dir(args.project_dir)
+    project = _read_project(pd)
+    project["current_agent"] = "tester"
+    project["current_phase"] = "testing"
+    _write_project(pd, project)
+    _output({...})
+```
+
+**3b — `target == "done"` 路径**（行 984-993）：已更新 project.yaml 但最后的 `_update_state_md` 仅在未走早期 return 时执行。将 `_update_state_md` 调用移到 `_write_project` 之后，early return 之前。
+
+**3c — 其他路径统一添加 `_update_state_md`**：`_from_route`, `_pm_next`, `_await_approval` 路径虽然不需要更新 project.yaml，但应确保调用 `_update_state_md()` 以保持 STATE.md 最新。
+
+实现方式：将 `_update_state_md` 调用从末尾移到每个路径内部，或在函数入口/出口统一调用。推荐方式：在函数末尾保留，但每个 early return 前也调用一次。
+
+---
+
+## 修复 4: `cmd_extract_section` 异常处理 (MEDIUM)
+
+**行 1405** — 文件读取无 try-except：
+```python
+# 当前：
+content = open(artifact_path, encoding="utf-8").read()
+
+# 修复：
+try:
+    with open(artifact_path, encoding="utf-8") as f:
+        content = f.read()
+except (IOError, OSError, UnicodeDecodeError) as e:
+    _output({"section": args.section, "content": "", "found": False, "error": str(e)})
+    return
+```
+
+---
+
+## 修复 5: 错误处理风格统一 (MEDIUM)
+
+`cmd_parse_tasks` 行 1000 用 `return`，`cmd_check_conflicts` 行 2020 用 `sys.exit(1)`。统一为 **return + error 字段**（不用 sys.exit），让调用方根据 JSON 中的 error 字段判断。
+
+修改 `cmd_check_conflicts`：
+```python
+# 当前：
+_output({"error": "design.md not found"})
+sys.exit(1)
+
+# 修复：
+_output({"error": "design.md not found", "has_conflicts": False, "conflicts": [], "soft_conflicts": []})
+return
+```
+
+---
+
+## 修复 6: Reviewer Agent 文档修正 (MEDIUM)
+
+**`agents/reviewer.md` 行 44, 51**：
+
+当前 行 44 `"handoff_to": "tester|developer"` 和行 51 `handoff_to: "reviewer_pass"` 矛盾且后者不被 orchestrator 使用。
+
+修正：
 ```markdown
-## Task List
+---JSON---
+{
+  "status": "done",
+  "artifact": ".plan/artifacts/review-report.md",
+  "conclusion": "PASS|FAIL",
+  "handoff_to": "developer",
+  "current_task": "Task N",
+  "summary": "审查概要",
+  "context_for_next": "..."
+}
+---JSON---
 
-### Task 1: {名称}
-<!-- task-meta
-files: [path/to/file1, path/to/file2]
-deps: []
-wave: 1
--->
-- 描述: {要实现什么}
-
-### Task 2: {名称}
-<!-- task-meta
-files: [path/to/file1, path/to/file3]
-deps: [Task 1]
-wave: 2
--->
-- 描述: {要实现什么}
+- `conclusion: PASS` → orchestrator 决定下一步（进入下个 Task 的 Developer 或 Tester）
+  - **PASS 时 handoff_to 字段会被 orchestrator 覆盖，可填任意值**
+- `conclusion: FAIL` → `handoff_to: developer`
 ```
 
-### 改动 2b: agents/architect.md — Task List 格式说明（行 42-58）
+删除行 51 的 `"reviewer_pass"` 引用。
 
-替换为新格式规范。输出护栏（行 70-77）新增检查项：
-- `[ ] 每个 Task 包含 <!-- task-meta --> 块（files, deps, wave）`
-- `[ ] wave 编号从 1 开始，无依赖的 Task 为 wave 1`
+---
 
-### 改动 2c: orchestrator.py — parse-tasks YAML 优先解析
+## 修复 7: `_normalize_task_id` 健壮性 (LOW)
 
-在 `cmd_parse_tasks` 函数开头（现有正则之前）增加 ~45 行 YAML 优先路径：
+**行 245-248** — 当正则不匹配时返回原字符串，可能导致大小写不一致。
 
 ```python
-# YAML-first: 解析 <!-- task-meta ... --> 块
-meta_pattern = re.compile(
-    r'###\s+(Task[- ]?\d+)[：:]\s*(.+?)\n'
-    r'<!-- task-meta\s*\n(.*?)\n-->',
-    re.DOTALL
-)
-matches = meta_pattern.findall(content)
-if matches:
-    for raw_id, name, yaml_str in matches:
-        tid = _normalize_task_id(raw_id)
-        meta = _simple_yaml_load(yaml_str)
-        tasks.append({
-            "id": tid, "name": name.strip(),
-            "files": meta.get("files", []),
-            "deps": [_normalize_task_id(str(d)) for d in meta.get("deps", [])],
-            "wave": meta.get("wave", 1),
-        })
-    # 从 wave 字段构建 waves dict + parallel_groups
-    waves = {}
-    for t in tasks:
-        w = str(t.get("wave", 1))
-        waves.setdefault(w, []).append(t["id"])
-    parallel_groups = [waves[k] for k in sorted(waves.keys(), key=int)]
+def _normalize_task_id(raw):
+    """Task-1 / Task 1 / Task1 / task 1 → 'Task 1'"""
+    m = re.match(r'[Tt]ask[- ]?(\d+)', raw.strip())
+    return f"Task {m.group(1)}" if m else raw.strip()
 ```
 
-现有正则逻辑完整保留为 fallback（matches 为空时执行）。
-
-输出新增字段：`waves`, `total_waves`, `parse_method`（`yaml_meta` 或 `regex_fallback`）。
+改用 `raw.strip()` 避免前后空格问题，并明确 `[Tt]ask` 而非 `re.IGNORECASE`（保持确定性输出 `Task N`）。
 
 ---
 
-## 改进 3: validate-plan 预执行验证
+## 修复 8: SKILL.md 补充缺失文档 (LOW)
 
-**GSD 原则**: Goal-backward verification — 执行前验证计划完整性。
+**8a** — Phase 1 会话恢复部分补充 `resume` 返回字段 `resume_context` 和 `suggested_prompt`。
 
-### 改动 3a: orchestrator.py — 新增 `validate-plan` 命令（~100 行）
+**8b** — 添加 `decision` 命令说明：Architect 完成设计后可选调用。
 
-6 维度评分（满分 100）：
-
-| 维度 | 满分 | 检查内容 |
-|------|------|----------|
-| Section 完整性 | 20 | 技术选型/数据模型/API 定义/Task List/目录结构 |
-| Task 元数据完整 | 20 | 每个 Task 有 name + files（非空）+ deps |
-| DAG 有效性 | 15 | 依赖引用合法、无环（拓扑排序） |
-| 文件覆盖度 | 15 | 目录结构中的文件被 Task files 覆盖 |
-| Wave 一致性 | 15 | task.wave > max(deps.wave) |
-| PRD 对齐 | 15 | prd.md 验收标准 keywords 出现在 Task 描述中 |
-
-输出: `{"score": N, "max_score": 100, "pass": bool, "dimensions": {...}, "blocking_issues": [...], "warnings": [...]}`
-
-阈值: `score < 60` → `pass: false`
-
-### 改动 3b: SKILL.md — Phase 3.5 增加验证步骤
-
-在 `parse-tasks` 之后、首个 Developer dispatch 之前插入 ~8 行：
-
-```
-parse-tasks 完成后运行:
-python3 orchestrator.py validate-plan --project-dir {PWD}
-
-- pass == false → 退回 Architect，prompt 包含 blocking_issues
-- score < 80 → 在 Phase 4 审批时展示 warnings
-- score >= 80 → 直接继续
-```
+**8c** — 添加 `diagnose` 命令说明：用于排查项目状态异常。
 
 ---
 
-## 改进 4: Wave 执行升级
+## 实施顺序
 
-### 改动 4a: orchestrator.py — check-conflicts 全路径匹配
-
-行 1309 `f.split("/")[-1]` → `f.strip()`（全路径匹配）。
-
-新增目录级软冲突检测，输出增加 `soft_conflicts` 字段。
-
-### 改动 4b: orchestrator.py — wave 进度追踪
-
-`project.yaml` 新增 `current_wave: 1`, `total_waves: N`。
-
-`cmd_complete_task` 中：同 wave 所有 task 完成 → 自动 `current_wave += 1`。
-
-需要 `cmd_parse_tasks` 将 `total_waves` 写入 project.yaml（在 parse-tasks 成功返回时）。
-
-### 改动 4c: SKILL.md — Phase 3.5 并行策略重写（行 143-188）
-
-替换为 wave 术语：
-
-```
-Wave 执行策略：
-1. parse-tasks 返回 waves: {1: [...], 2: [...]}
-2. 取 current_wave（project.yaml）
-3. 对 wave 内 tasks 运行 check-conflicts
-4. 无硬冲突 → 并行；有硬冲突 → 串行
-5. 有软冲突 → 并行但 Warning
-6. Wave 全部 Reviewer PASS → 下一 wave
-7. FAIL → 退回 wave 内失败 task
-```
-
----
-
-## 改进 5: Atomic Git Commit
-
-### 改动 5a: orchestrator.py — init 增加 git 检测
-
-`cmd_init` 末尾增加 ~5 行，写入 `project.yaml["is_git_repo"]`。
-
-### 改动 5b: SKILL.md — Phase 3 增加 step 6.5
-
-在 complete-task 和 handoff 之间（行 101 前）插入 ~10 行：
-
-```
-6.5 Atomic Commit（仅 is_git_repo == true）：
-  git add {files_created} {files_modified}
-  git commit -m "feat(dev-fw): {task_id} - {task_name}
-  Wave {wave}/{total_waves} | Task {current}/{total}"
-```
-
----
-
-## 改进 6: STATE.md + resume 命令
-
-### 改动 6a: orchestrator.py — `_update_state_md` helper（~50 行）
-
-在 `cmd_handoff`, `cmd_next`, `cmd_complete_task`, `cmd_approve` 末尾调用。
-从 project.yaml + handoff/ 聚合生成 `.plan/STATE.md`：
-- Current Status（agent, phase, task, wave）
-- Progress table（per task: status, wave, reviewer result）
-- Decisions（from project.yaml["decisions"]）
-- Cumulative files（from handoff files）
-
-### 改动 6b: orchestrator.py — 新增 `resume` 命令（~60 行）
-
-分析 project.yaml + STATE.md + trace.log + handoff/，检测异常：
-- artifact 缺失但 agent 标 done
-- handoff 链断裂（last handoff.to != current_agent）
-- task 状态不一致
-
-输出: `{"resume_action", "resume_context", "anomalies", "suggested_prompt"}`
-
-### 改动 6c: orchestrator.py — 新增 `decision` 命令（~20 行）
-
-记录决策: `--agent X --decision "Y" --rationale "Z"` → project.yaml["decisions"] 追加。
-
-### 改动 6d: SKILL.md — Phase 1 会话恢复
-
-替换行 34-41 的 `status` 调用为 `resume`。
-
----
-
-## 实现顺序（Wave 分组）
-
-### Wave 1（无依赖，可并行）
-- 改进 1: Context Manifest + extract-section
-- 改进 2: 结构化 Task 元数据
-- 改进 6: STATE.md + resume + decision
-
-### Wave 2（依赖 Wave 1）
-- 改进 3: validate-plan（依赖改进 2 的结构化数据）
-- 改进 4: Wave 执行升级（依赖改进 2 的 wave 字段）
-
-### Wave 3（依赖 Wave 2）
-- 改进 5: Atomic Git Commit（依赖改进 4 的 wave 追踪）
+1. **修复 1** — 运算符优先级（1 行改动）
+2. **修复 2a** — parse_tasks 缺失 _update_state_md（1 行改动）
+3. **修复 3** — cmd_next 路径状态同步（~30 行改动）
+4. **修复 4** — extract_section 异常处理（5 行改动）
+5. **修复 5** — 错误处理统一（2 行改动）
+6. **修复 6** — reviewer.md 文档修正（~10 行改动）
+7. **修复 7** — normalize_task_id（1 行改动）
+8. **修复 8** — SKILL.md 文档补充（~20 行改动）
 
 ## 验证
 
-| 改进 | 验证方法 |
+每个修复完成后运行对应测试命令：
+
+| 修复 | 验证方法 |
 |------|----------|
-| 1 | 完整流程检查每个 Agent prompt 仅含 Manifest 项 |
-| 2 | 含 `<!-- task-meta -->` 的 design.md 运行 parse-tasks 验证 YAML；删除 meta 验证 fallback |
-| 3 | 缺陷 design.md（缺 section、环形 dep）运行 validate-plan 验证拦截 |
-| 4 | 3-wave 5-task design 验证全路径冲突检测 + wave 递进 |
-| 5 | git 项目验证每 task 一个 commit；非 git 验证静默跳过 |
-| 6 | 中断后新会话 resume 验证正确恢复 |
+| 1 | `parse-tasks` 对含 `.gitignore` 等文件名的 design.md |
+| 2a | `parse-tasks` 后检查 STATE.md 包含 wave 信息 |
+| 3 | `next` 各路径后检查 project.yaml current_agent 一致 |
+| 4 | `extract-section` 对不可读文件返回 error 而非崩溃 |
+| 5 | `check-conflicts` 对缺失 design.md 返回 JSON 而非 exit(1) |
+| 6 | Reviewer 文档人工复核 |
+| 7 | `normalize_task_id("task-1")` → `"Task 1"` |
+| 8 | SKILL.md 文档人工复核 |

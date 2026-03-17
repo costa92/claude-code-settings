@@ -140,6 +140,15 @@
 | 移动端 (375x667) | `.plan/artifacts/screenshots/mobile.png` | {已生成 / 失败} |
 | {交互状态} | `.plan/artifacts/screenshots/{name}.png` | {已生成} |
 
+### 操作录制与回放
+
+| Artifact | 路径 | 说明 |
+|----------|------|------|
+| Playwright Trace | `.plan/artifacts/recordings/trace.zip` | 含操作日志、DOM 快照、逐步截图、网络请求 |
+| 浏览器视频 | `.plan/artifacts/recordings/*.webm` | 完整操作过程视频录制 |
+
+**Trace 回放**：`npx playwright show-trace .plan/artifacts/recordings/trace.zip`（本地浏览器打开，逐步回放每个操作的截图、DOM 状态和网络请求）
+
 ### 响应式测试
 
 | 断点 | 宽度 | 布局验证 | 备注 |

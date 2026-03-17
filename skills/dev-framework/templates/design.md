@@ -66,11 +66,17 @@
 ## Task List
 
 ### Task 1: {名称}
+<!-- task-meta
+files: [path/to/file1, path/to/file2]
+deps: []
+wave: 1
+-->
 - 描述: {要实现什么}
-- 文件: {涉及的文件路径}
-- 依赖: 无
 
 ### Task 2: {名称}
+<!-- task-meta
+files: [path/to/file1, path/to/file3]
+deps: [Task 1]
+wave: 2
+-->
 - 描述: {要实现什么}
-- 文件: {涉及的文件路径}
-- 依赖: Task 1

@@ -41,14 +41,15 @@ tools: Read, Glob, Grep, Bash
   "status": "done",
   "artifact": ".plan/artifacts/review-report.md",
   "conclusion": "PASS|FAIL",
-  "handoff_to": "tester|developer",
+  "handoff_to": "developer",
   "current_task": "Task N",
   "summary": "审查概要",
   "context_for_next": "如 FAIL: Developer 必须优先修复的问题清单；如 PASS: Tester 应关注的薄弱区域"
 }
 ---JSON---
 
-- `conclusion: PASS` → `handoff_to: "reviewer_pass"`（由 orchestrator 决定下一步：进入下个 Task 或 Tester）
+- `conclusion: PASS` → orchestrator 决定下一步（进入下个 Task 的 Developer 或 Tester）
+  - PASS 时 handoff_to 字段会被 orchestrator 覆盖，可填任意值
   - PASS 意味着无 Critical 阻塞问题。Important 和 Suggestion 级别发现不阻塞流程
   - **PASS 时不要设置 handoff_to 为 developer** — Important 发现记录在报告中，由后续迭代处理
 - `conclusion: FAIL`（有 Critical 问题）→ `handoff_to: developer`，Developer 必读 review-report.md
@@ -95,6 +96,9 @@ UI 偏离项按以下级别处理：
    - 是否有明显的 UI 渲染异常（空白页、布局错乱、元素溢出）
 4. 在审查报告的「UI 设计一致性检查」section 中附上截图路径和对比结论
 5. 截图保存至 `.plan/artifacts/screenshots/review-desktop.png`
+6. 如果 Tester 已生成 Trace 录制（`.plan/artifacts/recordings/trace.zip`），可回放 Trace 逐步审查交互流程：
+   - `npx playwright show-trace .plan/artifacts/recordings/trace.zip`
+   - 重点关注：操作顺序是否符合设计、网络请求是否正确、DOM 状态变化是否合理
 
 **降级**：如果 Playwright 不可用或 dev server 无法启动，回退到纯代码审查模式，在报告中标注 "Browser screenshot unavailable"。
 
