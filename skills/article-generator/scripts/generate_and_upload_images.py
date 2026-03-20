@@ -55,6 +55,8 @@ _github_token_validated = False
 
 # Gemini API 定价（基于 2025-2026 年定价，仅用于 --dry-run 成本估算）
 # 参考: https://ai.google.dev/pricing
+# 默认定价（用于未知模型）
+DEFAULT_PRICING = {"1K": 0.10, "2K": 0.20, "4K": 0.40}
 GEMINI_PRICING = {
     "gemini-3-pro-image-preview": {
         "1K": 0.10,  # $0.10 per image
@@ -62,12 +64,22 @@ GEMINI_PRICING = {
         "4K": 0.40,  # $0.40 per image
     },
     "gemini-3.1-flash-image-preview": {
-        "1K": 0.04,  # $0.04 per image (similar to 2.5-flash)
+        "1K": 0.04,  # $0.04 per image
         "2K": 0.08,
         "4K": 0.16,
     },
     "gemini-2.5-flash-image": {
         "1K": 0.04,  # $0.04 per image (cheaper, faster)
+        "2K": 0.08,
+        "4K": 0.16,
+    },
+    "gemini-2.0-pro": {
+        "1K": 0.10,
+        "2K": 0.20,
+        "4K": 0.40,
+    },
+    "gemini-2.0-flash": {
+        "1K": 0.04,
         "2K": 0.08,
         "4K": 0.16,
     },
@@ -789,8 +801,9 @@ def dry_run_preview(configs: List[ImageConfig],
 
     total_images = len(configs)
 
-    # 成本估算
-    cost_per_image = GEMINI_PRICING.get(model, {}).get(resolution, 0.20)
+    # 成本估算 - 支持未知模型
+    model_pricing = GEMINI_PRICING.get(model, DEFAULT_PRICING)
+    cost_per_image = model_pricing.get(resolution, model_pricing.get("2K", 0.20))
     total_cost = total_images * cost_per_image
 
     # 时间估算
@@ -1494,8 +1507,7 @@ def main():
         pass
 
     parser.add_argument("--model", default=_default_model,
-                       choices=["gemini-3-pro-image-preview", "gemini-2.5-flash-image", "gemini-3.1-flash-image-preview"],
-                       help="使用的 Gemini 模型")
+                       help="使用的 Gemini 模型 (支持任意模型名，如 gemini-2.0-pro、gemini-2.5-flash-image 等)")
     parser.add_argument("--parallel", action="store_true",
                        help="启用并行生成模式（提升速度，但可能触发API限流）")
     parser.add_argument("--max-workers", type=int, default=2,
