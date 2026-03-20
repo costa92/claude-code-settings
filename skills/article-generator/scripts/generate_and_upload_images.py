@@ -1289,9 +1289,9 @@ def parse_markdown_images(file_path: str) -> List[tuple]:
     with open(file_path, 'r', encoding='utf-8') as f:
         file_content = f.read()
 
-    # Regex to match the placeholder pattern (Made more robust)
-    # Allows optional spaces around components
-    pattern = r'<!--\s*IMAGE:\s*(.*?)\s*-\s*(.*?)\s*\((.*?)\)\s*-->\s*<!--\s*PROMPT:\s*(.*?)\s*-->'
+    # Regex to match the placeholder pattern (Supports multi-line)
+    # Allows optional spaces and newlines around components
+    pattern = r'<!--\s*IMAGE:\s*(.*?)\s*-\s*(.*?)\s*\((.*?)\)\s*-->(?:\s*|\n)*<!--\s*PROMPT:\s*(.*?)\s*-->'
     matches = []
 
     file_stem = Path(file_path).stem
@@ -1419,6 +1419,12 @@ def update_markdown_file(file_path: str, results: Dict, matches: List[tuple],
     updated_content = file_content
     success_count = 0
 
+    # 步骤 1: 清理已存在的图片引用和占位符
+    # 删除已经存在的图片链接，只保留最新的
+    for config, match_text in matches:
+        # 首先删除可能存在的旧占位符
+        updated_content = updated_content.replace(match_text, "")
+
     # Handle AI-generated image replacements
     filename_to_url = {}
     for img in results.get('images', []):
@@ -1428,9 +1434,12 @@ def update_markdown_file(file_path: str, results: Dict, matches: List[tuple],
     for config, match_text in matches:
         if config.filename in filename_to_url:
             url = filename_to_url[config.filename]
-            replacement = f"![{config.name}]({url})"
-            updated_content = updated_content.replace(match_text, replacement)
-            success_count += 1
+            # 检查是否已经在内容中（避免重复）
+            if f"![{config.name}]({url})" not in updated_content:
+                # 找到原始匹配文本的位置并在那里插入
+                if match_text in file_content:
+                    updated_content = updated_content.replace(match_text, f"![{config.name}]({url})")
+                    success_count += 1
 
     # Handle screenshot replacements
     if screenshot_matches:

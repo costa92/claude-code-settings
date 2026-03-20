@@ -214,22 +214,35 @@ Same as standard but skip step 6-8 (Mermaid/images). Include placeholders for la
 
 ### ASCII Diagram Replacement Workflow
 
-Replace existing ASCII art code blocks (box-drawing characters) with AI-generated architecture illustrations:
+**自动流程（推荐）**：
 
-```
-1. Grep 定位所有 ASCII 架构图代码块（含 ┌ ─ │ └ ▼ 等字符）
-2. 为每个图设计 prompt（描述架构层次、连接关系、配色）
-3. Gemini 探针测试（同标准降级链）
-4. 并行生成多张图（nanobanana.py --size 1248x832）
-5. 并行上传到 CDN（picgo upload）
-6. Edit 替换：整个 ``` 代码块 → ![描述](CDN_URL)
+文章中的 ASCII 图表（含 `┌ ─ │ └ ▼` 等字符）现在会在图片自动处理阶段被自动识别和替换：
+
+```markdown
+<!-- IMAGE: architecture - 系统架构图 (1248x832) -->
+<!-- PROMPT: 技术架构图，包含用户界面层、核心引擎层、上下文管理层、基础存储层，使用蓝色调扁平设计 -->
 ```
 
-关键规则：
-- **保留 bash/shell 代码块**，只替换纯 ASCII 架构图
-- **Prompt 要点**：描述架构层次、组件标签、连接方向、配色方案、flat design 风格
-- **替换粒度**：一个 ASCII 代码块对应一张 AI 图，如原图后紧跟节奏图则合并为一张
-- 详见 [image-generation-guide.md](references/image-generation-guide.md) Method 4
+**手动流程（可选）**：
+
+```
+1. 识别 ASCII 图表：使用正则表达式定位含框线字符的代码块
+2. 设计提示词：描述架构层次、连接关系、配色方案（使用中文，简单直接）
+3. 生成图片：使用 `generate_and_upload_images.py` 脚本处理
+4. 替换内容：替换整个 ``` 代码块为 Markdown 图片链接
+```
+
+**关键改进**：
+- **自动识别**：脚本现在能自动识别和处理 ASCII 架构图
+- **提示词优化**：添加了更清晰的提示词设计指南
+- **批量处理**：支持与其他图片同时批量处理
+- **容错机制**：失败时保留原始 ASCII 图表
+
+**Prompt 设计要点**：
+- 描述架构层次和组件关系
+- 说明数据流向和连接方式
+- 指定设计风格（如"蓝色调扁平设计"）
+- 包含关键标签和术语
 
 ---
 
@@ -317,5 +330,5 @@ For advanced config, see [INSTALL.md](./INSTALL.md)
 
 ---
 
-**Version:** 3.2 (2026-03-07)
-**Changes:** Added Mermaid→image rendering (Phase B Step 6), expanded self-check to 8 items, unified quality gate to 55/70, word count user-driven
+**Version:** 3.3 (2026-03-19)
+**Changes:** Fixed image placeholder regex to support multi-line, added duplicate reference protection, improved ASCII diagram handling workflow, clarified documentation format requirements
