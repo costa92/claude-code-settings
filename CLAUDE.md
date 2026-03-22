@@ -26,7 +26,6 @@
 │   ├── content-pipeline.md # 内容流水线编排 agent
 │   └── code-reviewer.md   # 代码审查 agent
 ├── skills/                # Skill 定义（66 个）
-│   ├── article-generator/ # 文章生成（核心）
 │   ├── content-planner/   # 选题规划
 │   ├── content-reviewer/  # 内容审核（7 维评分）
 │   ├── content-repurposer/# 多平台分发
@@ -83,8 +82,8 @@
 ## 内容流水线（核心工作流）
 
 ```
-content-planner → article-generator → content-reviewer → wechat-seo-optimizer
-       选题              写作              审核（≥55 分）        标题/摘要优化
+content-planner → article-craft → content-reviewer → wechat-seo-optimizer
+       选题            写作              审核（≥55 分）        标题/摘要优化
                                                                       ↓
 content-analytics ← content-repurposer ← wechat-article-converter
      数据复盘            多平台分发           微信格式转换/上传草稿箱
@@ -133,6 +132,7 @@ settings.json 中注册的 hooks，在 session 生命周期中自动执行：
 | register-plugin-hooks.sh | SessionStart | async | 扫描 installed_plugins.json，注册各插件自带 hooks |
 | superpowers-session-start.sh | SessionStart | sync | 加载 superpowers 插件（必须同步，提供 skills/agents） |
 | ralph-wiggum-stop.sh | Stop | — | 会话结束时执行 Ralph Wiggum 清理逻辑 |
+| article-craft | claude-code-settings | Modular article generation plugin — 6 composable skills for the full article lifecycle |
 
 ## Skill 命名规范
 

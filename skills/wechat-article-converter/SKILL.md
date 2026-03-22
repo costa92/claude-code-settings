@@ -274,7 +274,7 @@ bash ${SKILL_DIR}/scripts/md2wechat_backend.sh convert article.md --mode ai --th
 
 | 文件类型 | 保存目录 | 说明 |
 |----------|---------|------|
-| Markdown 源文件 | `02-技术/<对应子目录>/` | 由 article-generator 生成 |
+| Markdown 源文件 | `02-技术/<对应子目录>/` | 由 article-craft 生成 |
 | 微信 HTML 输出 | `03-创作/已发布/<年月>/` | 按年月归档（如 `2026-03/`） |
 
 ### 执行规则
@@ -310,7 +310,7 @@ python3 ${SKILL_DIR}/scripts/upload_draft.py \
 ### 场景 1：从头创建微信文章（完整流程，知识库项目）
 
 ```
-1. /article-generator 写一篇关于 Docker 的技术文章
+1. /article-craft 写一篇关于 Docker 的技术文章
    → Markdown 保存到 02-技术/基础设施/Docker/docker_tutorial.md
 2. /wechat-article-converter @02-技术/基础设施/Docker/docker_tutorial.md
    → HTML 输出到 03-创作/已发布/2026-03/docker_tutorial_wechat.html
@@ -464,7 +464,7 @@ Python 引擎和 Go 后端的常见问题解决方案（图片不显示、样式
 ## 与其他 Skill 的配合
 
 ```
-article-generator          生成技术博客 Markdown
+article-craft               生成技术博客 Markdown
        ↓
 wechat-article-converter  转换为微信格式（Python 或 Go）
        ↓
@@ -472,7 +472,7 @@ wechat-article-converter  转换为微信格式（Python 或 Go）
 ```
 
 ### 相关 Skill
-- **article-generator**: 生成技术博客文章
+- **article-craft**: 生成技术博客文章
 - **content-repurposer**: 多平台内容分发
 - **content-analytics**: 文章数据分析
 - **wechat-seo-optimizer**: 标题和摘要优化

@@ -9,8 +9,8 @@ tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 ## 流水线阶段
 
 ```
-content-planner → article-generator → content-reviewer → wechat-seo-optimizer → wechat-article-converter → content-repurposer → content-analytics
-     选题              写作               审核               SEO 优化              格式转换/上传            多平台分发             数据复盘
+content-planner → article-craft → content-reviewer → wechat-seo-optimizer → wechat-article-converter → content-repurposer → content-analytics
+     选题             写作              审核               SEO 优化              格式转换/上传            多平台分发             数据复盘
 ```
 
 ## 各阶段职责与调用规则
@@ -21,7 +21,7 @@ content-planner → article-generator → content-reviewer → wechat-seo-optimi
 - **输出**: 选题卡片 + 月度排期
 
 ### 阶段 2: 写作（核心）
-- **Skill**: `article-generator`
+- **Skill**: `article-craft`
 - **输入**: 主题 / 选题卡片
 - **输出**: Markdown 文件（含 YAML frontmatter + 图片）
 - **关键约束**: 必须使用 Write 工具保存文件，不能只在聊天中输出

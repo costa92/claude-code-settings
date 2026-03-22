@@ -1,6 +1,6 @@
 # WeChat Official Account Article Guidelines
 
-**Note:** The article-generator skill primarily targets technical blogs. This guide provides adjusted guidelines for WeChat Official Account articles.
+**Note:** The article-craft skill primarily targets technical blogs. This guide provides adjusted guidelines for WeChat Official Account articles.
 
 ## WeChat-Specific Requirements
 

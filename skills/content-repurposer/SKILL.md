@@ -229,7 +229,7 @@ N/ 总结：
 
 ## 相关 Skill
 
-- **article-generator**: 上游，生成源文章（Markdown）
+- **article-craft**: 上游，生成源文章（Markdown）
 - **wechat-article-converter**: 微信公众号格式转换和草稿箱上传
 - **wechat-seo-optimizer**: 微信标题和摘要优化
 - **content-planner**: 选题规划，决定哪些文章需要多平台分发

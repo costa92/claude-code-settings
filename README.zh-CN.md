@@ -381,7 +381,7 @@ specify init . --ai claude
 |------|------|----------|------|
 | 1. 选题 | `content-planner` | `/content-planner` | 选题库 + 内容日历 + 排期 |
 | 2. 大纲 | `article-outline-agent` | 写作前自动触发 | 读者画像 + 论点 + 结构 |
-| 3. 写作 | `article-generator` | `/article-generator` | Markdown 技术博文 + 配图 |
+| 3. 写作 | `article-craft` | `/article-craft` | Markdown 技术博文 + 配图 |
 | 4. 审查 | `content-reviewer` | 写作后自动触发 | 6 维评分 + 修改清单 |
 | 5. SEO | `wechat-seo-optimizer` | `/wechat-seo-optimizer` | 标题/摘要/关键词优化 |
 | 6. 排版 | `wechat-article-converter` | `/wechat-article-converter` | 微信公众号 HTML |
@@ -392,12 +392,12 @@ specify init . --ai claude
 
 ```text
 # 最简路径：一条命令生成文章
-你：/article-generator 写一篇关于 Docker 多阶段构建优化的技术博文
+你：/article-craft 写一篇关于 Docker 多阶段构建优化的技术博文
 
 # 完整流水线：逐步执行
 你：/content-planner                            # 第 1 步：选题规划
 你：我选了 Docker 多阶段构建这个选题              # 第 2 步：自动生成大纲
-你：/article-generator 根据大纲写作              # 第 3 步：写作
+你：/article-craft 根据大纲写作              # 第 3 步：写作
 你：文章写好了，帮我审查一下                       # 第 4 步：自动审查
 你：/wechat-seo-optimizer 优化标题和摘要          # 第 5 步：SEO 优化
 你：/wechat-article-converter 转换为微信格式       # 第 6 步：排版转换
@@ -419,11 +419,11 @@ specify init . --ai claude
 - 月度内容日历 + 发布时间建议
 - 管线看板：Backlog → 进行中 → 审核 → 完成
 
-#### article-generator — 技术博文生成
+#### article-craft — 技术博文生成
 
 生成真实风格的技术博文。输出 Markdown 格式，含 YAML frontmatter、Obsidian callouts、代码示例和 CDN 图片。
 
-**触发词：** `/article-generator`、"写一篇文章"、"写一篇关于...的文章"
+**触发词：** `/article-craft`、"写一篇文章"、"写一篇关于...的文章"
 
 **功能：**
 - 反 AI 风格检测（禁止营销用语、禁止虚假互动）
@@ -432,7 +432,7 @@ specify init . --ai claude
 - 写作前验证：所有技术内容通过官方文档核实
 
 **依赖：**
-- `pip install -r skills/article-generator/requirements.txt`
+- `pip install -r skills/article-craft/requirements.txt`
 - `pip install shot-scraper && shot-scraper install`（网页截图）
 - `GEMINI_API_KEY` 环境变量（图片生成，可选）
 

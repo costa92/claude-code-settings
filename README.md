@@ -434,7 +434,7 @@ A full-cycle content production pipeline from topic planning to multi-platform d
 |-------|--------------|---------|--------|
 | 1. 选题 | `content-planner` | `/content-planner` | 选题库 + 内容日历 + 排期 |
 | 2. 大纲 | `article-outline-agent` | 写作前自动触发 | 读者画像 + 论点 + 结构 |
-| 3. 写作 | `article-generator` | `/article-generator` | Markdown 技术博文 + 配图 |
+| 3. 写作 | `article-craft` | `/article-craft` | Markdown 技术博文 + 配图 |
 | 4. 审查 | `content-reviewer` | 写作后自动触发 | 6 维评分 + 修改清单 |
 | 5. SEO | `wechat-seo-optimizer` | `/wechat-seo-optimizer` | 标题/摘要/关键词优化 |
 | 6. 排版 | `wechat-article-converter` | `/wechat-article-converter` | 微信公众号 HTML |
@@ -445,12 +445,12 @@ A full-cycle content production pipeline from topic planning to multi-platform d
 
 ```text
 # Simplest path: one command to generate an article
-You: /article-generator 写一篇关于 Docker 多阶段构建优化的技术博文
+You: /article-craft 写一篇关于 Docker 多阶段构建优化的技术博文
 
 # Full pipeline: step by step
 You: /content-planner                        # Step 1: plan topics
 You: 我选了 Docker 多阶段构建这个选题            # Step 2: outline (auto)
-You: /article-generator 根据大纲写作            # Step 3: write
+You: /article-craft 根据大纲写作            # Step 3: write
 You: 文章写好了，帮我审查一下                     # Step 4: review (auto)
 You: /wechat-seo-optimizer 优化标题和摘要        # Step 5: SEO
 You: /wechat-article-converter 转换为微信格式     # Step 6: format
@@ -514,10 +514,10 @@ Claude auto-activates outline agent, outputs:
 📎 素材清单: 官方 spec 文档, TypeScript SDK README, 架构图(需生成)
 ```
 
-**Step 3 — 写作** (`article-generator`)
+**Step 3 — 写作** (`article-craft`)
 
 ```text
-You: /article-generator 根据上面的大纲写作，参考 MCP 官方文档，
+You: /article-craft 根据上面的大纲写作，参考 MCP 官方文档，
      生成一张架构示意图
 ```
 
@@ -653,13 +653,13 @@ Plan content topics, manage editorial calendar, and build a content pipeline for
 </details>
 
 <details>
-<summary>article-generator - Technical blog article writing</summary>
+<summary>article-craft - Technical blog article writing</summary>
 
-### [article-generator](skills/article-generator)
+### [article-craft](skills/article-craft)
 
 Generate technical blog articles with authentic, non-AI style. Outputs Markdown with YAML frontmatter, Obsidian callouts, code examples, and CDN images.
 
-**Triggered by**: `/article-generator`, "写一篇文章", "写一篇关于...的文章"
+**Triggered by**: `/article-craft`, "写一篇文章", "写一篇关于...的文章"
 
 **Key Features:**
 
@@ -671,7 +671,7 @@ Generate technical blog articles with authentic, non-AI style. Outputs Markdown 
 
 **Requirements:**
 
-- Python: `pip install -r skills/article-generator/requirements.txt`
+- Python: `pip install -r skills/article-craft/requirements.txt`
 - Screenshot tool: `pip install shot-scraper && shot-scraper install` (for webpage screenshots)
 - `GEMINI_API_KEY` env var for image generation (optional)
 - PicGo or S3/R2 config for image hosting (optional)

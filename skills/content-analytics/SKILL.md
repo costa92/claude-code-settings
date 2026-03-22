@@ -259,7 +259,7 @@ def calculate_metrics(df):
 
 - **content-planner**: 下游，用分析结果调整选题方向
 - **content-reviewer**: 下游，用数据校准审核标准
-- **article-generator**: 上游，产出待分析的文章
+- **article-craft**: 上游，产出待分析的文章
 - **wechat-article-converter**: 上游，发布到微信后产生数据
 
 ## 关键原则
