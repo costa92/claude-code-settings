@@ -1783,6 +1783,8 @@ def main():
                        help="保留本地图片文件和配置文件（默认上传成功后自动删除）")
     parser.add_argument("--enhance", action="store_true",
                        help="自动优化图片提示词 (使用 Gemini 润色)")
+    parser.add_argument("--probe", action="store_true",
+                       help="探测最佳可用 Gemini 模型（遍历降级链，输出可用模型名后退出）")
 
     args = parser.parse_args()
 
@@ -1796,6 +1798,56 @@ def main():
         else:
             print("✅ 所有依赖已就绪")
             sys.exit(0)
+
+    # --probe 模式：遍历降级链，找到第一个可用的模型后输出并退出
+    if args.probe:
+        probe_chain = [
+            args.model,
+            "gemini-3.1-flash-image-preview",
+            "gemini-2.5-flash-image",
+        ]
+        # 去重，保持顺序
+        probe_chain = list(dict.fromkeys(probe_chain))
+        probe_timeout = 60  # 每个模型最多等 60 秒（代理环境需要更长时间）
+        probe_output = "/tmp/gemini_probe.jpg"
+
+        print(f"🔍 探测可用 Gemini 模型（超时 {probe_timeout}s/模型）...")
+        for i, model_name in enumerate(probe_chain, 1):
+            print(f"   [{i}/{len(probe_chain)}] 测试 {model_name}...", end=" ", flush=True)
+            try:
+                result = subprocess.run(
+                    [
+                        "python3", NANOBANANA_PATH,
+                        "--prompt", "test",
+                        "--size", "1024x1024",
+                        "--timeout", str(probe_timeout),
+                        "--model", model_name,
+                        "--output", probe_output,
+                        "--no-fallback",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=probe_timeout + 10,  # 外层留 10s 余量
+                )
+                if result.returncode == 0 and os.path.exists(probe_output):
+                    print("✅")
+                    print(f"\nBEST_MODEL:{model_name}")
+                    # 清理探针文件
+                    try:
+                        os.remove(probe_output)
+                    except OSError:
+                        pass
+                    sys.exit(0)
+                else:
+                    stderr_short = (result.stderr or "unknown error")[:80]
+                    print(f"❌ ({stderr_short})")
+            except subprocess.TimeoutExpired:
+                print("❌ (超时)")
+            except Exception as e:
+                print(f"❌ ({str(e)[:80]})")
+
+        print("\n❌ 所有模型均不可用")
+        sys.exit(1)
 
     configs = []
     file_matches = [] # 存储 (ImageConfig, match_text) 元组

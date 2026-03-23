@@ -28,28 +28,35 @@ All downstream scripts require absolute paths. Relative paths cause misleading e
 
 ### 2. Gemini Probe Test
 
-Run a lightweight single-image probe to verify API availability before batch processing.
+Run `--probe` to automatically detect the best available Gemini model. This iterates the full fallback chain with 60s timeout per model, eliminating manual retry.
 
 ```bash
-# Step 1: Probe with default model (pro -- highest quality)
-python3 ~/.claude/plugins/article-craft/scripts/nanobanana.py \
-  --prompt "test" --size 1024x1024 --output /tmp/gemini_probe.jpg
+python3 ~/.claude/plugins/article-craft/scripts/generate_and_upload_images.py --probe
 ```
 
-- **Success** -- proceed to batch processing with the default model.
-- **Fail (503/429/No data received)** -- fall back to flash model:
+Output on success (exit 0):
+```
+🔍 探测可用 Gemini 模型（超时 60s/模型）...
+   [1/3] 测试 gemini-3-pro-image-preview... ✅
 
+BEST_MODEL:gemini-3-pro-image-preview
+```
+
+Output on failure (exit 1):
+```
+❌ 所有模型均不可用
+```
+
+**Parse the result for batch processing:**
 ```bash
-# Step 2: Probe with flash model
-python3 ~/.claude/plugins/article-craft/scripts/nanobanana.py \
-  --prompt "test" --size 1024x1024 --output /tmp/gemini_probe.jpg \
-  --model gemini-2.5-flash-image
+BEST_MODEL=$(python3 ~/.claude/plugins/article-craft/scripts/generate_and_upload_images.py \
+  --probe 2>&1 | grep "BEST_MODEL:" | cut -d: -f2)
 ```
 
-- **Flash succeeds** -- proceed to batch processing with `--model gemini-2.5-flash-image`.
-- **Flash also fails** -- skip AI image generation, keep placeholders, warn user.
+- **BEST_MODEL is set** -- proceed to batch processing with `--model $BEST_MODEL`.
+- **BEST_MODEL is empty** (all models failed) -- skip AI image generation, keep placeholders, warn user.
 
-**Full model fallback chain:**
+**Full model fallback chain (tested in order):**
 
 ```
 env.json:gemini_image_model (default, highest quality)
@@ -75,22 +82,18 @@ If process crashes:
 
 ### 3. Batch Process Article
 
-After a successful probe, run the batch processor in the same session:
+After a successful probe, run the batch processor with the detected model:
 
 ```bash
-# Default model succeeded
 python3 ~/.claude/plugins/article-craft/scripts/generate_and_upload_images.py \
   --process-file /ABSOLUTE/PATH/article.md \
-  --enable-heartbeat
-
-# Or if fell back to flash model
-python3 ~/.claude/plugins/article-craft/scripts/generate_and_upload_images.py \
-  --process-file /ABSOLUTE/PATH/article.md --model gemini-2.5-flash-image \
-  --enable-heartbeat
+  --model $BEST_MODEL --continue-on-error
 ```
 
-**New flag:**
-- `--enable-heartbeat` -- write heartbeat file every 2s for process monitoring (default: enabled)
+Additional flags:
+- `--continue-on-error` -- skip failed images instead of aborting
+- `--resolution 2K` -- higher resolution output
+- `--parallel` -- parallel generation (2 workers, ~1.87x faster)
 
 ### 3.5 Incremental Mode (skip already-uploaded images)
 

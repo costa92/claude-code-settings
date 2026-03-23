@@ -120,6 +120,24 @@ if "GOOGLE_API_KEY" in os.environ:
 
 client = genai.Client(api_key=api_key)
 
+# Default request timeout (seconds). Overridden by --timeout CLI arg.
+_request_timeout = None
+_timeout_client = None
+
+
+def _get_client(timeout=None):
+    """Return a Gemini client with optional per-request timeout."""
+    global _timeout_client
+    effective_timeout = timeout or _request_timeout
+    if effective_timeout:
+        if _timeout_client is None:
+            _timeout_client = genai.Client(
+                api_key=api_key,
+                http_options={"timeout": effective_timeout},
+            )
+        return _timeout_client
+    return client
+
 
 def retry_on_error(max_attempts=None, initial_delay=None, backoff_factor=None):
     """Retry on transient network/API errors with exponential backoff."""
@@ -161,7 +179,7 @@ def enhance_prompt(original_prompt):
         "Output ONLY the enhanced prompt, no explanations."
     )
 
-    response = client.models.generate_content(
+    response = _get_client().models.generate_content(
         model="gemini-2.0-flash",
         contents=original_prompt,
         config=types.GenerateContentConfig(
@@ -179,7 +197,7 @@ def enhance_prompt(original_prompt):
 @retry_on_error()
 def _generate_single_model(model, contents, aspect_ratio, resolution, output_path):
     """Single model attempt with retry on transient errors."""
-    response = client.models.generate_content(
+    response = _get_client().models.generate_content(
         model=model,
         contents=contents,
         config=types.GenerateContentConfig(
@@ -297,8 +315,16 @@ def run(default_size="1344x768"):
         "--no-fallback", action="store_true",
         help="Disable automatic model degradation on 503 errors",
     )
+    parser.add_argument(
+        "--timeout", type=int, default=None,
+        help="Request timeout in seconds per API call (default: no limit)",
+    )
 
     args = parser.parse_args()
+    # Apply timeout globally if specified
+    if args.timeout:
+        global _request_timeout
+        _request_timeout = args.timeout
     aspect_ratio = ASPECT_RATIO_MAP.get(args.size, "16:9")
     contents = []
 
