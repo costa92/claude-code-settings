@@ -129,23 +129,46 @@ All reference links must be **inlined** at the point of first mention using `[Na
 
 ---
 
-## 11. ASCII Diagram Residue (ASCII 流程图残留)
+## 11. ASCII Diagram Residue (ASCII 流程图残留) — CRITICAL CHECK
 
 Scan all code blocks (` ``` `) for box-drawing / arrow characters that indicate an ASCII diagram rather than executable code:
 
 ```bash
-grep -nE '│|├|└|┌|┐|─|▼|▶|←→|──→|←──' article.md
+grep -nE '│|├|└|┌|┐|─|▼|▶|←|→|↑|↓' article.md
 ```
 
 **If a code block contains these characters AND is not executable code (bash/python/json)**, it is an ASCII diagram that must be replaced with an `<!-- IMAGE -->` placeholder.
 
-**Why**: ASCII diagrams render poorly on mobile, cannot be styled consistently, and miss the opportunity to use the article's shared visual style. All flowcharts, architecture diagrams, sequence diagrams, and spectrum charts should be AI-generated images.
+**Why**: ASCII diagrams render poorly on mobile, cannot be styled consistently, and miss the opportunity to use the article's shared visual style. All flowcharts, architecture diagrams, sequence diagrams, and state machines should be AI-generated images.
 
-**Auto-fix**: Replace the code block with:
-```markdown
-<!-- IMAGE: name - description (ratio) -->
-<!-- PROMPT: [shared visual prefix], [describe the diagram content] -->
+**Common ASCII characters to detect**:
+- Box drawing: `│ ├ └ ┌ ┐ ─ ┬ ┴ ┼`
+- Arrows: `→ ← ↑ ↓ ↔ ↕ ⇒ ⇐ ⇑ ⇓`
+- Special: `▼ ▶ ◀ ▲ ◆ ◇ ■ □`
+
+**Auto-fix process**:
+
+1. Identify the ASCII diagram block
+2. Extract the content and description
+3. Replace with IMAGE placeholder:
+   ```markdown
+   <!-- IMAGE: name - description (ratio) -->
+   <!-- PROMPT: [shared visual prefix], [describe the diagram content] -->
+   ```
+
+**Example**:
 ```
+被检测的 ASCII 图：
+┌─────────┐
+│  State1 │ → State2 → State3
+└─────────┘
+
+替换为：
+<!-- IMAGE: state-machine - 状态转移图 (16:9) -->
+<!-- PROMPT: Code snippet style, architecture diagram, show State1 with arrow to State2 with arrow to State3 -->
+```
+
+**DO NOT** save the article if ASCII diagrams remain in non-executable code blocks.
 
 ---
 

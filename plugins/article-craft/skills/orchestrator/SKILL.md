@@ -160,8 +160,9 @@ images failed, continue to review. Do NOT stop the pipeline.
 
 Invoke `article-craft:review` skill logic:
 - Pass the article.md absolute file path
-- Run self-check (10 rules from self-check-rules.md)
-- Invoke `/content-reviewer` for 7-dimension scoring
+- Run self-check (11 rules from self-check-rules.md, including Rule 11: ASCII diagram check)
+- **GATE**: If Rule 11 (ASCII Diagram) violation found → BLOCK, do not proceed to content-reviewer
+- Invoke `/content-reviewer` for 7-dimension scoring (only if all self-check rules pass)
 
 **Review retry loop:**
 1. If score ≥ 55/70 → PASS, continue to publish

@@ -28,7 +28,7 @@ Question: "Which article file should I review?"
 
 ## Execution Steps
 
-### Phase 1: Self-Check (all 10 rules)
+### Phase 1: Self-Check (all 11 rules)
 
 Read the article file, then check each rule below. Fix violations inline using the Edit tool before proceeding. Do not leave violations for the reviewer to catch.
 
@@ -108,6 +108,33 @@ Verify that **no Mermaid code blocks** (```` ```mermaid ... ``` ````) remain. Al
 
 All reference links must be **inlined** at first mention using `[Name](url)` format. Do NOT create a standalone "参考资料" or "参考链接" section at the end. The WeChat converter auto-generates footnotes from inline links; a manual section causes duplication.
 
+#### Rule 11: ASCII Diagram Check ⭐ CRITICAL
+
+**Scan all code blocks for ASCII diagrams** — these must be converted to `<!-- IMAGE -->` placeholders.
+
+Run this detection command:
+```bash
+grep -nE '│|├|└|┌|┐|─|▼|▶|←|→|↑|↓' article.md
+```
+
+For each match found:
+1. Check if it's inside a code block (between ` ``` `)
+2. If yes, verify it's **executable code** (bash/python/json/etc.)
+3. If NOT executable code (e.g., ASCII flowchart, state machine, architecture diagram):
+   - This is a **violation** — must convert to IMAGE placeholder
+   - Extract the diagram description and content
+   - Replace with: `<!-- IMAGE: name - description (16:9) -->` + `<!-- PROMPT: ... -->`
+
+**Why critical**: ASCII diagrams render poorly on mobile, break visual consistency, and are unprofessional. All diagrams must be AI-generated images.
+
+**Action**: If violations found, convert all ASCII diagrams to image placeholders before proceeding to content-reviewer.
+
+**If after conversion attempt, ASCII diagrams still remain**:
+- This is a **CRITICAL FAILURE**
+- Report: "ASCII diagram conversion failed"
+- **BLOCK the article from proceeding to content-reviewer**
+- Require manual fixing or explicit user override
+
 ---
 
 ### Phase 2: Content-Reviewer Scoring (publish mode only)
@@ -158,6 +185,7 @@ All reference links must be **inlined** at first mention using `[Name](url)` for
 - Rule 8 (WeChat Links): PASS / FIXED
 - Rule 9 (Mermaid Residue): PASS
 - Rule 10 (References Inline): PASS / FIXED
+- Rule 11 (ASCII Diagram Check): PASS / FIXED (N diagrams converted)
 
 ### Content-Reviewer Score (publish mode)
 - Score: [X]/70
