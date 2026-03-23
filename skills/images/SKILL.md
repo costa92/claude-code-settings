@@ -58,6 +58,21 @@ env.json:gemini_image_model (default, highest quality)
       -> give up, keep placeholders
 ```
 
+### 2.5 Heartbeat Monitoring (Background Process Management)
+
+When running batch processing, implement heartbeat monitoring to detect process crashes:
+
+**Heartbeat files created by image generation script:**
+- `{article_path}.heartbeat` — timestamp updated every 2 seconds (proves process is alive)
+- `{article_path}.lock` — created at start, deleted at finish (proves process not stuck)
+
+**Orchestrator monitors these files during generation** (see orchestrator Step 3.5 for details).
+
+If process crashes:
+- Heartbeat file stops updating → detected within 10 seconds
+- Lock file remains → indicates incomplete processing
+- Automatic recovery: kill process + retry once
+
 ### 3. Batch Process Article
 
 After a successful probe, run the batch processor in the same session:
@@ -65,12 +80,17 @@ After a successful probe, run the batch processor in the same session:
 ```bash
 # Default model succeeded
 python3 ~/.claude/plugins/article-craft/scripts/generate_and_upload_images.py \
-  --process-file /ABSOLUTE/PATH/article.md
+  --process-file /ABSOLUTE/PATH/article.md \
+  --enable-heartbeat
 
 # Or if fell back to flash model
 python3 ~/.claude/plugins/article-craft/scripts/generate_and_upload_images.py \
-  --process-file /ABSOLUTE/PATH/article.md --model gemini-2.5-flash-image
+  --process-file /ABSOLUTE/PATH/article.md --model gemini-2.5-flash-image \
+  --enable-heartbeat
 ```
+
+**New flag:**
+- `--enable-heartbeat` -- write heartbeat file every 2s for process monitoring (default: enabled)
 
 ### 3.5 Incremental Mode (skip already-uploaded images)
 

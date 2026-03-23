@@ -146,11 +146,24 @@ Invoke `article-craft:screenshot` skill logic:
 Invoke `article-craft:images` skill logic:
 - Pass the article.md absolute file path from Step 3.3 (screenshot placeholders already resolved)
 - Run Gemini probe test
-- Batch process image placeholders
+- Batch process image placeholders with heartbeat monitoring enabled
 - Update article.md in-place with CDN URLs
 
+**CRITICAL: Heartbeat Monitoring**
+- Images skill writes heartbeat file: `{article_path}.heartbeat` (updated every 2s)
+- Images skill creates lock file: `{article_path}.lock` (deleted when finished)
+- Orchestrator monitors these files during processing:
+  ```bash
+  # Check heartbeat every 3 seconds
+  if no heartbeat update for 10s → skill likely crashed
+    → kill process and auto-retry once
+  if lock file disappears → skill finished
+    → verify IMAGE placeholders are replaced
+    → if any remain → log warning but continue (graceful degradation)
+  ```
+
 **On failure:** Graceful degradation — keep unresolved placeholders, log which
-images failed, continue to review. Do NOT stop the pipeline.
+images failed, continue to review. Auto-retry once if process crashes.
 **Status:** Mark `success` if any images generated, `failed` if all failed
 
 > [!note]

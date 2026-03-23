@@ -78,6 +78,133 @@ Use the directory mapping table below to determine the target directory:
 
 Analyze the article title and frontmatter tags to determine the best match. When ambiguous, ask the user.
 
+### Step 2.5: Pre-Publish Verification ⭐ CRITICAL GATE
+
+**Before moving the article to the knowledge base, run final verification to ensure the article is complete and ready for publication.**
+
+This is the final GATE (GATE 3 of 3-layer system) that prevents incomplete articles from being committed to the KB.
+
+#### Execute Pre-Publish Verification Script
+
+Run the integrated verification script that handles all 5 gates with proper bash error handling:
+
+```bash
+bash ~/.claude/skills/publish/scripts/pre-publish-verify.sh /path/to/article.md
+```
+
+**Exit codes:**
+- `0` — PASS (all critical gates passed, warnings may exist)
+- `1` — FAIL (blocking error, cannot proceed)
+
+#### Checks Performed
+
+**1. Placeholder Residue (BLOCKING GATE)**
+
+Verifies no unprocessed IMAGE or SCREENSHOT placeholders remain.
+
+```
+<!-- IMAGE: name - description -->
+<!-- SCREENSHOT: url -->
+```
+
+**If ANY found:**
+- **BLOCKS publication** — article generation incomplete
+- **Report error** with line numbers and placeholder text
+- **Suggested action:** "Re-run `/article-craft:images` to generate missing content"
+
+**Why this gate matters:**
+- Placeholders in published KB = broken links and poor user experience
+- Indicates image generation process crashed but wasn't fully detected
+- Heartbeat monitoring catches hangs, but this gate catches partial failures
+- **Non-negotiable**: Never publish with unprocessed placeholders
+
+**2. Frontmatter Validation (WARNING)**
+
+Checks required YAML frontmatter fields are present:
+- `title` — article headline
+- `date` — publication date (YYYY-MM-DD)
+- `tags` — at least 1 tag
+- `category` — content category
+- `status` — draft or published
+- `description` — WeChat article summary (≤ 120 Chinese characters)
+
+**If missing:**
+- **Non-blocking warning** — article can publish but with reduced metadata
+- **Recommendation**: fix before publishing for better discoverability
+
+**3. External Links (WARNING)**
+
+Verifies all URLs are in proper Markdown format for WeChat compatibility.
+
+**Good format:**
+```
+[Link text](https://example.com)
+```
+
+**Bad format (bare URLs in body text):**
+```
+Check https://example.com for details
+```
+
+**Fix:** Convert to search guidance `搜索「keyword」` for body text.
+
+**4. Mermaid Code Blocks (WARNING)**
+
+Checks no Mermaid diagram code blocks remain.
+
+Mermaid blocks must be replaced with `<!-- IMAGE -->` placeholders for proper rendering.
+
+**Fix:** Use `/article-craft:images` to generate diagram images.
+
+**5. Standalone Reference Section (WARNING)**
+
+Checks no manual reference section at article end.
+
+**Bad:**
+```markdown
+## 参考资料
+- [Link 1](url)
+- [Link 2](url)
+```
+
+**Good:**
+```markdown
+See the [official documentation](url) for details.
+```
+
+WeChat converter auto-generates footnotes from inline links; manual sections cause duplication.
+
+#### Gate Violation Response
+
+**BLOCK (stop pipeline):**
+```
+ERROR: Article contains unprocessed placeholders. Cannot publish.
+
+Found 2 unprocessed IMAGE placeholders:
+- Line 45: <!-- IMAGE: service-startup-flow - ... -->
+- Line 123: <!-- IMAGE: sidecar-architecture - ... -->
+
+Action: Re-run /article-craft:images to generate missing content.
+Verify with: grep -c '<!-- IMAGE:' {article_path}
+(Must return 0 to proceed)
+```
+
+**WARNING (non-blocking, log and proceed):**
+```
+⚠️ Pre-Publish Verification found issues:
+
+1. Missing 'description' field in frontmatter
+   → Add description field (max 120 chars) for WeChat article summary
+
+2. Found 3 bare URLs in body text
+   → Consider converting to: 搜索「关键词」
+
+3. Found 1 Mermaid code block at line 78
+   → Convert to <!-- IMAGE --> placeholder for rendering
+
+Proceed anyway? [Y/n]
+```
+
 ### Step 3: Create Directory and Move Article
 
 ```bash
@@ -115,6 +242,24 @@ If yes:
 1. Invoke `/wechat-seo-optimizer` on the published article.
 2. The WeChat converter will save the HTML to `03-创作/已发布/<YYYY-MM>/` (e.g., `03-创作/已发布/2026-03/`).
 
+### Step 4.5: Verification Status
+
+After pre-publish verification (Step 2.5), update the completion summary with results:
+
+```markdown
+### Pre-Publish Verification
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| Placeholder Residue | ✅ PASS | No IMAGE or SCREENSHOT placeholders found |
+| Frontmatter | ✅ PASS | All required fields present and valid |
+| External Links | ⚠️ WARNING | 2 bare URLs in body (not critical) |
+| Mermaid Blocks | ✅ PASS | No Mermaid code blocks found |
+| Reference Section | ✅ PASS | No standalone reference section |
+```
+
+Include any **warnings** so the user is aware of non-critical issues, but do not block publication for warnings.
+
 ### Step 5: Completion Summary
 
 Output a summary table with all relevant information:
@@ -126,12 +271,25 @@ Output a summary table with all relevant information:
 |------|-------|
 | **File path** | `/absolute/path/to/02-技术/.../article.md` |
 | **KB directory** | `02-技术/<matched-subdirectory>/` |
-| **Image status** | N/M uploaded (or "no images" / "N placeholders remaining") |
+| **Pre-publish verification** | PASS (all gates cleared) |
+| **Image status** | N/M uploaded (or "no images" / "verified: no placeholders") |
 | **Review score** | X/70 (PASS/FAIL) |
 | **WeChat** | optimized / skipped |
 ```
 
 Always include the **absolute file path** so other sessions can locate the article.
+
+**If pre-publish verification FAILED (placeholder residue found):**
+```markdown
+## Publish BLOCKED
+
+| Item | Value |
+|------|-------|
+| **File path** | `/absolute/path/to/article.md` |
+| **Verification failure** | Found N unprocessed IMAGE placeholders |
+| **Locations** | Line X, Y, Z |
+| **Action** | Re-run `/article-craft:images` to generate missing content |
+```
 
 ---
 
@@ -141,11 +299,14 @@ When invoked directly (not as part of the orchestrator pipeline):
 
 1. AskQuestion for the article file path if not provided.
 2. Read the article to extract title and tags for directory matching.
-3. Execute Steps 1-5 above.
+3. Execute all steps (1, 2, 2.5, 3, 4, 4.5, 5) above:
+   - Step 2.5 (Pre-Publish Verification) is **mandatory** — blocks on placeholder residue or frontmatter errors
+   - Other verification checks (links, Mermaid blocks) are warnings only
 4. If review score is not available (article was not reviewed), note it in the summary:
    ```
    | **Review score** | not reviewed (run `/article-craft:review` first) |
    ```
+5. Always show the pre-publish verification results in the completion summary so the user knows what was checked
 
 ---
 

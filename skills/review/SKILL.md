@@ -108,7 +108,37 @@ Verify that **no Mermaid code blocks** (```` ```mermaid ... ``` ````) remain. Al
 
 All reference links must be **inlined** at first mention using `[Name](url)` format. Do NOT create a standalone "参考资料" or "参考链接" section at the end. The WeChat converter auto-generates footnotes from inline links; a manual section causes duplication.
 
----
+#### Rule 11: IMAGE & SCREENSHOT Placeholder Residue ⭐ CRITICAL GATE
+
+**Before proceeding to Phase 2 (content-reviewer), use the integrated verification script to check for unprocessed placeholders:**
+
+```bash
+# Run the verification script (checks all 5 gates, including placeholders)
+bash ~/.claude/skills/publish/scripts/pre-publish-verify.sh /path/to/article.md
+
+# For placeholder check only, you can also use:
+grep -n '<!-- IMAGE:\|<!-- SCREENSHOT:' /path/to/article.md
+```
+
+**If ANY placeholders found:**
+1. **This is a GATE violation** — article generation incomplete
+2. **BLOCK** from proceeding to content-reviewer
+3. **Report error with locations:**
+   ```
+   ERROR: Found N unprocessed placeholders. Cannot proceed to review.
+   - Line X: <!-- IMAGE: name1 - description -->
+   - Line Y: <!-- SCREENSHOT: url -->
+
+   Re-run /article-craft:images to generate missing content.
+   Verify with: bash ~/.claude/skills/publish/scripts/pre-publish-verify.sh {article_path}
+   (Must return exit code 0 to proceed)
+   ```
+
+**Why GATE?**
+- Placeholders = generation process incomplete/crashed
+- Publishing with placeholders = broken links + poor UX
+- This gate prevents incomplete articles from reaching review
+- **Verification script** provides comprehensive checks beyond just placeholders
 
 ### Phase 2: Content-Reviewer Scoring (publish mode only)
 
