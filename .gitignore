@@ -198,7 +198,7 @@ env.json
 
 # Session environment
 session-env/
-
+session/
 # Config sync lock
 .config-sync.lock/
 
