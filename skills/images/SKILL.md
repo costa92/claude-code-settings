@@ -28,7 +28,7 @@ All downstream scripts require absolute paths. Relative paths cause misleading e
 
 ### 2. Gemini Probe Test
 
-Run `--probe` to automatically detect the best available Gemini model. This iterates the full fallback chain with 60s timeout per model, eliminating manual retry.
+Run `--probe` to automatically detect the best available Gemini model. This iterates the full fallback chain with 120s subprocess timeout per model (no inner httpx timeout — avoids proxy SSL handshake issues).
 
 ```bash
 python3 ~/.claude/plugins/article-craft/scripts/generate_and_upload_images.py --probe
@@ -36,7 +36,7 @@ python3 ~/.claude/plugins/article-craft/scripts/generate_and_upload_images.py --
 
 Output on success (exit 0):
 ```
-🔍 探测可用 Gemini 模型（超时 60s/模型）...
+🔍 探测可用 Gemini 模型（超时 120s/模型）...
    [1/3] 测试 gemini-3-pro-image-preview... ✅
 
 BEST_MODEL:gemini-3-pro-image-preview

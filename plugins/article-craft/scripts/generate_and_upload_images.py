@@ -1808,7 +1808,7 @@ def main():
         ]
         # 去重，保持顺序
         probe_chain = list(dict.fromkeys(probe_chain))
-        probe_timeout = 60  # 每个模型最多等 60 秒（代理环境需要更长时间）
+        probe_timeout = 120  # 外层 subprocess 超时（代理环境 SSL 握手+生成需要较长时间）
         probe_output = "/tmp/gemini_probe.jpg"
 
         print(f"🔍 探测可用 Gemini 模型（超时 {probe_timeout}s/模型）...")
@@ -1820,14 +1820,13 @@ def main():
                         "python3", NANOBANANA_PATH,
                         "--prompt", "test",
                         "--size", "1024x1024",
-                        "--timeout", str(probe_timeout),
                         "--model", model_name,
                         "--output", probe_output,
                         "--no-fallback",
                     ],
                     capture_output=True,
                     text=True,
-                    timeout=probe_timeout + 10,  # 外层留 10s 余量
+                    timeout=probe_timeout,
                 )
                 if result.returncode == 0 and os.path.exists(probe_output):
                     print("✅")

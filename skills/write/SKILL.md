@@ -369,11 +369,9 @@ Print the absolute file path after saving so subsequent skills can find it.
 
 After writing is complete:
 
-- **Next skill**: `article-craft:images` — processes `<!-- IMAGE -->` and `<!-- SCREENSHOT -->` placeholders
+- **Auto-invoke `article-craft:images`**: If the saved article contains `<!-- IMAGE -->` placeholders, **automatically invoke the images skill** using the `Skill` tool with the absolute file path as argument. Do NOT stop and ask the user — proceed directly.
 - Pass the absolute file path to the images skill
-- If the user explicitly says "no images" or "article only", skip the hand-off
-
-In orchestrated mode, the orchestrator handles the hand-off automatically.
+- Only skip if the user explicitly said "no images", "article only", or "draft only" before writing
 
 ---
 
@@ -383,8 +381,8 @@ When invoked directly (not via orchestrator):
 
 1. Use AskQuestion to collect topic, audience, and length if not provided.
 2. Skip the requirements skill — go straight to writing.
-3. After saving, suggest the user run `article-craft:images` if the article contains image placeholders.
-4. Provide a completion summary:
+3. After saving, **automatically invoke `article-craft:images`** if the article contains `<!-- IMAGE -->` placeholders. Use the `Skill` tool: `skill: "images", args: "Generate images for article /absolute/path/to/article.md"`. Do NOT just suggest — execute it.
+4. Provide a completion summary after images are done (or after write if no placeholders):
 
 ```
 | Item | Value |
