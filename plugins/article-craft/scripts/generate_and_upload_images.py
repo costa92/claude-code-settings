@@ -17,6 +17,15 @@ import threading
 import hashlib
 from datetime import datetime
 
+# 心跳监控支持（可选，编排器模式下使用）
+HEARTBEAT_AVAILABLE = False
+try:
+    sys.path.insert(0, os.path.expanduser("~/.claude/skills/images/scripts"))
+    from heartbeat import HeartbeatMonitor
+    HEARTBEAT_AVAILABLE = True
+except ImportError:
+    pass
+
 # 尝试导入 tenacity（用于重试机制）
 try:
     import tenacity
@@ -1785,8 +1794,25 @@ def main():
                        help="自动优化图片提示词 (使用 Gemini 润色)")
     parser.add_argument("--probe", action="store_true",
                        help="探测最佳可用 Gemini 模型（遍历降级链，输出可用模型名后退出）")
+    parser.add_argument("--heartbeat", action="store_true",
+                       help="启用心跳监控（编排器模式，写入 .heartbeat/.lock 文件）")
 
     args = parser.parse_args()
+
+    # 初始化心跳监控（仅 --heartbeat + --process-file 模式）
+    heartbeat_monitor = None
+    if args.heartbeat and args.process_file and HEARTBEAT_AVAILABLE:
+        heartbeat_monitor = HeartbeatMonitor(article_path=args.process_file)
+        heartbeat_monitor.start_heartbeat()
+        print("💓 心跳监控已启动")
+    elif args.heartbeat and not HEARTBEAT_AVAILABLE:
+        print("⚠️  心跳模块未找到，跳过心跳监控")
+
+    # 初始化 RecoveryManager（仅 --process-file 模式）
+    recovery = None
+    if args.process_file:
+        recovery = RecoveryManager(args.process_file)
+        recovery.create_backup()
 
     # 检查依赖
     if args.check:
@@ -2046,106 +2072,138 @@ def main():
     }
 
     # Phase 1: AI image generation (if any)
-    if configs:
-        if args.parallel:
-            print(f"\n🚀 使用并行模式（{args.max_workers} 个工作线程）")
-            results = generate_and_upload_parallel(
-                configs=configs,
-                upload=not args.no_upload,
-                resolution=args.resolution,
-                max_workers=args.max_workers,
-                fail_fast=not args.continue_on_error,
-                model=args.model,
-                keep_files=args.keep_files
-            )
-        else:
-            results = generate_and_upload_batch(
-                configs=configs,
-                upload=not args.no_upload,
-                resolution=args.resolution,
-                model=args.model
-            )
-        # Ensure screenshot_results key exists
-        if 'screenshot_results' not in results:
-            results['screenshot_results'] = {
-                "total": 0, "captured": 0, "uploaded": 0, "failed": 0, "screenshots": []
-            }
-
-    # Phase 2: Screenshots (if any)
-    if screenshot_file_matches:
-        print("\n" + "=" * 70)
-        print(f"📸 开始截图 ({len(screenshot_file_matches)} 个)")
-        print("=" * 70)
-
-        screenshot_results = results['screenshot_results']
-        screenshot_results['total'] = len(screenshot_file_matches)
-
-        for i, (sc_config, _) in enumerate(screenshot_file_matches, 1):
-            print(f"\n[{i}/{len(screenshot_file_matches)}] 截图: {sc_config.description}")
-            print("-" * 70)
-
-            if take_screenshot(sc_config):
-                screenshot_results['captured'] += 1
-                screenshot_entry = {
-                    "name": sc_config.description,
-                    "filename": sc_config.filename,
-                    "local_path": sc_config.local_path,
-                    "cdn_url": None,
-                    "url": sc_config.url
-                }
-
-                # Upload screenshot
-                if not args.no_upload and sc_config.local_path:
-                    try:
-                        time.sleep(1)
-                        cdn_url = upload_image(sc_config.local_path)
-                        sc_config.cdn_url = cdn_url
-                        screenshot_entry['cdn_url'] = cdn_url
-                        screenshot_results['uploaded'] += 1
-
-                        if not args.keep_files:
-                            delete_local_file(sc_config.local_path)
-                    except Exception as e:
-                        print(f"   ❌ 截图上传失败: {str(e)}")
-                        screenshot_results['failed'] += 1
-
-                screenshot_results['screenshots'].append(screenshot_entry)
+    try:
+        if configs:
+            if recovery:
+                recovery.record_step("image_generation_start")
+            if args.parallel:
+                print(f"\n🚀 使用并行模式（{args.max_workers} 个工作线程）")
+                results = generate_and_upload_parallel(
+                    configs=configs,
+                    upload=not args.no_upload,
+                    resolution=args.resolution,
+                    max_workers=args.max_workers,
+                    fail_fast=not args.continue_on_error,
+                    model=args.model,
+                    keep_files=args.keep_files
+                )
             else:
-                screenshot_results['failed'] += 1
-                screenshot_results['screenshots'].append({
-                    "name": sc_config.description,
-                    "filename": sc_config.filename,
-                    "local_path": None,
-                    "cdn_url": None,
-                    "url": sc_config.url
-                })
+                results = generate_and_upload_batch(
+                    configs=configs,
+                    upload=not args.no_upload,
+                    resolution=args.resolution,
+                    model=args.model
+                )
+        # Ensure screenshot_results key exists
+            if 'screenshot_results' not in results:
+                results['screenshot_results'] = {
+                    "total": 0, "captured": 0, "uploaded": 0, "failed": 0, "screenshots": []
+                }
+            # 记录图片生成结果
+            if recovery:
+                recovery.record_step("image_generation_done",
+                    success=results.get("failed", 0) == 0,
+                    details=f"{results.get('generated', 0)}/{results.get('total', 0)} generated")
+                for img in results.get("images", []):
+                    recovery.record_image_processed(
+                        img.get("name", "unknown"),
+                        url=img.get("cdn_url"),
+                        error=None if img.get("cdn_url") else "failed"
+                    )
 
-        # Print screenshot summary
-        print(f"\n📸 截图统计: 成功 {screenshot_results['captured']}/{screenshot_results['total']}, "
-              f"上传 {screenshot_results['uploaded']}")
+        # Phase 2: Screenshots (if any)
+        if screenshot_file_matches:
+            print("\n" + "=" * 70)
+            print(f"📸 开始截图 ({len(screenshot_file_matches)} 个)")
+            print("=" * 70)
 
-    # 打印摘要
-    if configs:
-        print_summary(results)
+            screenshot_results = results['screenshot_results']
+            screenshot_results['total'] = len(screenshot_file_matches)
 
-    # 后处理
-    if args.process_file:
-        update_markdown_file(args.process_file, results, file_matches, screenshot_file_matches)
-    elif args.output:
-        markdown = generate_markdown_output(results)
-        with open(args.output, 'w', encoding='utf-8') as f:
-            f.write(markdown)
-        print(f"\n📝 Markdown 输出已保存: {args.output}")
+            for i, (sc_config, _) in enumerate(screenshot_file_matches, 1):
+                print(f"\n[{i}/{len(screenshot_file_matches)}] 截图: {sc_config.description}")
+                print("-" * 70)
 
-    # 自动删除配置文件（如果上传成功且是 config 模式，且用户未指定保留）
-    if args.config and not args.no_upload and not args.keep_files and results["uploaded"] > 0:
-        try:
-            if os.path.exists(args.config):
-                os.remove(args.config)
-                print(f"\n🗑️  已删除配置文件: {args.config}")
-        except Exception as e:
-            print(f"\n⚠️  删除配置文件失败: {e}")
-            # 删除失败不影响主流程
+                if take_screenshot(sc_config):
+                    screenshot_results['captured'] += 1
+                    screenshot_entry = {
+                        "name": sc_config.description,
+                        "filename": sc_config.filename,
+                        "local_path": sc_config.local_path,
+                        "cdn_url": None,
+                        "url": sc_config.url
+                    }
+
+                    # Upload screenshot
+                    if not args.no_upload and sc_config.local_path:
+                        try:
+                            time.sleep(1)
+                            cdn_url = upload_image(sc_config.local_path)
+                            sc_config.cdn_url = cdn_url
+                            screenshot_entry['cdn_url'] = cdn_url
+                            screenshot_results['uploaded'] += 1
+
+                            if not args.keep_files:
+                                delete_local_file(sc_config.local_path)
+                        except Exception as e:
+                            print(f"   ❌ 截图上传失败: {str(e)}")
+                            screenshot_results['failed'] += 1
+
+                    screenshot_results['screenshots'].append(screenshot_entry)
+                else:
+                    screenshot_results['failed'] += 1
+                    screenshot_results['screenshots'].append({
+                        "name": sc_config.description,
+                        "filename": sc_config.filename,
+                        "local_path": None,
+                        "cdn_url": None,
+                        "url": sc_config.url
+                    })
+
+            # Print screenshot summary
+            print(f"\n📸 截图统计: 成功 {screenshot_results['captured']}/{screenshot_results['total']}, "
+                  f"上传 {screenshot_results['uploaded']}")
+
+        # 打印摘要
+        if configs:
+            print_summary(results)
+
+        # 后处理
+        if args.process_file:
+            update_markdown_file(args.process_file, results, file_matches, screenshot_file_matches)
+        elif args.output:
+            markdown = generate_markdown_output(results)
+            with open(args.output, 'w', encoding='utf-8') as f:
+                f.write(markdown)
+            print(f"\n📝 Markdown 输出已保存: {args.output}")
+
+        # 自动删除配置文件（如果上传成功且是 config 模式，且用户未指定保留）
+        if args.config and not args.no_upload and not args.keep_files and results["uploaded"] > 0:
+            try:
+                if os.path.exists(args.config):
+                    os.remove(args.config)
+                    print(f"\n🗑️  已删除配置文件: {args.config}")
+            except Exception as e:
+                print(f"\n⚠️  删除配置文件失败: {e}")
+
+        # 成功完成：清理 Recovery 文件
+        if recovery:
+            recovery.record_step("pipeline_complete", success=True)
+            recovery.cleanup(keep_backup=False)
+
+    except Exception as e:
+        # 失败：保留 Recovery 文件供恢复使用
+        if recovery:
+            recovery.record_step("fatal_error", success=False, details=str(e))
+            print(f"\n💾 恢复信息已保存: {recovery.state_path}")
+            print(f"   备份文件: {recovery.backup_path}")
+        raise
+    finally:
+        # 始终停止心跳监控
+        if heartbeat_monitor:
+            heartbeat_monitor.stop_heartbeat()
+            heartbeat_monitor.cleanup()
+            print("💓 心跳监控已停止")
 
 if __name__ == "__main__":
     main()

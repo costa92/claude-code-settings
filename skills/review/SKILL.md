@@ -32,6 +32,14 @@ Question: "Which article file should I review?"
 
 Read the article file, then check each rule below. Fix violations inline using the Edit tool before proceeding. Do not leave violations for the reviewer to catch.
 
+**Automated self-check script** (run first for quick validation):
+
+```bash
+python3 ~/.claude/plugins/article-craft/scripts/review_selfcheck.py /path/to/article.md
+```
+
+This script checks all 11 rules automatically and outputs a formatted report. If any rules fail, fix the violations using the Edit tool, then re-run until all pass. For JSON output (machine-readable): add `--json`. For gate-only check: add `--gate-only`.
+
 Reference: `~/.claude/plugins/article-craft/references/self-check-rules.md`
 
 #### Rule 1: Red-Flag Words
@@ -110,14 +118,20 @@ All reference links must be **inlined** at first mention using `[Name](url)` for
 
 #### Rule 11: IMAGE & SCREENSHOT Placeholder Residue ⭐ CRITICAL GATE
 
-**Before proceeding to Phase 2 (content-reviewer), use the integrated verification script to check for unprocessed placeholders:**
+**Before proceeding to Phase 2 (content-reviewer), check for unprocessed placeholders:**
 
 ```bash
-# Run the verification script (checks all 5 gates, including placeholders)
-bash ~/.claude/skills/publish/scripts/pre-publish-verify.sh /path/to/article.md
+# Check for any remaining placeholders
+placeholder_count=$(grep -c '<!-- IMAGE:\|<!-- SCREENSHOT:' /path/to/article.md)
 
-# For placeholder check only, you can also use:
-grep -n '<!-- IMAGE:\|<!-- SCREENSHOT:' /path/to/article.md
+if [ "$placeholder_count" -eq 0 ]; then
+  echo "✅ GATE PASSED: No placeholder residue"
+  exit 0
+else
+  echo "❌ GATE BLOCKED: Found $placeholder_count unprocessed placeholders"
+  grep -n '<!-- IMAGE:\|<!-- SCREENSHOT:' /path/to/article.md
+  exit 1
+fi
 ```
 
 **If ANY placeholders found:**
@@ -125,20 +139,59 @@ grep -n '<!-- IMAGE:\|<!-- SCREENSHOT:' /path/to/article.md
 2. **BLOCK** from proceeding to content-reviewer
 3. **Report error with locations:**
    ```
-   ERROR: Found N unprocessed placeholders. Cannot proceed to review.
+   ════════════════════════════════════════════════════════════
+   ❌ REVIEW BLOCKED: Placeholder Residue Detected
+   ════════════════════════════════════════════════════════════
+
+   Found N unprocessed placeholders at:
    - Line X: <!-- IMAGE: name1 - description -->
    - Line Y: <!-- SCREENSHOT: url -->
 
-   Re-run /article-craft:images to generate missing content.
-   Verify with: bash ~/.claude/skills/publish/scripts/pre-publish-verify.sh {article_path}
-   (Must return exit code 0 to proceed)
+   Action required:
+   → Re-run /article-craft:images to generate missing content
+   → Verify with: grep -c '<!-- IMAGE:' {article_path}
+   → Must return 0 to proceed
+
+   ════════════════════════════════════════════════════════════
    ```
 
 **Why GATE?**
 - Placeholders = generation process incomplete/crashed
 - Publishing with placeholders = broken links + poor UX
 - This gate prevents incomplete articles from reaching review
-- **Verification script** provides comprehensive checks beyond just placeholders
+- Clear error message prevents user confusion
+
+### Phase 1 Completion Summary (NEW)
+
+After all 11 rules pass, display a high-visibility completion summary:
+
+```
+════════════════════════════════════════════════════════════
+✅ PHASE 1 SELF-CHECK COMPLETE
+════════════════════════════════════════════════════════════
+
+📋 Self-Check Results (11 Rules):
+   ✅ Rule 1: Red-flag words — no violations
+   ✅ Rule 2: Hook length — 52 chars (≤100)
+   ✅ Rule 3: Closing paragraph — concrete action
+   ✅ Rule 4: Description field — 120 chars summary
+   ✅ Rule 5: Anti-AI structure — varied & personal
+   ✅ Rule 6: Chapter depth — sufficient examples
+   ✅ Rule 7: Duplicate images — none found
+   ✅ Rule 8: WeChat links — all inline format
+   ✅ Rule 9: Mermaid residue — none found
+   ✅ Rule 10: References inline — no separate section
+   ✅ Rule 11: Placeholder residue — GATE PASSED ✨
+
+✨ Status: READY FOR CONTENT-REVIEWER SCORING
+════════════════════════════════════════════════════════════
+```
+
+This summary:
+- Uses high-contrast formatting (═══ boxes)
+- Shows all 11 rules at a glance
+- Clearly indicates GATE PASSED status
+- Signals readiness for Phase 2
 
 ### Phase 2: Content-Reviewer Scoring (publish mode only)
 

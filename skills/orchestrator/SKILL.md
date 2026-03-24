@@ -209,43 +209,96 @@ can manually move it
 > [!note]
 > Skipped in quick and draft modes. Mark as `skipped`.
 
-### Step 4: Completion Summary
+### Step 4: Completion Summary (HIGH VISIBILITY)
 
-After all skills complete (or pipeline stops on fatal error), print a summary table:
+After all skills complete (or pipeline stops on fatal error), print a high-contrast summary with clear GO/NO-GO status:
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                 Article Craft — Summary                  │
-├──────────────┬──────────┬───────────────────────────────┤
-│ Skill        │ Status   │ Notes                         │
-├──────────────┼──────────┼───────────────────────────────┤
-│ requirements │ success  │ Topic: {topic}                │
-│ verify       │ success  │ 8/10 links OK, 2 broken       │
-│ write        │ success  │ Saved: {absolute_path}        │
-│ images       │ success  │ 4/5 uploaded, 1 placeholder   │
-│ review       │ success  │ Score: 58/70 (round 1)        │
-│ publish      │ success  │ KB: {final_path}              │
-├──────────────┼──────────┼───────────────────────────────┤
-│ Mode: standard │ Duration: ~2 min                       │
-└─────────────────────────────────────────────────────────┘
-```
-
-## Error Recovery
-
-If the pipeline stops due to a fatal error (write skill failure):
+**On SUCCESS (all 7 steps):**
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│            Article Craft — PIPELINE STOPPED              │
-├──────────────┬──────────┬───────────────────────────────┤
-│ requirements │ success  │ Topic: {topic}                │
-│ verify       │ success  │ All OK                        │
-│ write        │ FAILED   │ Error: {error_message}        │
-│ images       │ skipped  │ (blocked by write failure)    │
-│ review       │ skipped  │ (blocked by write failure)    │
-│ publish      │ skipped  │ (blocked by write failure)    │
-└─────────────────────────────────────────────────────────┘
+╔════════════════════════════════════════════════════════════╗
+║          ✅ ARTICLE CRAFT PIPELINE COMPLETE                ║
+╚════════════════════════════════════════════════════════════╝
+
+📊 Pipeline Execution Summary:
+
+│ Step  │ Skill          │ Status   │ Key Metrics              │
+├───────┼────────────────┼──────────┼──────────────────────────┤
+│ 3.1   │ requirements   │ ✅ PASS  │ Topic inferred correctly │
+│ 3.2   │ verify         │ ✅ PASS  │ 5/5 links verified       │
+│ 3.3   │ write          │ ✅ PASS  │ 4,700+ words generated   │
+│ 3.4   │ screenshot     │ ⊘ skip   │ no SCREENSHOT tags       │
+│ 3.5   │ images         │ ✅ PASS  │ 5/5 images CDN uploaded  │
+│ 3.6   │ review         │ ✅ PASS  │ 62/70 (≥55 threshold)    │
+│ 3.7   │ publish        │ ✅ PASS  │ KB published             │
+
+════════════════════════════════════════════════════════════
+
+🎯 Final Status: ✨ READY FOR DISTRIBUTION
+
+📁 File: /absolute/path/to/02-技术/.../article.md
+✅ All GATES passed (3-layer verification)
+✅ All images uploaded and verified
+✅ Quality threshold met (62/70)
+✅ Knowledge base published
+
+🚀 Next Actions (Optional):
+   1. /wechat-article-converter  — Convert to WeChat HTML
+   2. /wechat-seo-optimizer      — Optimize title & SEO
+   3. /content-repurposer        — Multi-platform distribution
+   4. /content-analytics        — Track performance metrics
+
+════════════════════════════════════════════════════════════
 ```
+
+**On FAILURE (with specific step blocked):**
+
+```
+╔════════════════════════════════════════════════════════════╗
+║          ⚠️  ARTICLE CRAFT PIPELINE STOPPED                ║
+╚════════════════════════════════════════════════════════════╝
+
+📊 Pipeline Execution Status:
+
+│ Step  │ Skill          │ Status   │ Notes                    │
+├───────┼────────────────┼──────────┼──────────────────────────┤
+│ 3.1   │ requirements   │ ✅ PASS  │ Confirmed by user        │
+│ 3.2   │ verify         │ ✅ PASS  │ 5/5 links OK             │
+│ 3.3   │ write          │ ✅ PASS  │ Article generated        │
+│ 3.4   │ screenshot     │ ⊘ skip   │ no SCREENSHOT tags       │
+│ 3.5   │ images         │ ❌ FAIL  │ 2/5 images failed        │
+│ 3.6   │ review         │ ⏸ blocked│ waiting for images       │
+│ 3.7   │ publish        │ ⏸ blocked│ waiting for review       │
+
+════════════════════════════════════════════════════════════
+
+🔴 Blocked At: Step 3.5 (Images)
+
+❌ Failure Details:
+   • 2 out of 5 images failed to upload
+   • Failed images: cover, architecture-diagram
+   • Error: CDN connection timeout
+
+🔧 Recovery Action Required:
+   1. Check network connection
+   2. Re-run: /article-craft:images {file_path}
+   3. Verify: grep -c '<!-- IMAGE:' {file_path}
+   4. Should return 0 (zero placeholders)
+
+📁 Current File: /absolute/path/to/article.md
+⏱️  Partial Progress: 3.4/7 steps completed
+
+════════════════════════════════════════════════════════════
+```
+
+**Key Improvements:**
+
+1. ✅ **Unified box formatting** — Both success/failure use `╔════╝` boxes for visual consistency
+2. ✅ **Clear status indicators** — ✅ PASS / ❌ FAIL / ⊘ skip / ⏸ blocked
+3. ✅ **Quick scanning** — Key metrics on same line as step status
+4. ✅ **Error context** — Explains what went wrong and how to fix it
+5. ✅ **No scrolling** — All critical info visible (mobile/small screens friendly)
+6. ✅ **File path included** — Always shows article location for session continuity
 
 ## Standalone Skill Usage
 

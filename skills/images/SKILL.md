@@ -94,6 +94,9 @@ Additional flags:
 - `--continue-on-error` -- skip failed images instead of aborting
 - `--resolution 2K` -- higher resolution output
 - `--parallel` -- parallel generation (2 workers, ~1.87x faster)
+- `--heartbeat` -- enable heartbeat monitoring (writes `.heartbeat`/`.lock` files for orchestrator)
+- `--keep-files` -- retain local image files after upload
+- `--probe` -- detect best available Gemini model (iterate fallback chain, exit with `BEST_MODEL:name`)
 
 ### 3.5 Incremental Mode (skip already-uploaded images)
 
@@ -134,14 +137,29 @@ Additional flags:
 - `--parallel` -- parallel generation (2 workers, ~1.87x faster)
 - `--continue-on-error` -- skip failed images instead of aborting
 
-### 4. Verify No Placeholder Residue
+### 4. Verify No Placeholder Residue (CRITICAL GATE)
 
 ```bash
 grep -n '<!-- IMAGE:' /ABSOLUTE/PATH/article.md
+grep -n '<!-- SCREENSHOT:' /ABSOLUTE/PATH/article.md
 ```
 
-- No matches -- all images processed successfully.
-- Matches found -- some images failed; list them in the completion summary.
+**Output format:**
+- **0 matches** -- all images processed successfully ✅ PASS
+- **Matches found** -- some images failed ❌ FAIL
+
+**If FAIL (placeholders found):**
+1. List the failed placeholders with line numbers
+2. **BLOCK** further processing (cannot proceed to review)
+3. **Report error** with actionable message:
+   ```
+   ❌ Images Generation Failed
+   Found 2 unprocessed placeholders at:
+   - Line 45: <!-- IMAGE: service-startup-flow - ... -->
+   - Line 123: <!-- IMAGE: sidecar-architecture - ... -->
+
+   Action: Re-run /article-craft:images to complete generation
+   ```
 
 ### 5. Screenshots (Independent of Gemini)
 
@@ -171,6 +189,71 @@ Optional parameters:
 - External third-party sites -- **never use SELECTOR** (DOM changes break screenshots)
 - Local services or controlled systems -- SELECTOR is fine
 - External sites -- use `WAIT: 3000` for load delay
+
+### 6. Completion Verification & Summary (NEW)
+
+**After batch processing completes**, run this verification to generate a clear completion report:
+
+```bash
+# ====== COMPLETION VERIFICATION ======
+echo "════════════════════════════════════════════════════════════"
+echo "✅ IMAGES GENERATION COMPLETE"
+echo "════════════════════════════════════════════════════════════"
+echo ""
+
+# Count metrics
+TOTAL_PLACEHOLDERS=$(grep -c '<!-- IMAGE:' "$article_path" + grep -c '<!-- SCREENSHOT:' "$article_path")
+REMAINING_PLACEHOLDERS=$(grep -c '<!-- IMAGE:\|<!-- SCREENSHOT:' "$article_path")
+CDN_IMAGES=$(grep -c 'https://cdn.jsdelivr.net' "$article_path")
+
+echo "📊 Generation Summary:"
+echo "   • Total placeholders processed: $(($TOTAL_PLACEHOLDERS - $REMAINING_PLACEHOLDERS))/$TOTAL_PLACEHOLDERS"
+echo "   • CDN images uploaded: $CDN_IMAGES"
+echo "   • Remaining placeholders: $REMAINING_PLACEHOLDERS"
+echo ""
+
+echo "✅ Critical Verification Checks:"
+if [ "$REMAINING_PLACEHOLDERS" -eq 0 ]; then
+  echo "   ✅ All IMAGE/SCREENSHOT placeholders replaced"
+else
+  echo "   ❌ $REMAINING_PLACEHOLDERS unprocessed placeholders found"
+  echo "      $({grep -n '<!-- IMAGE:\|<!-- SCREENSHOT:' "$article_path"})"
+fi
+
+echo "   ✅ Article file size: $(wc -c < "$article_path") bytes"
+echo "   ✅ Backup created: ${article_path}.bak.*"
+echo ""
+
+if [ "$REMAINING_PLACEHOLDERS" -eq 0 ]; then
+  echo "✨ Status: READY FOR REVIEW"
+  echo "════════════════════════════════════════════════════════════"
+  exit 0
+else
+  echo "⚠️  Status: INCOMPLETE - Some images failed to generate"
+  echo "════════════════════════════════════════════════════════════"
+  exit 1
+fi
+```
+
+**Output format** (high visibility):
+```
+════════════════════════════════════════════════════════════
+✅ IMAGES GENERATION COMPLETE
+════════════════════════════════════════════════════════════
+
+📊 Generation Summary:
+   • Total placeholders processed: 5/5
+   • CDN images uploaded: 5
+   • Remaining placeholders: 0
+
+✅ Critical Verification Checks:
+   ✅ All IMAGE/SCREENSHOT placeholders replaced
+   ✅ Article file size: 125432 bytes
+   ✅ Backup created: article.md.bak.20260324104059
+
+✨ Status: READY FOR REVIEW
+════════════════════════════════════════════════════════════
+```
 
 ## CRITICAL Rules
 

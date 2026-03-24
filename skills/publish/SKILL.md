@@ -48,14 +48,18 @@ When a knowledge base is detected, determine the best subdirectory under `02-技
 
 The `SmartDirectoryMatcher` class is located at `~/.claude/plugins/article-craft/scripts/utils.py`. It performs keyword matching, pattern matching, and history-based matching to find the best directory.
 
-```python
-import sys
-sys.path.insert(0, os.path.expanduser("~/.claude/plugins/article-craft/scripts"))
+```bash
+# Auto-match directory from CLI
+python3 -c "
+import sys; sys.path.insert(0, '$HOME/.claude/plugins/article-craft/scripts')
 from utils import SmartDirectoryMatcher
-
-matcher = SmartDirectoryMatcher(kb_root=PROJECT_ROOT)
-matched_dir = matcher.match_directory(article_title, article_content)
+m = SmartDirectoryMatcher(kb_root='PROJECT_ROOT')
+result = m.match_directory('ARTICLE_TITLE')
+print(result or 'NO_MATCH')
+"
 ```
+
+If match found, suggest to user. On confirmation, proceed. On rejection, ask user and call `learn_feedback(title, chosen_dir)` to improve future matches.
 
 **Option B -- Manual keyword matching** (if SmartDirectoryMatcher is not available):
 
@@ -260,36 +264,108 @@ After pre-publish verification (Step 2.5), update the completion summary with re
 
 Include any **warnings** so the user is aware of non-critical issues, but do not block publication for warnings.
 
-### Step 5: Completion Summary
+### Step 5: Completion Summary (HIGH VISIBILITY)
 
-Output a summary table with all relevant information:
+Display a high-contrast completion summary with clear GO/NO-GO status:
 
-```markdown
-## Publish Complete
+**If publish SUCCEEDED:**
 
-| Item | Value |
-|------|-------|
-| **File path** | `/absolute/path/to/02-技术/.../article.md` |
-| **KB directory** | `02-技术/<matched-subdirectory>/` |
-| **Pre-publish verification** | PASS (all gates cleared) |
-| **Image status** | N/M uploaded (or "no images" / "verified: no placeholders") |
-| **Review score** | X/70 (PASS/FAIL) |
-| **WeChat** | optimized / skipped |
+```
+╔════════════════════════════════════════════════════════════╗
+║          ✅ ARTICLE PUBLISHED SUCCESSFULLY                 ║
+╚════════════════════════════════════════════════════════════╝
+
+📄 Article Details:
+   • Title: [article title]
+   • File path: /absolute/path/to/02-技术/.../article.md
+   • KB directory: 02-技术/<matched-subdirectory>/
+   • Status: ✅ published
+
+✨ Quality Verification:
+   ✅ Pre-publish verification: PASS (all gates cleared)
+   ✅ Placeholder residue: NONE
+   ✅ Frontmatter: complete
+   ✅ Review score: X/70 (≥55 published)
+   ✅ Images: N/M successfully uploaded
+
+📦 Distribution:
+   • WeChat: [optimized / skipped]
+   • Knowledge base: ready
+
+🎯 Next Steps:
+   1. Convert to WeChat format: /wechat-article-converter
+   2. Multi-platform distribution: /content-repurposer
+   3. SEO optimization: /wechat-seo-optimizer
+
+╚════════════════════════════════════════════════════════════╝
 ```
 
-Always include the **absolute file path** so other sessions can locate the article.
+**Always include the absolute file path** so other sessions can locate the article.
 
-**If pre-publish verification FAILED (placeholder residue found):**
-```markdown
-## Publish BLOCKED
+---
 
-| Item | Value |
-|------|-------|
-| **File path** | `/absolute/path/to/article.md` |
-| **Verification failure** | Found N unprocessed IMAGE placeholders |
-| **Locations** | Line X, Y, Z |
-| **Action** | Re-run `/article-craft:images` to generate missing content |
+**If publish BLOCKED (pre-publish verification FAILED):**
+
 ```
+╔════════════════════════════════════════════════════════════╗
+║          ❌ PUBLISH BLOCKED - VERIFICATION FAILED           ║
+╚════════════════════════════════════════════════════════════╝
+
+⚠️ Blocking Issues:
+   ❌ Found N unprocessed IMAGE placeholders at:
+      • Line X: <!-- IMAGE: name1 - description -->
+      • Line Y: <!-- IMAGE: name2 - description -->
+
+🔧 Required Actions:
+   1. Re-run /article-craft:images to generate missing content
+   2. Verify: grep -c '<!-- IMAGE:' {article_path}
+   3. Must return 0 (zero placeholders) to proceed
+
+📁 File path: /absolute/path/to/article.md
+
+⏱️  Status: BLOCKED - Cannot publish until images are generated
+
+╚════════════════════════════════════════════════════════════╝
+```
+
+---
+
+**If publish SUCCEEDED but with WARNINGS:**
+
+```
+╔════════════════════════════════════════════════════════════╗
+║          ✅ ARTICLE PUBLISHED (WITH WARNINGS)              ║
+╚════════════════════════════════════════════════════════════╝
+
+📄 Article Published: /absolute/path/article.md
+
+⚠️ Non-blocking Issues Found:
+   ⚠️ Missing 'description' in frontmatter
+      → Will auto-generate from first paragraph
+
+   ⚠️ Found 2 bare URLs in body text
+      → Recommend converting to: 搜索「keyword」
+
+📋 Quality Checklist:
+   ✅ Placeholder residue: NONE (GATE PASSED)
+   ✅ Frontmatter validation: PASS (with warnings)
+   ✅ External links: properly formatted
+   ✅ Mermaid blocks: none found
+   ✅ Reference section: inline (no duplication)
+
+✨ Status: PUBLISHED (review warnings before distribution)
+
+╚════════════════════════════════════════════════════════════╝
+```
+
+### Key Features of This Summary:
+
+1. **High Contrast**: Uses `╔════╗` boxes for visual separation
+2. **Clear Status**: ✅ vs ❌ at the top (GO/NO-GO decision)
+3. **Grouped Information**: Details organized by category
+4. **Action Items**: Clear next steps displayed
+5. **File Path**: Always included for session continuity
+6. **No Scrolling Needed**: All critical info visible above the fold
 
 ---
 
