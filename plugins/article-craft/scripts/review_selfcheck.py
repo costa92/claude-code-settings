@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Automated self-check for article review (14 rules).
+Automated self-check for article review (15 rules).
 
 Validates articles against the self-check rules defined in
 references/self-check-rules.md. Can be used standalone or
@@ -554,18 +554,46 @@ def check_rule_14(content: str, lines: List[str]) -> CheckResult:
     )
 
 
+def check_rule_15(content: str, lines: List[str]) -> CheckResult:
+    """Orphan PROMPT comments: flag <!-- PROMPT: --> not preceded by <!-- IMAGE: -->."""
+    violations = []
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith('<!-- PROMPT:'):
+            # Check if previous non-empty line is <!-- IMAGE: -->
+            prev_is_image = False
+            for j in range(i - 1, max(i - 3, -1), -1):
+                prev = lines[j].strip()
+                if not prev:
+                    continue
+                if prev.startswith('<!-- IMAGE:'):
+                    prev_is_image = True
+                break
+            if not prev_is_image:
+                violations.append(Violation(
+                    line=i + 1, text=stripped[:80],
+                    suggestion="删除孤立的 PROMPT 注释（图片已生成后的残片）"
+                ))
+
+    return CheckResult(
+        rule_id=15, rule_name="孤立 PROMPT 注释",
+        passed=len(violations) == 0, violations=violations,
+        details=f"{len(violations)} 个孤立 PROMPT 注释" if violations else "无孤立 PROMPT 注释"
+    )
+
+
 # ─── Runner ──────────────────────────────────────────────────────
 
 ALL_CHECKS = [
     check_rule_1, check_rule_2, check_rule_3, check_rule_4,
     check_rule_5, check_rule_6, check_rule_7, check_rule_8,
     check_rule_9, check_rule_10, check_rule_11, check_rule_12,
-    check_rule_13, check_rule_14,
+    check_rule_13, check_rule_14, check_rule_15,
 ]
 
 
 def run_all_checks(article_path: str) -> Tuple[List[CheckResult], bool]:
-    """Run all 14 rules. Returns (results, all_passed)."""
+    """Run all 15 rules. Returns (results, all_passed)."""
     content = Path(article_path).read_text(encoding='utf-8')
     lines_list = content.split('\n')
     results = [check(content, lines_list) for check in ALL_CHECKS]
@@ -589,7 +617,7 @@ def print_report(results: List[CheckResult]) -> None:
 
     print("════════════════════════════════════════════════════════════")
     print()
-    print("📋 Self-Check Results (14 Rules):")
+    print("📋 Self-Check Results (15 Rules):")
 
     for r in results:
         icon = "✅" if r.passed else "❌"

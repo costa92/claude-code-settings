@@ -77,12 +77,14 @@ Then gather:
 02-技术/基础设施/Go/              ← 普通 Go 文章
 02-技术/基础设施/Go/go-tutorial/  ← Go 实战教程系列（自动创建）
   ├── series-go-tutorial.md       ← 系列清单
-  ├── go_environment_setup.md     ← 第 1 篇
-  ├── go_data_structures.md       ← 第 2 篇
+  ├── 01_go_environment_setup.md  ← 第 1 篇（两位数序号前缀）
+  ├── 02_go_data_structures.md    ← 第 2 篇
   └── ...
 ```
 
 目录名使用 `series_slug`（如 `go-tutorial`、`ai-agent-patterns`）。
+
+**文件名规则**：所有系列文章使用 `{NN}_{slug}.md` 格式（NN 为两位数序号），确保 ls 按系列顺序排列。
 
 ```bash
 # 自动创建系列子目录
@@ -145,7 +147,7 @@ status: in_progress
 - **depth**: 从清单中读取
 - **visual prefix**: 从系列元数据读取（确保风格一致）
 - **series context**: 注入系列导航信息
-- **save_path**: 保存到 series.md **同目录下**（系列子目录内），不要保存到父目录
+- **save_path**: 保存到 series.md **同目录下**（系列子目录内），文件名格式 `{NN}_{slug}.md`（如 `02_go_data_structures.md`）
 
 #### Step 3: 注入系列元素
 
@@ -162,7 +164,7 @@ series_total: 5
 ```markdown
 > [!info] 📚 系列导航
 > 本文是《Go 实战教程》系列第 2/5 篇。
-> 上一篇：[Go 环境搭建与第一个程序](./go_environment_setup.md)
+> 上一篇：[Go 环境搭建与第一个程序](./01_go_environment_setup.md)
 ```
 
 **文章结尾（在 closing paragraph 之后）：**
