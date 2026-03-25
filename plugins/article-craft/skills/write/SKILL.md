@@ -250,6 +250,14 @@ Insert image placeholders throughout the article. The `article-craft:images` ski
 - Use unique, descriptive names per image.
 - **Do NOT place two images with the same purpose** in the same section.
 
+**最低 AI 图片数量规则（强制，仅统计 IMAGE 占位符，不含 SCREENSHOT）**:
+- 文章 ≤ 1500 字：cover 1 张即可
+- 文章 1500-3000 字：cover + 至少 1 张节奏图 = 最少 2 张
+- 文章 > 3000 字：cover + 至少 2 张节奏图 = 最少 3 张
+- SCREENSHOT 占位符不计入此数量（截图由 screenshot skill 处理，与 AI 生成图独立）
+- 节奏图应放在章节转换处（两个 `##` 之间），用于视觉分隔和概念可视化
+- 如果文章有对比表格或架构描述，优先在这些位置插入节奏图
+
 **Screenshot placeholders** (for referencing external content):
 ```markdown
 <!-- SCREENSHOT: url=https://example.com selector=.main-content width=1200 -->
@@ -391,7 +399,7 @@ grep -n '│\|├\|└\|┌\|┐\|─\|▼\|▶\|←\|→\|↑\|↓' article.md 
 
 5. **Anti-AI structure** — Verify varied paragraph structures, 2+ personal perspectives, diverse openings.
 
-6. **Chapter depth** — Every technical section has at least 2 commands/code snippets plus explanatory text.
+6. **Chapter depth** ⭐ **PRE-SAVE GATE** — Every `##` technical section must have at least 2 code snippets/commands plus explanatory text. **在保存前逐章节检查**：遍历每个 `##` 标题，统计其下的代码块数量，不足 2 个的必须当场补充，不能留到 post-write validation。纯观点/对比段落如果确实不需要代码（如"为什么选 X 而不是 Y"），用成本对比代码块、命令示例或配置片段充实。
 
 7. **Duplicate images** — No two images with the same purpose within the same `##` section.
 
