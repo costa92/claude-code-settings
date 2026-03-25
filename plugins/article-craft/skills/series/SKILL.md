@@ -214,6 +214,87 @@ series_total: 5
 
 ---
 
+### 模式 5：批量生成 (`/article-craft:series batch`)
+
+一次性生成多篇系列文章。适用于新建系列或补充缺失文章的场景。
+
+#### 输入
+
+```
+Question: "Which articles to generate?"
+Options:
+  - All planned — generate all 💡 planned articles
+  - Range — specify article numbers (e.g., #3-#5)
+  - Specific — pick individual articles
+```
+
+#### 执行流程
+
+**关键原则：不使用 Agent（避免超时），直接在主会话中逐篇生成。**
+
+```
+读取 series.md
+  ↓
+筛选待生成文章列表
+  ↓
+探测 Gemini 模型（一次探测，所有文章复用）
+  ↓
+For each article:
+  ├── 1. 读取该文章的 topic、audience、visual_prefix
+  ├── 2. 在主会话中直接调用 write skill 生成文章
+  ├── 3. 运行 post-write validation（Rule 1/11/12/14）
+  ├── 4. 自动修复红旗词和占位符问题
+  ├── 5. 保存文件
+  ├── 6. 自动生成图片（调用 generate_and_upload_images.py --process-file）
+  ├── 7. 更新 series.md 状态
+  ├── 8. 输出进度：✅ 第 N 篇完成 (M/Total)
+  └── 9. 继续下一篇（单篇失败不阻塞）
+  ↓
+输出批量生成报告
+```
+
+#### 容错机制
+
+- **单篇失败不阻塞**：记录失败文章和原因，继续生成下一篇
+- **断点续传**：如果中途中断，重新运行时自动跳过已标记为 `published` 的文章
+- **进度显示**：每完成一篇输出进度条
+
+#### 完成报告
+
+```
+════════════════════════════════════════════════════════════
+📚 批量生成完成：Go 实战教程
+════════════════════════════════════════════════════════════
+
+✅ 成功：5/8 篇
+  ✅ #3 Go 并发编程 (456 lines)
+  ✅ #4 Go Web 开发 (523 lines)
+  ✅ #5 Go 项目实战 (489 lines)
+  ✅ #6 Go 测试与 CI (412 lines)
+  ✅ #7 Go 性能优化 (538 lines)
+
+❌ 失败：1/8 篇
+  ❌ #8 Go 微服务架构 — 错误：content too long, manual review needed
+
+⏭️ 下一步：
+  - 修复失败文章：运行 /article-craft:series next
+  - 生成图片：运行 /article-craft:images 逐篇处理
+  - 质量审查：运行 /review @series.md
+════════════════════════════════════════════════════════════
+```
+
+#### 与 next 模式的区别
+
+| 维度 | next 模式 | batch 模式 |
+|------|----------|-----------|
+| 生成数量 | 1 篇 | N 篇 |
+| 执行方式 | 调用 orchestrator | 直接调用 write skill |
+| 图片生成 | 包含在 orchestrator 中 | 包含（逐篇生成后自动执行） |
+| review | 包含在 orchestrator 中 | 不包含（后续批量运行） |
+| 适用场景 | 逐篇精细打磨 | 快速批量覆盖 |
+
+---
+
 ## Standalone Mode
 
 当独立调用 `/article-craft:series` 时：

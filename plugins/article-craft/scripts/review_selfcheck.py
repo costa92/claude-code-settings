@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Automated self-check for article review (11 rules).
+Automated self-check for article review (14 rules).
 
 Validates articles against the self-check rules defined in
 references/self-check-rules.md. Can be used standalone or
@@ -275,20 +275,27 @@ def check_rule_5(content: str, lines: List[str]) -> CheckResult:
 
 
 def check_rule_6(content: str, lines: List[str]) -> CheckResult:
-    """Chapter Depth: each section needs ≥2 code blocks."""
+    """Chapter Depth: each section needs ≥2 code blocks (intro/motivation chapters need ≥1)."""
     body = get_body(content)
     sections = get_sections(body)
     violations = []
+
+    # Keywords indicating intro/motivation chapters that naturally have fewer code blocks
+    intro_keywords = re.compile(r'为什么|挑战|争议|背景|动机|现实|痛点|局限|需要|缺什么|之后')
 
     for heading, section_content in sections:
         if not heading or heading.startswith('## 导言') or heading.startswith('## 总结'):
             continue
         code_blocks = re.findall(r'```', section_content)
         code_count = len(code_blocks) // 2
-        if code_count < 2 and len(section_content) > 200:
+
+        # Intro/motivation chapters: threshold = 1; other chapters: threshold = 2
+        threshold = 1 if intro_keywords.search(heading) else 2
+
+        if code_count < threshold and len(section_content) > 200:
             violations.append(Violation(
                 line=0, text=heading[:60],
-                suggestion=f"章节「{heading.strip('# ')}」仅有 {code_count} 个代码块，建议补充到 2 个以上"
+                suggestion=f"章节「{heading.strip('# ')}」仅有 {code_count} 个代码块，建议补充到 {threshold} 个以上"
             ))
 
     return CheckResult(
@@ -393,6 +400,7 @@ def check_rule_11(content: str, lines: List[str]) -> CheckResult:
     """Placeholder Residue: CRITICAL GATE — no unprocessed placeholders."""
     violations = []
     for i, line in enumerate(lines):
+        # Standard IMAGE/SCREENSHOT comment placeholders
         if re.search(r'<!--\s*IMAGE:', line):
             violations.append(Violation(
                 line=i + 1, text=line.strip()[:80],
@@ -403,6 +411,24 @@ def check_rule_11(content: str, lines: List[str]) -> CheckResult:
                 line=i + 1, text=line.strip()[:80],
                 suggestion="运行 /article-craft:screenshot 处理截图"
             ))
+        # Agent-generated placeholder formats (IMAGE_PLACEHOLDER_*)
+        if re.search(r'IMAGE_PLACEHOLDER', line, re.IGNORECASE):
+            violations.append(Violation(
+                line=i + 1, text=line.strip()[:80],
+                suggestion="替换 IMAGE_PLACEHOLDER 为标准 <!-- IMAGE: --> 格式或 CDN URL"
+            ))
+        # Broken local image paths (images/xxx.jpg or placeholder-xxx.jpg that don't exist)
+        local_img = re.search(r'!\[.*?\]\(((?:images/|placeholder-)[\w.-]+)\)', line)
+        if local_img:
+            img_path = local_img.group(1)
+            # Check if referenced file exists relative to article
+            article_dir = os.path.dirname(os.path.abspath(lines[0])) if lines else '.'
+            # Use the article's directory from the content context
+            if not os.path.exists(img_path) and 'cdn.' not in img_path and 'http' not in img_path:
+                violations.append(Violation(
+                    line=i + 1, text=line.strip()[:80],
+                    suggestion=f"本地图片 {img_path} 不存在，替换为 CDN URL 或添加 <!-- IMAGE: --> 占位符"
+                ))
 
     return CheckResult(
         rule_id=11, rule_name="占位符残留",
@@ -412,17 +438,134 @@ def check_rule_11(content: str, lines: List[str]) -> CheckResult:
     )
 
 
+# ─── Rule 12 ────────────────────────────────────────────────────
+
+TEMPLATE_SUMMARY_PATTERNS = [
+    r'本文从.*出发.*拆解',
+    r'本文将.*详细.*介绍',
+    r'接下来.*我们将.*逐一',
+    r'下面.*章节.*将.*逐一',
+    r'本文.*完整.*梳理.*通过.*最后',
+    r'本文.*系统.*讲解.*从.*到',
+]
+
+
+def check_rule_12(content: str, lines: List[str]) -> CheckResult:
+    """Template Summary Detection: flag AI-style summary paragraphs."""
+    body = get_body(content)
+    text = strip_code_blocks(body)
+    violations = []
+
+    for i, line in enumerate(lines):
+        for pattern in TEMPLATE_SUMMARY_PATTERNS:
+            if re.search(pattern, line):
+                violations.append(Violation(
+                    line=i + 1, text=line.strip()[:80],
+                    suggestion="改写模板化摘要，用具体问题或个人经历替代概括性描述"
+                ))
+                break  # One match per line is enough
+
+    return CheckResult(
+        rule_id=12, rule_name="模板化摘要",
+        passed=len(violations) == 0, violations=violations,
+        details=f"{len(violations)} 处模板化表述" if violations else "无模板化摘要"
+    )
+
+
+def check_rule_13(content: str, lines: List[str]) -> CheckResult:
+    """Code Block Language Identifier: every opening ``` must have a language tag."""
+    violations = []
+    in_code = False
+
+    for i, line in enumerate(lines):
+        stripped = line.rstrip()
+        if stripped.startswith('```'):
+            if in_code:
+                # Closing fence — should be bare, skip
+                in_code = False
+            else:
+                # Opening fence — must have language identifier
+                in_code = True
+                lang = stripped[3:].strip()
+                if not lang:
+                    violations.append(Violation(
+                        line=i + 1, text=stripped,
+                        suggestion="添加语言标识符，如 ```yaml、```bash、```go、```text"
+                    ))
+
+    return CheckResult(
+        rule_id=13, rule_name="代码块语言标识",
+        passed=len(violations) == 0, violations=violations,
+        details=f"{len(violations)} 个代码块缺少语言标识" if violations else "所有代码块已标注语言"
+    )
+
+
+# Non-executable languages that may contain ASCII diagrams
+_EXECUTABLE_LANGS = {
+    'bash', 'shell', 'sh', 'zsh', 'python', 'go', 'yaml', 'yml', 'json',
+    'sql', 'javascript', 'js', 'typescript', 'ts', 'hcl', 'toml', 'dockerfile',
+    'diff', 'ini', 'conf', 'nginx', 'lua', 'ruby', 'java', 'c', 'cpp', 'rust',
+    'proto', 'protobuf', 'graphql', 'xml', 'html', 'css', 'scss', 'makefile',
+    'cmake', 'rego', 'promql', 'markdown', 'md', 'csv', 'plaintext',
+}
+
+_BOX_CHARS = set('│├└┌┐─┬┴┤┼╔╗╚╝║═╭╮╯╰')
+_ARROW_CHARS = set('▼▶◄◀←→↑↓►')
+
+
+def check_rule_14(content: str, lines: List[str]) -> CheckResult:
+    """ASCII Diagram Detection: flag ASCII diagrams in code blocks."""
+    violations = []
+    in_code = False
+    code_start = 0
+    code_lang = ''
+    code_lines = []
+
+    for i, line in enumerate(lines):
+        stripped = line.rstrip()
+        if stripped.startswith('```'):
+            if in_code:
+                # End of code block — check for ASCII diagram
+                block_content = ''.join(code_lines)
+                box_count = sum(1 for c in block_content if c in _BOX_CHARS)
+                arrow_count = sum(1 for c in block_content if c in _ARROW_CHARS)
+                if (box_count >= 5 or (box_count >= 2 and arrow_count >= 2)):
+                    if code_lang.lower() not in _EXECUTABLE_LANGS:
+                        preview = block_content.replace('\n', ' | ')[:80]
+                        violations.append(Violation(
+                            line=code_start + 1,
+                            text=f"```{code_lang} 块含 ASCII 图: {preview}",
+                            suggestion="转换为 <!-- IMAGE: name - desc (ratio) --> 占位符"
+                        ))
+                in_code = False
+                code_lines = []
+            else:
+                in_code = True
+                code_start = i
+                code_lang = stripped[3:].strip()
+                code_lines = []
+        elif in_code:
+            code_lines.append(line)
+
+    return CheckResult(
+        rule_id=14, rule_name="ASCII 图表残留",
+        passed=len(violations) == 0, violations=violations,
+        details=f"{len(violations)} 个 ASCII 图表需转换为 IMAGE 占位符" if violations else "无 ASCII 图表残留"
+    )
+
+
 # ─── Runner ──────────────────────────────────────────────────────
 
 ALL_CHECKS = [
     check_rule_1, check_rule_2, check_rule_3, check_rule_4,
     check_rule_5, check_rule_6, check_rule_7, check_rule_8,
-    check_rule_9, check_rule_10, check_rule_11,
+    check_rule_9, check_rule_10, check_rule_11, check_rule_12,
+    check_rule_13, check_rule_14,
 ]
 
 
 def run_all_checks(article_path: str) -> Tuple[List[CheckResult], bool]:
-    """Run all 11 rules. Returns (results, all_passed)."""
+    """Run all 14 rules. Returns (results, all_passed)."""
     content = Path(article_path).read_text(encoding='utf-8')
     lines_list = content.split('\n')
     results = [check(content, lines_list) for check in ALL_CHECKS]
@@ -435,7 +578,7 @@ def print_report(results: List[CheckResult]) -> None:
     print("════════════════════════════════════════════════════════════")
 
     all_passed = all(r.passed for r in results)
-    gate_result = results[10]  # Rule 11
+    gate_result = results[10]  # Rule 11 (index 10)
 
     if all_passed:
         print("✅ PHASE 1 SELF-CHECK COMPLETE")
@@ -446,7 +589,7 @@ def print_report(results: List[CheckResult]) -> None:
 
     print("════════════════════════════════════════════════════════════")
     print()
-    print("📋 Self-Check Results (11 Rules):")
+    print("📋 Self-Check Results (14 Rules):")
 
     for r in results:
         icon = "✅" if r.passed else "❌"
@@ -497,7 +640,7 @@ def to_json(results: List[CheckResult]) -> str:
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description="Article self-check (11 rules)")
+    parser = argparse.ArgumentParser(description="Article self-check (12 rules)")
     parser.add_argument("article", help="Path to .md file")
     parser.add_argument("--json", action="store_true", help="Output JSON")
     parser.add_argument("--gate-only", action="store_true", help="Only check Rule 11 (placeholder gate)")

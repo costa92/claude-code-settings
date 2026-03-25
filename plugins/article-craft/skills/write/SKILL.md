@@ -192,6 +192,16 @@ If writing as part of a series, inject navigation **after the cover image and be
 
 #### 3e. Body Sections
 
+> [!CRITICAL] 图表规则 — 写作时直接用 IMAGE 占位符，不要画 ASCII 图
+>
+> **绝对禁止在代码块中画**：架构图、流程图、对比表、时序图、拓扑图、目录树、决策树
+> 使用 `│ ├ └ ┌ ─ → ← ▶ ▼` 等制表符/箭头拼的图**全部禁止**。
+>
+> **正确做法**：需要图表时，直接写 `<!-- IMAGE: name - 描述 (ratio) -->` 占位符，
+> 由 images skill 生成专业图片。对比数据用 Markdown 表格（`| A | B |`），不要用 ASCII 框线表。
+>
+> **代码块只放可执行代码**：bash、yaml、go、python、json 等。
+
 **按选定风格的章节结构写正文。** 每种风格的具体章节模板见 `references/writing-styles.md`。
 
 各风格的核心差异：
@@ -214,6 +224,8 @@ If writing as part of a series, inject navigation **after the cover image and be
 #### 3f. Image Placeholders
 
 Insert image placeholders throughout the article. The `article-craft:images` skill will process these later.
+
+**架构图、流程图、对比图、决策树等所有非文字内容都必须用 IMAGE 占位符**，不要用 ASCII 代码块画。
 
 **完整风格指南见：** `skills/images/image-guide.md` 的 "Visual Style Guide" 部分。
 
@@ -286,6 +298,18 @@ See the [official documentation](https://example.com/docs) for details.
 - 最后一篇：改为系列回顾 + 合集链接
 
 ### Step 4: Apply Anti-AI Structure Rules + ASCII Diagram Auto-Detection
+
+> [!CRITICAL] 禁用词列表 — 写作时主动避免，不要依赖事后检查
+>
+> **绝对禁止的词汇**：无缝、赋能、一站式、综上所述、总而言之、值得注意的是、不难发现、深度解析、全面梳理、链路、闭环、抓手、底层逻辑、方法论、降本增效、实际上、事实上、显然、众所周知、不难看出
+>
+> **绝对禁止的短语**：颠覆、极致、完美解决、"在当今快速发展的..."、"随着...的不断发展..."、"让我们一起探索..."
+>
+> **禁止的模板化摘要**："本文从...出发，完整拆解..."、"本文将详细介绍..."、"接下来我们将逐一..."
+>
+> **禁止的结尾**：希望本文对你有帮助、如果有问题欢迎留言、欢迎在评论区分享、点个在看、转发给朋友
+>
+> 遇到想用这些词的场景，用**具体数据、个人经历或直接行动指令**替代。
 
 Before saving, verify the article does not read like AI-generated text AND detect ASCII diagrams:
 
@@ -413,6 +437,45 @@ Print the absolute file path after saving so subsequent skills can find it.
 
 **Critical**: This GATE check is mandatory. If violations remain, the article cannot be saved. Inform the user and require fixing or conversion before saving.
 
+### Step 7: Post-Write Validation (自动验证)
+
+**文件保存后，立即运行自动化验证** — 不等用户手动触发 review：
+
+```bash
+python3 ~/.claude/plugins/article-craft/scripts/review_selfcheck.py /ABSOLUTE/PATH/article.md
+```
+
+**必须检查的 3 条规则：**
+
+1. **Rule 1（红旗词）** — 如果发现红旗词，立即用 Edit 工具替换，然后重新验证
+2. **Rule 11（占位符格式）** — 如果发现非标准占位符（`IMAGE_PLACEHOLDER_*`、不存在的本地图片路径），转换为标准 `<!-- IMAGE: name - desc (ratio) -->` 格式
+3. **Rule 12（模板化摘要）** — 如果发现"本文从...出发"等模板句式，重写为具体问题或个人经历
+
+**自动修复流程：**
+```
+保存文件
+  ↓
+运行 review_selfcheck.py
+  ↓
+Rule 1 失败? → grep 红旗词 → Edit 替换 → 重新保存
+  ↓
+Rule 11 失败? → 转换为标准占位符格式 → 重新保存
+  ↓
+Rule 12 失败? → 重写模板句式 → 重新保存
+  ↓
+再次运行 review_selfcheck.py 确认修复
+  ↓
+输出验证结果
+```
+
+**验证通过后输出：**
+```
+✅ Post-Write Validation PASSED
+   Rule 1: 0 红旗词
+   Rule 11: 0 占位符问题
+   Rule 12: 0 模板化摘要
+```
+
 ---
 
 ## Outputs
@@ -426,11 +489,22 @@ Print the absolute file path after saving so subsequent skills can find it.
 
 ## Hand-off
 
-After writing is complete:
+After writing and post-write validation are complete, **automatically generate images**:
 
-- **Next skill**: `article-craft:images` — processes `<!-- IMAGE -->` and `<!-- SCREENSHOT -->` placeholders
-- Pass the absolute file path to the images skill
-- If the user explicitly says "no images" or "article only", skip the hand-off
+1. **检查是否有 IMAGE 占位符**：`grep -c '<!-- IMAGE:' /path/to/article.md`
+2. **如果有占位符（count > 0）**，立即执行图片生成：
+   ```bash
+   # 探测可用模型
+   BEST_MODEL=$(python3 ~/.claude/plugins/article-craft/scripts/generate_and_upload_images.py \
+     --probe 2>&1 | grep "BEST_MODEL:" | cut -d: -f2)
+
+   # 生成并上传图片
+   python3 ~/.claude/plugins/article-craft/scripts/generate_and_upload_images.py \
+     --process-file /ABSOLUTE/PATH/article.md \
+     --model $BEST_MODEL --continue-on-error --parallel
+   ```
+3. **如果探测失败**（所有模型不可用），保留占位符并告知用户
+4. **如果用户明确说** "no images" 或 "article only"，跳过图片生成
 
 In orchestrated mode, the orchestrator handles the hand-off automatically.
 
@@ -442,7 +516,7 @@ When invoked directly (not via orchestrator):
 
 1. Use AskQuestion to collect topic, audience, and length if not provided.
 2. Skip the requirements skill — go straight to writing.
-3. After saving, suggest the user run `article-craft:images` if the article contains image placeholders.
+3. After saving, **自动执行图片生成**（按 Hand-off 流程），不需要用户手动触发。
 4. Provide a completion summary:
 
 ```
