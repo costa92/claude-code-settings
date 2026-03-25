@@ -1,6 +1,6 @@
 ---
 name: article-craft:series
-description: "Plan, manage, and generate article series — shared style, auto-navigation, progress tracking. Use when creating a multi-part tutorial, deep-dive, or themed collection."
+description: "Plan, manage, generate, and audit article series — shared style, auto-navigation, progress tracking, knowledge coverage analysis. Use when creating, continuing, or auditing a multi-part series."
 ---
 
 # Series — 系列文章管理
@@ -297,6 +297,142 @@ For each article:
 
 ---
 
+### 模式 6：知识覆盖度审计 (`/article-craft:series audit`)
+
+对已完成或进行中的系列进行知识域覆盖度分析，识别缺失主题，为续季规划提供依据。
+
+#### Step 1: 确定审计范围
+
+读取 series.md，提取：
+- 系列主题域（如 "Kubernetes"、"Go"）
+- 目标读者等级（beginner / intermediate / advanced）
+- 已有文章列表及每篇核心内容
+
+#### Step 2: 构建知识图谱
+
+根据主题域和读者等级，用 WebSearch 查询该领域的**权威知识体系**，构建完整的知识图谱。
+
+**知识图谱来源**（按优先级）：
+1. 官方文档的目录结构（如 kubernetes.io/docs、go.dev/doc）
+2. 权威认证考试大纲（如 CKA/CKAD/CKS 考试范围）
+3. 同类优质系列文章/书籍的目录
+4. 社区高频问题和最佳实践
+
+**知识图谱输出格式**：
+
+```markdown
+## 知识图谱：{主题域}（{读者等级}）
+
+### 一级分类：核心架构
+- [ ] 控制面组件（API Server, etcd, Scheduler, Controller Manager）
+- [ ] 数据面组件（kubelet, kube-proxy, Container Runtime）
+- [ ] ...
+
+### 一级分类：存储
+- [ ] 持久化卷（PV/PVC）
+- [ ] CSI 驱动开发
+- [ ] ...
+
+（每个知识点用 checkbox 标记，便于后续映射）
+```
+
+#### Step 3: 覆盖度映射
+
+将系列已有文章**逐一映射**到知识图谱节点：
+
+```
+已有文章 → 知识图谱节点（可以 1:N 或 N:1）
+
+例：
+  #1 K8s 架构全景 → ✅ 控制面组件, ✅ 请求处理流程
+  #3 PV/PVC 到 CSI → ✅ 持久化卷, ✅ CSI 架构
+  （无文章）       → ❌ Secrets 外部化管理
+```
+
+**映射规则**：
+- ✅ **已覆盖**：有专门文章深度讲解
+- 🟡 **部分覆盖**：在其他文章中提到但未深入（标注出现在哪篇）
+- ❌ **未覆盖**：系列中完全没有涉及
+
+#### Step 4: 生成审计报告
+
+**覆盖度评分公式**：
+
+```
+覆盖率 = (已覆盖 × 1.0 + 部分覆盖 × 0.5) / 总知识点数 × 100%
+```
+
+**报告格式**：
+
+```markdown
+════════════════════════════════════════════════════════════
+📊 知识覆盖度审计：{系列名称}
+════════════════════════════════════════════════════════════
+
+📋 审计范围
+- 主题域：{topic}
+- 读者等级：{audience}
+- 已有文章：{N} 篇
+- 知识图谱来源：{来源说明}
+
+📈 覆盖率：{XX}%
+████████████░░░░ {XX}%
+
+✅ 已覆盖（{N} 个知识点）
+| 知识点 | 覆盖文章 | 深度 |
+|--------|----------|------|
+| 控制面架构 | #1 K8s 架构全景 | 深 |
+| ... | ... | ... |
+
+🟡 部分覆盖（{N} 个知识点）
+| 知识点 | 提及文章 | 缺失内容 |
+|--------|----------|----------|
+| Admission Webhook | #22 安全进阶 | 缺自定义开发实战 |
+| ... | ... | ... |
+
+❌ 未覆盖（{N} 个知识点）
+| 知识点 | 重要程度 | 推荐理由 |
+|--------|----------|----------|
+| Secrets 管理 | ⭐⭐⭐ | 生产刚需，Vault/ESO |
+| 多租户模式 | ⭐⭐⭐ | 企业平台化核心 |
+| ... | ... | ... |
+
+重要程度评分标准：
+  ⭐⭐⭐ = 生产环境刚需 / 读者等级必备知识
+  ⭐⭐   = 重要但可延后 / 特定场景需求
+  ⭐     = 小众 / 前沿探索
+
+🎯 续季建议
+按重要程度排序的推荐文章主题：
+| 优先级 | 建议标题 | 核心内容 | 理由 |
+|--------|----------|----------|------|
+| P0 | ... | ... | ... |
+| P1 | ... | ... | ... |
+| P2 | ... | ... | ... |
+
+════════════════════════════════════════════════════════════
+```
+
+#### Step 5: 续季规划（可选）
+
+如果用户确认要开新季：
+
+```
+Question: "是否基于审计结果创建新季？"
+Options:
+  - 是 — 从未覆盖主题中选取，创建新季 series.md
+  - 先调整 — 让我修改推荐主题后再创建
+  - 仅保存报告 — 保存审计结果到 series.md 同目录
+```
+
+选择"是"时：
+1. 从 ❌ 未覆盖 + 🟡 部分覆盖中筛选 P0/P1 主题
+2. 自动调用 **模式 1（create）** 创建新季 series.md
+3. 新季 series_slug 追加季号（如 `k8s-advanced-s3`）
+4. 新季 series.md 的 "定位" 中注明与前季的关系
+
+---
+
 ## Standalone Mode
 
 当独立调用 `/article-craft:series` 时：
@@ -308,6 +444,7 @@ Options:
   - Write next article — continue an existing series
   - Check status — view series progress
   - Generate collection — create a summary article for a completed series
+  - Audit coverage — analyze knowledge gap and plan next season
 ```
 
 如果 KB 中存在多个 series.md 文件，列出让用户选择。

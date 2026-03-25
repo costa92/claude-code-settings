@@ -214,6 +214,41 @@ series_total: 5
 
 ---
 
+### 模式 5：知识覆盖度审计 (`/article-craft:series audit`)
+
+对已完成或进行中的系列进行知识域覆盖度分析，识别缺失主题，为续季规划提供依据。
+
+#### Step 1: 确定审计范围
+
+读取 series.md，提取系列主题域、目标读者等级、已有文章列表及核心内容。
+
+#### Step 2: 构建知识图谱
+
+用 WebSearch 查询该领域的权威知识体系：
+1. 官方文档目录结构
+2. 权威认证考试大纲（如 CKA/CKAD）
+3. 同类优质系列/书籍目录
+4. 社区高频问题和最佳实践
+
+#### Step 3: 覆盖度映射
+
+将已有文章映射到知识图谱节点：
+- ✅ 已覆盖：有专门文章深度讲解
+- 🟡 部分覆盖：在其他文章中提到但未深入
+- ❌ 未覆盖：系列中完全没有涉及
+
+覆盖率 = (已覆盖 × 1.0 + 部分覆盖 × 0.5) / 总知识点数 × 100%
+
+#### Step 4: 生成审计报告
+
+输出覆盖率、已覆盖/部分覆盖/未覆盖列表、重要程度评分（⭐⭐⭐/⭐⭐/⭐）、续季建议。
+
+#### Step 5: 续季规划（可选）
+
+如果用户确认要开新季，从未覆盖主题中筛选 P0/P1 主题，调用模式 1 创建新季 series.md。
+
+---
+
 ## Standalone Mode
 
 当独立调用 `/article-craft:series` 时：
@@ -225,6 +260,7 @@ Options:
   - Write next article — continue an existing series
   - Check status — view series progress
   - Generate collection — create a summary article for a completed series
+  - Audit coverage — analyze knowledge gap and plan next season
 ```
 
 如果 KB 中存在多个 series.md 文件，列出让用户选择。
