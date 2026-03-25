@@ -445,11 +445,23 @@ Print the absolute file path after saving so subsequent skills can find it.
 python3 ~/.claude/plugins/article-craft/scripts/review_selfcheck.py /ABSOLUTE/PATH/article.md
 ```
 
-**必须检查的 3 条规则：**
+**必须检查的 4 条规则：**
 
 1. **Rule 1（红旗词）** — 如果发现红旗词，立即用 Edit 工具替换，然后重新验证
 2. **Rule 11（占位符格式）** — 如果发现非标准占位符（`IMAGE_PLACEHOLDER_*`、不存在的本地图片路径），转换为标准 `<!-- IMAGE: name - desc (ratio) -->` 格式
 3. **Rule 12（模板化摘要）** — 如果发现"本文从...出发"等模板句式，重写为具体问题或个人经历
+4. **Rule 14（IMAGE 占位符双行格式）** ⭐ **CRITICAL** — 验证所有 `<!-- IMAGE:` 占位符匹配 images 脚本的正则格式：
+   ```
+   <!-- IMAGE: slug - description (ratio) -->
+   <!-- PROMPT: english prompt text -->
+   ```
+   正则: `<!--\s*IMAGE:\s*(.*?)\s*-\s*(.*?)\s*\((.*?)\)\s*-->(?:\s*|\n)*<!--\s*PROMPT:\s*(.*?)\s*-->`
+
+   **自动修复规则：**
+   - 缺少 `(ratio)` → 补 `(16:9)` 作为默认比例
+   - 缺少 `<!-- PROMPT: -->` 行 → 根据 description 自动生成英文 PROMPT，格式为 `[visual_prefix]. [description translated to English]`
+   - PROMPT 不是英文 → 翻译为英文
+   - 两行之间有空行 → 删除空行使其紧邻
 
 **自动修复流程：**
 ```
@@ -463,6 +475,8 @@ Rule 11 失败? → 转换为标准占位符格式 → 重新保存
   ↓
 Rule 12 失败? → 重写模板句式 → 重新保存
   ↓
+Rule 14 失败? → 补全 ratio/PROMPT/翻译 → 重新保存
+  ↓
 再次运行 review_selfcheck.py 确认修复
   ↓
 输出验证结果
@@ -474,6 +488,7 @@ Rule 12 失败? → 重写模板句式 → 重新保存
    Rule 1: 0 红旗词
    Rule 11: 0 占位符问题
    Rule 12: 0 模板化摘要
+   Rule 14: N 个 IMAGE 占位符，格式合规 ✅
 ```
 
 ---

@@ -106,6 +106,9 @@ Invoke `article-craft:verify` skill logic:
 - Extract tool names and URLs from the topic/context
 - Run batch verification (links, commands, feature discovery)
 - Use Standard verification mode by default
+- **前台阻塞执行**（不用 `run_in_background`），确保结果在 write 之前可用
+- 如果验证超时（>60s），降级为跳过，write 使用自身 WebSearch 结果
+- **缓存验证结果**：工具版本号、链接有效性等，传递给 Step 3.3
 
 **On failure:** Report failures but continue — verification is non-blocking
 **Status:** Mark `success` (even with individual link/command failures)
@@ -117,7 +120,7 @@ Invoke `article-craft:verify` skill logic:
 
 Invoke `article-craft:write` skill logic:
 - Pass requirements context from Step 3.1
-- Pass verification results from Step 3.2 (if available)
+- **Pass verification results from Step 3.2**（如果 verify 返回了工具版本号，写作时应引用这些精确版本号而非自行搜索）
 - Generate article with YAML frontmatter, Obsidian callouts, image placeholders
 - Apply self-check rules from `references/self-check-rules.md`
 - Save article.md to disk
@@ -146,8 +149,15 @@ Invoke `article-craft:screenshot` skill logic:
 Invoke `article-craft:images` skill logic:
 - Pass the article.md absolute file path from Step 3.3 (screenshot placeholders already resolved)
 - Run Gemini probe test
-- Batch process image placeholders
+- Batch process image placeholders with heartbeat monitoring enabled
 - Update article.md in-place with CDN URLs
+- **脚本路径**: `~/.claude/plugins/article-craft/scripts/generate_and_upload_images.py`（不要用 `~/.claude/scripts/` 旧路径）
+
+```bash
+# 标准调用方式
+python3 ~/.claude/plugins/article-craft/scripts/generate_and_upload_images.py \
+  --process-file /ABSOLUTE/PATH/article.md
+```
 
 **On failure:** Graceful degradation — keep unresolved placeholders, log which
 images failed, continue to review. Do NOT stop the pipeline.
@@ -158,11 +168,10 @@ images failed, continue to review. Do NOT stop the pipeline.
 
 #### 3.6 Review (standard mode only)
 
-Invoke `article-craft:review` skill logic:
+直接调用 `/article-craft:review`（review skill 内部已包含 Phase 1 self-check + Phase 2 content-reviewer，不需要独立运行 self-check 脚本）：
 - Pass the article.md absolute file path
-- Run self-check (11 rules from self-check-rules.md, including Rule 11: ASCII diagram check)
-- **GATE**: If Rule 11 (ASCII Diagram) violation found → BLOCK, do not proceed to content-reviewer
-- Invoke `/content-reviewer` for 7-dimension scoring (only if all self-check rules pass)
+- review skill 自动执行：self-check（15 条规则）→ content-reviewer（7 维评分）
+- **不要单独调用 `review_selfcheck.py`**——review skill 内部会调用它
 
 **Review retry loop:**
 1. If score ≥ 55/70 → PASS, continue to publish

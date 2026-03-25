@@ -141,13 +141,21 @@ status: in_progress
 
 #### Step 2: 调用 orchestrator
 
-自动传入以下参数给 orchestrator：
-- **topic**: 从清单中读取标题和核心内容
-- **audience**: 从系列元数据读取
-- **depth**: 从清单中读取
-- **visual prefix**: 从系列元数据读取（确保风格一致）
-- **series context**: 注入系列导航信息
-- **save_path**: 保存到 series.md **同目录下**（系列子目录内），文件名格式 `{NN}_{slug}.md`（如 `02_go_data_structures.md`）
+只传 `--series SERIES_FILE` 一个参数，orchestrator 自动从 series.md 中读取所有配置：
+
+```
+/article-craft --series /path/to/series-{slug}.md
+```
+
+Orchestrator 内部解析 series.md 后自动提取：
+- **topic**: 清单中第一个 `planned` 文章的标题 + 核心内容
+- **audience**: 从系列元数据 `target_audience` 读取
+- **visual prefix**: 从 `visual_prefix` 字段读取（确保风格一致）
+- **writing style**: 从 `writing_style` 字段读取
+- **save_path**: series.md 同目录下，文件名 `{NN}_{slug}.md`
+- **series context**: 自动生成导航信息（上一篇/下一篇标题和链接）
+
+**不要手动拼接参数**——所有信息都在 series.md 中。
 
 #### Step 3: 注入系列元素
 

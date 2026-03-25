@@ -139,13 +139,13 @@ status: in_progress
 
 #### Step 2: 调用 orchestrator
 
-自动传入以下参数给 orchestrator：
-- **topic**: 从清单中读取标题和核心内容
-- **audience**: 从系列元数据读取
-- **depth**: 从清单中读取
-- **visual prefix**: 从系列元数据读取（确保风格一致）
-- **series context**: 注入系列导航信息
-- **save_path**: 保存到 series.md **同目录下**（系列子目录内），不要保存到父目录
+只传 `--series SERIES_FILE` 一个参数，orchestrator 自动从 series.md 中读取所有配置：
+
+```
+/article-craft --series /path/to/series-{slug}.md
+```
+
+Orchestrator 自动提取 topic、audience、visual prefix、writing style、save_path、series context。**不要手动拼接参数**。
 
 #### Step 3: 注入系列元素
 
