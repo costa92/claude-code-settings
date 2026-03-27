@@ -64,8 +64,7 @@ yt-dlp --cookies-from-browser=chrome \
   "VIDEO_URL"
 ```
 
-2. **youtube-transcribe-skill 回退**：
-   如果 yt-dlp 失败，调用 `/youtube-transcribe-skill VIDEO_URL`
+2. **回退方案**：如果 yt-dlp 失败，提示用户安装 yt-dlp 或使用其他字幕获取方法
 
 3. **解析字幕文件**：
 
@@ -238,5 +237,4 @@ ARTICLE_PATH="{sanitized-title}.md"
 ## 依赖
 
 - `yt-dlp`（字幕下载，`brew install yt-dlp` 或 `pip install yt-dlp`）
-- `/youtube-transcribe-skill`（回退方案）
 - `article-craft:write` 写作规范（引用 style-guide 和 self-check-rules）

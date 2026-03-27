@@ -2,10 +2,8 @@
 """
 Generate or edit images using Google Gemini API.
 
-This is the canonical implementation. The nanobanana-skill plugin
-(~/.claude/plugins/nanobanana-skill) is a thin wrapper that imports from here.
+This is the canonical implementation for article-craft images skill.
 """
-import json
 import os
 import sys
 import argparse
@@ -272,7 +270,7 @@ def generate_image(model, contents, aspect_ratio, resolution, output_path, no_fa
 def run(default_size="1344x768"):
     """
     Main entry point. Accepts default_size override for different contexts:
-    - article-generator: 1344x768 (16:9 landscape for covers)
+    - article-craft: 1344x768 (16:9 landscape for covers)
     - plugin standalone: 768x1344 (9:16 portrait)
     """
     parser = argparse.ArgumentParser(

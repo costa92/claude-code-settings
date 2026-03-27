@@ -39,7 +39,7 @@ Reference: `~/.claude/plugins/article-craft/references/self-check-rules.md`
 Search the article with Grep for these patterns:
 
 ```bash
-grep -nE '无缝|赋能|一站式|综上所述|总而言之|值得注意的是|不难发现|深度解析|全面梳理|链路|闭环|抓手|底层逻辑|方法论|降本增效|实际上|事实上|显然|众所周知|不难看出' /path/to/article.md
+Search the article with Python regular expressions for red-flag words
 ```
 
 Also flag:
@@ -114,7 +114,7 @@ All reference links must be **inlined** at first mention using `[Name](url)` for
 
 Run this detection command:
 ```bash
-grep -nE '│|├|└|┌|┐|─|▼|▶|←|→|↑|↓' article.md
+Use Python regular expressions to scan for ASCII diagrams
 ```
 
 For each match found:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Shared configuration constants for article-generator skill
+Shared configuration constants for article-craft skill
 """
 
 import os
@@ -197,7 +197,7 @@ ASPECT_RATIO_TO_SIZE = {
 }
 
 # Timeout configurations (in seconds)
-# User config can override these via ~/.article-generator.conf
+# User config can override these via ~/.article-craft.conf
 _default_timeouts = {
     "image_generation": 120,  # 2 minutes per image
     "upload": 60,  # 1 minute for upload
@@ -253,7 +253,7 @@ PICGO_CONFIG = {
 }
 
 # S3 Configuration (Optional - Alternative to PicGo)
-# Set these in ~/.article-generator.conf or environment variables
+# Set these in ~/.article-craft.conf or environment variables
 S3_CONFIG = {
     "enabled": _user_config.get("s3", {}).get("enabled", False),
     "endpoint_url": os.getenv("S3_ENDPOINT", _user_config.get("s3", {}).get("endpoint_url", "")),

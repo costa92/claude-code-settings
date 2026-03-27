@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Auto-detect and install missing dependencies for article-generator skill
+Auto-detect and install missing dependencies for article-craft skill
 Includes Python packages and Node.js tools (picgo)
 """
 import subprocess
@@ -221,7 +221,7 @@ def main():
     """Main dependency check and installation"""
 
     print("=" * 70)
-    print("🚀 article-generator Dependency Check")
+    print("🚀 article-craft Dependency Check")
     print("=" * 70)
     print()
 
@@ -244,8 +244,8 @@ def main():
     if all_ok:
         print("✅ All dependencies are ready!")
         print("=" * 70)
-        print("\n🎉 You can now use article-generator skill")
-        print("   Example: /article-generator 写一篇关于Python的技术文章\n")
+        print("\n🎉 You can now use article-craft skill")
+        print("   Example: /article-craft 写一篇关于Python的技术文章\n")
         return True
     else:
         print("⚠️  Some dependencies are missing or not configured")
