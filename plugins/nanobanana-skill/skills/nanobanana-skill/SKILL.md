@@ -12,7 +12,7 @@ Generate or edit images using Google Gemini API through the nanobanana tool.
 
 This plugin is a **thin wrapper** that delegates to the canonical implementation:
 
-- **Canonical script**: `~/.claude/skills/article-generator/scripts/nanobanana.py`
+- **Canonical script**: `~/.claude/plugins/article-craft/scripts/nanobanana.py`
 - **This wrapper**: `${CLAUDE_PLUGIN_ROOT}/skills/nanobanana-skill/nanobanana.py`
 
 The wrapper only changes the default size (9:16 portrait vs 16:9 landscape in article-generator).
