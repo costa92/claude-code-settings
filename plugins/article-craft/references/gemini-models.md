@@ -1,7 +1,7 @@
 # Gemini Image Model Fallback Chain
 
 > Adapted from article-generator v3.3 for article-craft plugin
-> Extracted from gemini_image_generation.md -- model and fallback info only.
+> Model and fallback info for Gemini image generation.
 
 ## Default Model
 
@@ -31,21 +31,21 @@ Use `nanobanana.py` for a single lightweight probe, then `generate_and_upload_im
 ### Step 1: Probe with default model (pro)
 
 ```bash
-python3 ${SKILL_DIR}/scripts/nanobanana.py \
+python3 ~/.claude/plugins/article-craft/scripts/nanobanana.py \
   --prompt "test" --size 1024x1024 --output /tmp/gemini_probe.jpg
 ```
 
 If the probe succeeds, proceed with batch:
 
 ```bash
-python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+python3 ~/.claude/plugins/article-craft/scripts/generate_and_upload_images.py \
   --process-file /absolute/path/to/article.md
 ```
 
 ### Step 2: Pro fails (503/429) -- fall back to flash probe
 
 ```bash
-python3 ${SKILL_DIR}/scripts/nanobanana.py \
+python3 ~/.claude/plugins/article-craft/scripts/nanobanana.py \
   --prompt "test" --size 1024x1024 --output /tmp/gemini_probe.jpg \
   --model gemini-2.5-flash-image
 ```
@@ -53,7 +53,7 @@ python3 ${SKILL_DIR}/scripts/nanobanana.py \
 If flash probe succeeds, batch with flash:
 
 ```bash
-python3 ${SKILL_DIR}/scripts/generate_and_upload_images.py \
+python3 ~/.claude/plugins/article-craft/scripts/generate_and_upload_images.py \
   --process-file /absolute/path/to/article.md --model gemini-2.5-flash-image
 ```
 

@@ -595,7 +595,7 @@ When invoked directly (not via orchestrator):
 A complete article template with all sections and placeholder patterns is at:
 
 ```
-{SKILL_DIR}/skills/write/templates/article.md
+~/.claude/plugins/article-craft/skills/write/templates/article.md
 ```
 
 Use it as a structural reference. Adapt sections to fit the specific article — not every section applies to every topic.

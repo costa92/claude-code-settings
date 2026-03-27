@@ -129,7 +129,7 @@ cd /tmp && rm -rf test-proj && mkdir test-proj && cd test-proj && \
 
 Independent commands can be verified in parallel bash calls.
 
-**Whitelisted tools** (see `verify/trusted-tools.md`): basic commands can be trusted without verification. Only verify niche flags, version-specific features, or deprecated commands.
+**Whitelisted tools** (see `~/.claude/plugins/article-craft/skills/verify/trusted-tools.md`): basic commands can be trusted without verification. Only verify niche flags, version-specific features, or deprecated commands.
 
 **Non-whitelisted tools**: must be verified through official docs or sandbox execution. If a command cannot be verified, mark it `[needs verification]` or remove it.
 
@@ -186,7 +186,7 @@ Report **only failures and pending items**. Passing checks produce no output.
 
 All technical content must satisfy at least one of:
 1. **Official docs verified** (most reliable) -- found via WebSearch/WebFetch
-2. **Trusted tools whitelist** (pre-verified) -- see `verify/trusted-tools.md`
+2. **Trusted tools whitelist** (pre-verified) -- see `~/.claude/plugins/article-craft/skills/verify/trusted-tools.md`
 3. **User-provided info** (needs confirmation) -- user explicitly provided and confirmed
 4. **Stable knowledge-base info** (moderate trust) -- fundamental CS concepts, standard protocols, classic algorithms
 

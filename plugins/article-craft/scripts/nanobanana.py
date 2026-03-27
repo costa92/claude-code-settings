@@ -2,8 +2,8 @@
 """
 Generate or edit images using Google Gemini API.
 
-This is the canonical implementation — the plugin version
-(~/.claude/plugins/nanobanana-skill) is a thin wrapper that delegates here.
+This is the canonical implementation. The nanobanana-skill plugin
+(~/.claude/plugins/nanobanana-skill) is a thin wrapper that imports from here.
 """
 import json
 import os

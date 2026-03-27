@@ -76,6 +76,7 @@ Pipeline Status:
   requirements: pending
   verify:       pending
   write:        pending
+  screenshot:   pending
   images:       pending
   review:       pending
   publish:      pending
@@ -219,6 +220,7 @@ After all skills complete (or pipeline stops on fatal error), print a summary ta
 │ requirements │ success  │ Topic: {topic}                │
 │ verify       │ success  │ 8/10 links OK, 2 broken       │
 │ write        │ success  │ Saved: {absolute_path}        │
+│ screenshot   │ success  │ 2/2 captured                  │
 │ images       │ success  │ 4/5 uploaded, 1 placeholder   │
 │ review       │ success  │ Score: 58/70 (round 1)        │
 │ publish      │ success  │ KB: {final_path}              │
@@ -238,6 +240,7 @@ If the pipeline stops due to a fatal error (write skill failure):
 │ requirements │ success  │ Topic: {topic}                │
 │ verify       │ success  │ All OK                        │
 │ write        │ FAILED   │ Error: {error_message}        │
+│ screenshot   │ skipped  │ (blocked by write failure)    │
 │ images       │ skipped  │ (blocked by write failure)    │
 │ review       │ skipped  │ (blocked by write failure)    │
 │ publish      │ skipped  │ (blocked by write failure)    │

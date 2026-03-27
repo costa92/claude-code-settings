@@ -1,7 +1,7 @@
 # Self-Check Rules
 
 > Adapted from article-generator v3.3 for article-craft plugin
-> Consolidated from SKILL.md (Phase C self-check) and technical_blog_style_guide.md.
+> Consolidated from SKILL.md (Phase C self-check) and writing-styles.md.
 
 Run these checks after writing and before sending to the reviewer. Fix violations inline; do not leave them for the reviewer to catch.
 
