@@ -1543,17 +1543,29 @@ def parse_markdown_images(file_path: str) -> List[tuple]:
 
     # Regex to match the placeholder pattern (Supports multi-line)
     # Allows optional spaces and newlines around components
-    pattern = r'<!--\s*IMAGE:\s*(.*?)\s*-\s*(.*?)\s*\((.*?)\)\s*-->(?:\s*|\n)*<!--\s*PROMPT:\s*(.*?)\s*-->'
+    pattern = r'<!--\s*IMAGE:\s*([^\(\)]*?)\s*\((.*?)\)\s*-->(?:\s*|\n)*<!--\s*PROMPT:\s*(.*?)\s*-->'
     matches = []
 
     file_stem = Path(file_path).stem
 
     for match in re.finditer(pattern, file_content, re.DOTALL):
         full_match_text = match.group(0)
-        slug = match.group(1).strip()
-        desc = match.group(2).strip()
-        ratio = match.group(3).strip()
-        prompt = match.group(4).strip()
+        name_and_desc = match.group(1).strip()
+        ratio = match.group(2).strip()
+        prompt = match.group(3).strip()
+
+        # 分离名称和描述 (新格式)
+        if ' - ' in name_and_desc:
+            slug_part, desc = name_and_desc.rsplit(' - ', 1)
+        else:
+            slug_part = name_and_desc
+            desc = name_and_desc
+
+        # 从 slug_part 中提取 slug (第一个空格之前的部分)
+        if ' ' in slug_part:
+            slug = slug_part.split(' ', 1)[0]
+        else:
+            slug = slug_part
 
         # Construct filename: 使用更安全的方式，避免中文字符
         # 1. 安全化 file_stem（去除中文字符和其他非ASCII字符）

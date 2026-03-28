@@ -213,6 +213,31 @@ If writing as part of a series, inject navigation **after the cover image and be
 - **描述流程、架构、数据流向时，使用 `<!-- IMAGE -->` 占位符，不要用代码块 + 箭头符号**
 - **代码块必须标注语言**（如 ` ```bash `、` ```go `），没有语言标识的代码块只允许用于纯文本输出示例
 
+**长代码块分割策略（超过 30 行时必须拆分）：**
+- Go/Python 完整实现文件：按 `imports + 类型声明` / `核心函数` / `辅助函数` 三段拆分
+- 每段前加 1 句说明："先定义类型结构体..." / "核心处理函数..." / "注册路由，启动服务..."
+- 禁止把完整 Go 文件（通常 50-80 行）作为单个代码块
+
+**项目目录结构禁止用 ASCII 树：**
+- 禁止：在代码块里用 `├──`、`└──` 等字符展示目录（触发 Rule 13 + 14）
+- 正确：用 Markdown 列表替代，例如：
+  ```
+  - `main.go` — HTTP server 入口
+  - `deploy/` — K8s 部署清单
+    - `certificate.yaml`
+  ```
+
+**概念性章节的 Rule 6 合规策略：**
+- 纯理论/对比表格章节（无代码）也必须包含 ≥2 个实操命令
+- 优先选择：kubectl get/describe/logs 等诊断命令，或 --dry-run 验证命令
+- 示例：讲解 Webhook 工作原理时，补充 `kubectl get mutatingwebhookconfigurations` 和审计日志命令
+- 这类命令有实际调试价值，不是为了凑数
+
+**红旗词适用范围（包含所有文本）：**
+- 红旗词检查覆盖文章**所有文本**，包括：正文、Callout（`> [!tip]`、`> [!info]`）、系列预告区块
+- 常见遗漏场景：在 `> [!tip] 下一篇预告` 中使用 `极致`、`颠覆`——同样禁止
+- `链路` 即使在技术上下文（"请求链路"）中也禁止。改用：`请求处理流程`、`调用路径`、`调用时序`
+
 #### 3f. Image Placeholders
 
 Insert image placeholders throughout the article. The `article-craft:images` skill will process these later.
