@@ -23,6 +23,12 @@ Also flag:
 
 **Why**: These words trigger content-reviewer deductions in the "AI 痕迹" dimension and signal marketing fluff or AI-generated boilerplate.
 
+> [!warning] `链路` 技术上下文不例外
+> `链路` 即使在技术语境（"请求链路"、"调用链路"）中也禁止使用。
+> 替换词：`请求处理流程` / `调用路径` / `处理通道` / `调用时序`。
+> 此规则适用于**文章所有文本**，包括 Callout（`> [!tip]`、`> [!info]` 等）和系列预告区块。
+> 同理，`极致`、`颠覆` 等词在 Callout 和下一篇预告中同样禁止。
+
 ---
 
 ## 2. Hook Length (opening paragraph)
@@ -138,6 +144,17 @@ grep -nE '│|├|└|┌|┐|─|▼|▶|←|→|↑|↓' article.md
 ```
 
 **If a code block contains these characters AND is not executable code (bash/python/json)**, it is an ASCII diagram that must be replaced with an `<!-- IMAGE -->` placeholder.
+
+> [!note] 项目目录树也受此规则约束
+> 用 `├──`、`└──` 等字符在代码块里展示项目结构，同样会触发此规则。
+> **正确做法**：用 Markdown 列表替代：
+> ```
+> - `main.go` — HTTP server 入口
+> - `mutate.go` — Mutating Webhook 处理逻辑
+> - `deploy/` — K8s 部署清单
+>   - `certificate.yaml`
+> ```
+> 不要把目录树放在任何代码块里，即使是 `text` 语言标识也不建议（`├` 字符会被 Rule 14 检测器标记）。
 
 **Why**: ASCII diagrams render poorly on mobile, cannot be styled consistently, and miss the opportunity to use the article's shared visual style. All flowcharts, architecture diagrams, sequence diagrams, and state machines should be AI-generated images.
 
